@@ -1,4 +1,5 @@
-images/bounding_box/
-images/planet_scope/
-images/swissimage/
-preprocess_images/temp/
+images/bounding_box/*
+images/planet_scope/*
+images/swissimage/*
+images/test_image/*
+preprocess_images/temp/*
