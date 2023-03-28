@@ -3,3 +3,4 @@ images/planet_scope/*
 images/swissimage/*
 images/test_image/*
 preprocess_images/temp/*
+.env
