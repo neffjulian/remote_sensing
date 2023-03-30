@@ -3,4 +3,8 @@ images/planet_scope/*
 images/swissimage/*
 images/test_image/*
 preprocess_images/temp/*
+images/sentinel_2/22_july/*
+images/sentinel_2/22_march/*
+images/sentinel_2/22_may/*
 .env
+*.pyc

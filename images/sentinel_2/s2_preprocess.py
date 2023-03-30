@@ -42,7 +42,7 @@ def crop(arr, z):
 def verify_dimensions(name):
     for filename in os.listdir(f'{name}'):
         if filename.endswith('.npz'):
-            file = dict(np.load(f'{name}/' + filename))
+            file = dict(np.load(f'{name}/{filename}'))
 
             for key in file.keys():
                 shape = np.shape(file[key])

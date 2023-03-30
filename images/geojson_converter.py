@@ -41,7 +41,7 @@ def point_to_square(point: dict, km: float = 1):
 
 def convert_to_squares():
     # Load the input GeoJSON file containing point features
-    with open('coordinates/points.geojson', 'r') as file:
+    with open('../coordinates/points.geojson', 'r') as file:
         points = json.load(file)
     # Convert each point feature to a square feature
     squares = {
@@ -49,23 +49,8 @@ def convert_to_squares():
         "features": [point_to_square(point) for point in points['features']]
     }
     # Write the output GeoJSON file containing square features
-    with open('coordinates/squares.geojson', 'x') as file:
+    with open('../coordinates/squares.geojson', 'x') as file:
         json.dump(squares, file)
-
-def get_coordinates_from_points():
-    # Open the GeoJSON file containing point features
-    with open('coordinates/points.geojson', 'r') as file:
-        # Load the file as a JSON object
-        points = json.load(file)
-
-    # Extract the coordinates from each point feature and add to a list
-    coordinates = []
-    for point in points['features']:
-        point_coords = point['geometry']['coordinates']
-        coordinates.append(point_coords)
-
-    # Return the list of coordinates
-    return coordinates
 
 if __name__ == "__main__":
     # Use a tool to create a list of points such as 'geojson.io' and then copy the list into 'points.geojson'

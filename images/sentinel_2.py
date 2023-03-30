@@ -214,8 +214,8 @@ def inspect_data():
 
 def main():
     download_data()
-    crop_data()
-    inspect_data()
+    # crop_data()
+    # inspect_data()
 
 if __name__ == "__main__":
     main()
