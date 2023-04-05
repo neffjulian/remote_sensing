@@ -6,8 +6,17 @@ import numpy as np
 # Define the bands to retrieve
 bands = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12",]
 
-def get_coordinates_from_points():
-    with open('../coordinates/points.geojson', 'r') as file:
+def get_coordinates_from_points(filepath: str) -> list:
+    """
+    Retrieve a list of coordinates from a GeoJSON file and return them.
+
+    Parameters:
+    filepath (str): The filepath of the GeoJSON file.
+
+    Returns:
+    list: A list of coordinates.
+    """
+    with open(filepath, 'r') as file:
         points = json.load(file)
 
     coordinates = []
@@ -17,17 +26,48 @@ def get_coordinates_from_points():
 
     return coordinates
 
-def update_bounds(arr, low, high):
+def update_bounds(arr: np.ndarray, low: int, high: int) -> tuple:
+    """
+    Update the bounds of an array. Used to check that image sizes are consistent and remove outliers from the downloaded data.
+
+    Parameters:
+    arr (numpy.ndarray): The input array.
+    low (int): The current lower bound.
+    high (int): The current upper bound.
+
+    Returns:
+    tuple: A tuple containing the updated lower and upper bounds.
+    """
+
     shape = np.shape(arr)
     low = min(low, min(shape[1], shape[2]))
     high = max(high, max(shape[1], shape[2]))
     return low, high
 
-def remove_files(name, filename):
+def remove_files(name: str, filename: str) -> None:
+    """
+    Remove a .npz file and its corresponding .png file. This function is called, when the downloaded file is really small or has an unreadable part.
+
+    Parameters:
+    name (str): The name of the directory where the files are located.
+    filename (str): The name of the .npz file to be removed.
+    """
+
     os.remove(f"{name}/{filename}")
     os.remove(f"{name}/{filename[:-4]}.png")
 
-def crop(arr, z):
+def crop(arr: np.ndarray, z: int) -> np.ndarray:
+    """
+    Crop an array to a specified size. Keeps the center of the array.
+
+    Parameters:
+    arr (numpy.ndarray): The input array to be cropped.
+    z (int): The size to which the array will be cropped.
+
+    Returns:
+    numpy.ndarray: The cropped array.
+    """
+
     _, x, y = arr.shape
     start_x = (x - z) // 2
     start_y = (y - z) // 2
@@ -39,7 +79,14 @@ def crop(arr, z):
     new_arr[0,:,:] = arr[0,start_x:end_x,start_y:end_y]
     return new_arr
 
-def verify_dimensions(name):
+def verify_dimensions(name) -> None:
+    """
+    Verify that the dimensions of the Sentinel-2 data are consistent and remove outliers.
+
+    Parameters:
+    name (str): The name of the directory where the .npz files are located.
+    """
+
     for filename in os.listdir(f'{name}'):
         if filename.endswith('.npz'):
             file = dict(np.load(f'{name}/{filename}'))
@@ -49,23 +96,29 @@ def verify_dimensions(name):
                 len = min(shape[1], shape[2])
                 if key in ['B01', 'B09']:
                     if(len < 33):
-                        print(filename, ": Should 33 is ", len)
                         remove_files(name, filename)
                         break
                 elif key in ['B02', 'B03', 'B04', 'B08']:
                     if(len < 200):
-                        print(filename, ": Should 200 is ", len)
                         remove_files(name, filename)
                         break
                 elif key in ['B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']:
                     if(len < 100):
-                        print(filename, ": Should 100 is ", len)
                         remove_files(name, filename)
                         break
                 else:
                     raise Exception("Invalid key")
 
-def crop_data(name, min_10, min_20, min_60):
+def crop_data(name: str, min_10: int, min_20: int, min_60: int) -> None:
+    """
+    Crop the arrays in .npz files in the given directory to the specified dimensions based on their bands.
+
+    Parameters:
+    name (str): Name of the folder containing the data
+    min_10 (int): The minimum size of bands with 10m spatial resolution
+    min_20 (int): The minimum size of bands with 20m spatial resolution
+    min_60 (int): The minimum size of bands with 60m spatial resolution
+    """
 
     for filename in os.listdir(f'{name}'):
         if filename.endswith('.npz'):
@@ -86,21 +139,42 @@ def crop_data(name, min_10, min_20, min_60):
             **{band: data for band, data in zip(bands, band_data)}
             )
 
-def create_stats(foldername):
+def create_stats(foldername: str) -> None:
+    """
+    Create a new statistics CSV file for the given folder name or remove and replace the existing file.
+
+    Parameters:
+    foldername (str): Name of the folder containing the data
+    """
     if os.path.exists(f'stats/{foldername}_stats.csv'):
         os.remove(f'stats/{foldername}_stats.csv')
     with open(f'stats/{foldername}_stats.csv', 'x') as file:
         file.write("name,B01,B02,B03,B04,B05,B06,B07,B08,B8A,B09,B11,B12,coordinates \n")
 
-def write_stats_to_csv(name, band_data, point, foldername):
+def write_stats_to_csv(name: str, band_data: np.ndarray, point: tuple, foldername: str) -> None:
+    """
+    Write the statistics for a given file to the CSV file for the given folder name.
+
+    Parameters:
+    name (str): Name of the array containing the data
+    band_data (np.ndarray): Numpy array containing the relevant data
+    point (tuple): Center coordinates of the corresponding area which band_data covers,
+    foldername (str): Name of the folder containing the data
+    """
     with open(f'stats/{foldername}_stats.csv', mode="a", newline="") as stats:
         writer = csv.writer(stats)
         row = [name] + [np.shape(band_data[band]) for band in bands] + [point]
         writer.writerow(row)
 
-def verify_data(name):
+def verify_data(name: str) -> None:
+    """
+    Verify the dimensions of the arrays in .npz files in the given directory and write statistics to a CSV file.
+
+    Parameters:
+    name (str): Name of the folder containing the data
+    """
     create_stats(name)
-    point_coordinates = get_coordinates_from_points()
+    point_coordinates = get_coordinates_from_points('../coordinates/points.geojson')
 
     for filename in os.listdir(f'{name}'):
         if filename.endswith('.npz'):
@@ -108,7 +182,13 @@ def verify_data(name):
             file = np.load(f'{name}/' + filename)
             write_stats_to_csv(number, file, point_coordinates[number], name)
 
-def preprocess_data(name):
+def preprocess_data(name: str) -> None:
+    """
+    Preprocess the data in the given directory by verifying dimensions, cropping the arrays, and writing statistics.
+
+    Parameters:
+    name (str): Name of the folder
+    """
     verify_dimensions(name)
     crop_data(name, 200, 100, 33)
     verify_data(name)

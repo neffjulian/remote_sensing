@@ -1,6 +1,8 @@
 from s2_download import download_data
 from s2_preprocess import preprocess_data
 
+# Sample code for downloading and structuring sentinel data
+
 def create_data(name: str, time_of_interest: str):
     download_data(name, time_of_interest)
     preprocess_data(name)

@@ -1,26 +1,22 @@
 import math
 import json
 
-def point_to_square(point: dict, km: float = 1):
+def point_to_square(point: dict, km: float = 1) -> dict:
     """
     Takes a GeoJSON point feature and returns a GeoJSON polygon feature
     representing a square of size `km` centered at the point.
 
     Args:
-        point: A GeoJSON point feature containing the coordinates of the point.
-        km: A float indicating the size of the square in kilometers (default 1).
+        point (dict): A GeoJSON point feature containing the coordinates of the point.
+        km (float): A float indicating the size of the square in kilometers (default 1).
 
     Returns:
-        A GeoJSON polygon feature representing a square of size `km` centered at the point.
+        dict: A GeoJSON polygon feature representing a square of size `km` centered at the point.
     """
-    # Get the coordinates of the point
     coordinate = point['geometry']['coordinates']
-    # Extract the longitude and latitude values
     long, lat = coordinate[0], coordinate[1]
-    # Calculate the change in longitude and latitude required to generate the square
     change_long = 360 / (math.cos(math.radians(lat)) * 40075) * km
     change_lat = 360 / (math.cos(math.radians(long)) * 40075) * km
-    # Create a GeoJSON polygon feature representing the square
     square = {
         "type": "Feature",
         "properties": {},
@@ -40,15 +36,19 @@ def point_to_square(point: dict, km: float = 1):
     return square
 
 def convert_to_squares():
-    # Load the input GeoJSON file containing point features
+    """
+    Converts a GeoJSON point feature collection into a GeoJSON polygon feature
+    collection, with each point converted into a square polygon of a given size.
+
+    Reads points from the 'points.geojson' file, and writes squares to the
+    'squares.geojson' file.
+    """
     with open('../coordinates/points.geojson', 'r') as file:
         points = json.load(file)
-    # Convert each point feature to a square feature
     squares = {
         "type": "FeatureCollection",
         "features": [point_to_square(point) for point in points['features']]
     }
-    # Write the output GeoJSON file containing square features
     with open('../coordinates/squares.geojson', 'x') as file:
         json.dump(squares, file)
 

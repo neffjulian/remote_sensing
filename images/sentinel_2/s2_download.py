@@ -13,8 +13,17 @@ from rasterio import features, warp, windows
 bands = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12",]
 
 def query_catalog(catalog, area_of_interest, time_of_interest):
-    # Search for Sentinel-2 L2A collections that intersect the area of interest,
-    # at the given time and have a cloud cover of less than 10%
+    """Query the catalog for Sentinel-2 L2A collections that intersect the given area of interest
+    and have a cloud cover of less than 10% at the given time.
+
+    Args:
+        catalog (pystac_client.Catalog): The STAC catalog to query.
+        area_of_interest (dict): A dictionary describing the area of interest in GeoJSON format.
+        time_of_interest (str): A datetime string in ISO 8601 format.
+
+    Returns:
+        pystac_client.ItemCollection: A collection of STAC items matching the query parameters.
+    """
     search = catalog.search(
         collections=["sentinel-2-l2a"],
         intersects=area_of_interest,
@@ -24,35 +33,71 @@ def query_catalog(catalog, area_of_interest, time_of_interest):
     return search.item_collection()
 
 def read_band_data(asset_href, area_of_interest):
+    """Read the data for the given band from the Sentinel-2 L2A asset at the given href.
+
+    Args:
+        asset_href (str): The href for the asset to read.
+        area_of_interest (dict): A dictionary describing the area of interest in GeoJSON format.
+
+    Returns:
+        numpy.ndarray: The data for the given band.
+    """
     with rasterio.open(asset_href) as ds:
-        # Get the bounds of the area of interest
         aoi_bounds = features.bounds(area_of_interest)
-        # Transform the bounds to match the coordinate reference system (CRS) of the dataset
         warped_aoi_bounds = warp.transform_bounds("epsg:4326", ds.crs, *aoi_bounds)
-        # Get the window corresponding to the area of interest
         aoi_window = windows.from_bounds(transform=ds.transform, *warped_aoi_bounds)
-        # Read the data from the dataset for the window corresponding to the area of interest
         return ds.read(window=aoi_window)
     
 def save_band_data(bands, band_data, name, foldername):
+    """Save the data for multiple bands to a compressed .npz file.
+
+    Args:
+        bands (list): A list of band names.
+        band_data (list): A list of band data arrays.
+        name (str): The name of the .npz file to create.
+        foldername (str): The folder to save the .npz file in.
+    """
     np.savez(
         f"{foldername}/{name}.npz",
         **{band: data for band, data in zip(bands, band_data)}
     )
 
 def process_data(least_cloudy_item, bands, area_of_interest, name, foldername):
+    """Process the data for a Sentinel-2 L2A item by saving it to a compressed .npz file and
+    converting it to a PNG image file.
+
+    Args:
+        least_cloudy_item (pystac_client.Item): The least cloudy item for the given area and time.
+        bands (list): A list of band names to process.
+        area_of_interest (dict): A dictionary describing the area of interest in GeoJSON format.
+        name (str): The name to use for the processed data file and image.
+        foldername (str): The folder to save the files in.
+    """
     band_data = []
-    # Loop through each band and get its data for the least cloudy item
     for band in bands:
         asset_href = least_cloudy_item.assets[band].href
         band_data.append(read_band_data(asset_href, area_of_interest))
     save_band_data(bands, band_data, name, foldername)
 
 def convert_to_image_and_save(img_data, name, foldername):
+    """
+    Convert numpy array image data to a PIL Image and save it as a PNG file.
+
+    Args:
+        img_data (numpy.ndarray): Numpy array containing image data.
+        name (str): Name of the file to be saved.
+        foldername (str): Name of the folder where the file is to be saved.
+    """
     img = Image.fromarray(np.transpose(img_data, axes=[1, 2, 0]))
     img.save(f'{foldername}/{name}.png')
 
 def get_coordinates():
+    """
+    Load geojson file containing coordinates and extract the coordinates of each feature.
+
+    Returns:
+        List of tuples, where each tuple represents the coordinates of a feature.
+    """
     with open("../coordinates/squares.geojson", "r") as f:
         file = json.load(f)
         f.close()
@@ -62,47 +107,76 @@ def get_coordinates():
     return coordinates
 
 def open_catalog():
+    """
+    Open a connection to the Planetary Computer STAC API.
+
+    Returns:
+        pystac_client.Client: Instance of the Planetary Computer STAC API client.
+    """
     return pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
     )
 
 def is_valid(file):
+    """
+    Check if an image data numpy array is valid by determining the percentage of zero values.
+
+    Args:
+        file (numpy.ndarray): Numpy array containing image data.
+
+    Returns:
+        bool: True if percentage of zero values is less than 0.01, False otherwise.
+    """
     num_zeros = np.count_nonzero(file == 0)
     per_zeros = (num_zeros / file.size)
     return per_zeros < 0.01
 
 def create_folder(name):
+    """
+    Create a folder with the given name if it does not exist.
+
+    Args:
+        name (str): Name of the folder to be created.
+    """
     if not os.path.exists(name):
         os.mkdir(name)
 
 def get_data(catalog, coordinates, time_of_interest, index, foldername):
-    # Generate a name for the image based on the index
-    name = f"{index:04d}"
-    # Create a polygon for the area of interest using the given coordinates
-    area_of_interest = {"type": "Polygon", "coordinates": coordinates}
+    """
+    Get Sentinel-2 L2A image data for the given coordinates and time of interest, and save it as a .npz and .png file.
 
-    # Query the catalog for Sentinel-2 L2A collections that intersect the area of interest
-    # at the given time and have a cloud cover of less than 10%
+    Args:
+        catalog (pystac_client.Client): Instance of the Planetary Computer STAC API client.
+        coordinates (list of tuple): List of tuples, where each tuple represents the coordinates of a feature.
+        time_of_interest (str): Date and time of interest in ISO 8601 format.
+        index (int): Index of the coordinate in the list.
+        foldername (str): Name of the folder where the files are to be saved.
+    """
+    name = f"{index:04d}"
+    area_of_interest = {"type": "Polygon", "coordinates": coordinates}
     try:
         items = query_catalog(catalog, area_of_interest, time_of_interest)
-        # Get the least cloudy item from the query result
         least_cloudy_item = min(items, key=lambda item: eo.ext(item).cloud_cover)
-
-        # Get the visual asset href for the least cloudy item
         visual_href = least_cloudy_item.assets["visual"].href
-        # Read the band data for the visual asset and the area of interest
         img_data = read_band_data(visual_href, area_of_interest)
 
-        # Check if the image data is valid
         if is_valid(img_data):
-            # Process the image data by saving it to a .npz file and converting it to an image file
             process_data(least_cloudy_item, bands, area_of_interest, name, foldername)
             convert_to_image_and_save(img_data, name, foldername)
     except:
         return
 
 def download_data(name, time_of_interest):
+    """Downloads Sentinel-2 data for a given time of interest and saves it to disk.
+
+    Args:
+        name (str): Name of the folder to save the downloaded data.
+        time_of_interest (str): ISO 8601 formatted string representing the time of interest.
+
+    Returns:
+        None
+    """
     create_folder(name)
     catalog = open_catalog()
     coordinates = get_coordinates()
