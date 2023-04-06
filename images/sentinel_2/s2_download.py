@@ -10,7 +10,23 @@ from pystac.extensions.eo import EOExtension as eo
 from rasterio import features, warp, windows
 
 # Define the bands to retrieve
-bands = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12",]
+bands = ["B02", "B03", "B04", "B05", "B8A"]
+
+# Define a dictionary mapping month names to date ranges
+MONTHS = {
+    'january': ("01-01", "01-31"),
+    'february': ("02-01", "02-28"),
+    'march': ("03-01", "03-31"),
+    'april': ("04-01", "04-30"),
+    'may': ("05-01", "05-31"),
+    'june': ("06-01", "06-30"),
+    'july': ("07-01", "07-31"),
+    'august': ("08-01", "08-31"),
+    'september': ("09-01", "09-30"),
+    'october': ("10-01", "10-31"),
+    'november': ("11-01", "11-30"),
+    'december': ("12-01", "12-31"),
+}
 
 def query_catalog(catalog, area_of_interest, time_of_interest):
     """Query the catalog for Sentinel-2 L2A collections that intersect the given area of interest
@@ -28,7 +44,7 @@ def query_catalog(catalog, area_of_interest, time_of_interest):
         collections=["sentinel-2-l2a"],
         intersects=area_of_interest,
         datetime=time_of_interest,
-        query={"eo:cloud_cover": {"lt": 10}},
+        query={"eo:cloud_cover": {"lt": 25}},
     )
     return search.item_collection()
 
@@ -58,7 +74,7 @@ def save_band_data(bands, band_data, name, foldername):
         foldername (str): The folder to save the .npz file in.
     """
     np.savez(
-        f"{foldername}/{name}.npz",
+        f"images/sentinel_2/{foldername}/{name}.npz",
         **{band: data for band, data in zip(bands, band_data)}
     )
 
@@ -89,7 +105,7 @@ def convert_to_image_and_save(img_data, name, foldername):
         foldername (str): Name of the folder where the file is to be saved.
     """
     img = Image.fromarray(np.transpose(img_data, axes=[1, 2, 0]))
-    img.save(f'{foldername}/{name}.png')
+    img.save(f'images/sentinel_2/{foldername}/{name}.png')
 
 def get_coordinates():
     """
@@ -98,7 +114,7 @@ def get_coordinates():
     Returns:
         List of tuples, where each tuple represents the coordinates of a feature.
     """
-    with open("../coordinates/squares.geojson", "r") as f:
+    with open("images/coordinates/squares.geojson", "r") as f:
         file = json.load(f)
         f.close()
     coordinates = []
@@ -120,7 +136,7 @@ def open_catalog():
 
 def is_valid(file):
     """
-    Check if an image data numpy array is valid by determining the percentage of zero values.
+    Check if the data contains any large black patches.
 
     Args:
         file (numpy.ndarray): Numpy array containing image data.
@@ -130,7 +146,7 @@ def is_valid(file):
     """
     num_zeros = np.count_nonzero(file == 0)
     per_zeros = (num_zeros / file.size)
-    return per_zeros < 0.01
+    return per_zeros < 0.05
 
 def create_folder(name):
     """
@@ -139,10 +155,10 @@ def create_folder(name):
     Args:
         name (str): Name of the folder to be created.
     """
-    if not os.path.exists(name):
-        os.mkdir(name)
+    if not os.path.exists(f"images/sentinel_2/{name}"):
+        os.mkdir(f"images/sentinel_2/{name}")
 
-def get_data(catalog, coordinates, time_of_interest, index, foldername):
+def get_data(catalog, coordinates, time_of_interest, index, foldername) -> int:
     """
     Get Sentinel-2 L2A image data for the given coordinates and time of interest, and save it as a .npz and .png file.
 
@@ -165,21 +181,29 @@ def get_data(catalog, coordinates, time_of_interest, index, foldername):
             process_data(least_cloudy_item, bands, area_of_interest, name, foldername)
             convert_to_image_and_save(img_data, name, foldername)
     except:
-        return
+        return 0
+    return 1
 
-def download_data(name, time_of_interest):
+def download_s2_data(month: str, year: str):
     """Downloads Sentinel-2 data for a given time of interest and saves it to disk.
 
     Args:
-        name (str): Name of the folder to save the downloaded data.
-        time_of_interest (str): ISO 8601 formatted string representing the time of interest.
+        month (str): Name of the month the data should be collected from
+        year (str): The year during which the data should be collected from
 
     Returns:
         None
     """
+
+    time_of_interest = f"20{year[-2:]}-{MONTHS[month][0]}/20{year[-2:]}-{MONTHS[month][1]}"
+    name = f"{year[-2:]}_{month}"
+
     create_folder(name)
     catalog = open_catalog()
     coordinates = get_coordinates()
 
+    successful_downloads = 0
     for index, coordinate in enumerate(coordinates):
-        get_data(catalog, coordinate, time_of_interest, index, name)
+        successful_downloads += get_data(catalog, coordinate, time_of_interest, index, name)
+    
+    print(f"Successfully downloaded {successful_downloads} images for {month}-{year}")

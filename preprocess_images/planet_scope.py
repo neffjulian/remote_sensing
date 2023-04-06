@@ -64,13 +64,12 @@ if __name__ == '__main__':
                 # Open the image and get image data
                 image_data = gd.Open(Path(curr_file).as_posix(), gd.GA_ReadOnly)
 
-                # Get only RGB bands and save plot (TODO: Maybe another combination might be better ?)
+                # Get only RGB bands and save plot
                 image = get_band_image(image_data, [2, 4, 6])
-                plt.imshow(image)
                 save_image(image_data, new_dir / "plot.png")
 
                 # Get all bands and save the data as a numpy array
-                data = get_band_image(image_data, [1, 2, 3, 4, 5, 6, 7, 8])
+                data = get_band_image(image_data, [2, 4, 6, 7, 8])
                 np.save(new_dir / "data.npy", data)
 
             # Copy metadata file to the target directory

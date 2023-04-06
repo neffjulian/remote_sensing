@@ -4,7 +4,7 @@ import csv
 import numpy as np
 
 # Define the bands to retrieve
-bands = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12",]
+bands = ["B02", "B03", "B04", "B05", "B8A"]
 
 def get_coordinates_from_points(filepath: str) -> list:
     """
@@ -53,8 +53,8 @@ def remove_files(name: str, filename: str) -> None:
     filename (str): The name of the .npz file to be removed.
     """
 
-    os.remove(f"{name}/{filename}")
-    os.remove(f"{name}/{filename[:-4]}.png")
+    os.remove(f"images/sentinel_2/{name}/{filename}")
+    os.remove(f"images/sentinel_2/{name}/{filename[:-4]}.png")
 
 def crop(arr: np.ndarray, z: int) -> np.ndarray:
     """
@@ -87,29 +87,25 @@ def verify_dimensions(name) -> None:
     name (str): The name of the directory where the .npz files are located.
     """
 
-    for filename in os.listdir(f'{name}'):
+    for filename in os.listdir(f'images/sentinel_2/{name}'):
         if filename.endswith('.npz'):
-            file = dict(np.load(f'{name}/{filename}'))
+            file = dict(np.load(f'images/sentinel_2/{name}/{filename}'))
 
             for key in file.keys():
                 shape = np.shape(file[key])
                 len = min(shape[1], shape[2])
-                if key in ['B01', 'B09']:
-                    if(len < 33):
-                        remove_files(name, filename)
-                        break
-                elif key in ['B02', 'B03', 'B04', 'B08']:
+                if key in ['B02', 'B03', 'B04']:
                     if(len < 200):
                         remove_files(name, filename)
                         break
-                elif key in ['B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']:
+                elif key in ['B05', 'B8A']:
                     if(len < 100):
                         remove_files(name, filename)
                         break
                 else:
                     raise Exception("Invalid key")
 
-def crop_data(name: str, min_10: int, min_20: int, min_60: int) -> None:
+def crop_data(name: str, min_10: int, min_20: int) -> None:
     """
     Crop the arrays in .npz files in the given directory to the specified dimensions based on their bands.
 
@@ -117,25 +113,22 @@ def crop_data(name: str, min_10: int, min_20: int, min_60: int) -> None:
     name (str): Name of the folder containing the data
     min_10 (int): The minimum size of bands with 10m spatial resolution
     min_20 (int): The minimum size of bands with 20m spatial resolution
-    min_60 (int): The minimum size of bands with 60m spatial resolution
     """
 
-    for filename in os.listdir(f'{name}'):
+    for filename in os.listdir(f'images/sentinel_2/{name}'):
         if filename.endswith('.npz'):
             band_data = []
-            file = dict(np.load(f'{name}/' + filename))
+            file = dict(np.load(f'images/sentinel_2/{name}/' + filename))
             for key in file.keys():
-                if key in ['B01', 'B09']:
-                    band_data.append(crop(file[key], min_60))
-                elif key in ['B02', 'B03', 'B04', 'B08']:
+                if key in ['B02', 'B03', 'B04']:
                     band_data.append(crop(file[key], min_10))
-                elif key in ['B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12']:
+                elif key in ['B05', 'B8A']:
                     band_data.append(crop(file[key], min_20))
                 else:
                     raise Exception("Invalid key")
                 
             np.savez(
-            f"{name}/{filename}",
+            f"images/sentinel_2/{name}/{filename}",
             **{band: data for band, data in zip(bands, band_data)}
             )
 
@@ -146,10 +139,10 @@ def create_stats(foldername: str) -> None:
     Parameters:
     foldername (str): Name of the folder containing the data
     """
-    if os.path.exists(f'stats/{foldername}_stats.csv'):
-        os.remove(f'stats/{foldername}_stats.csv')
-    with open(f'stats/{foldername}_stats.csv', 'x') as file:
-        file.write("name,B01,B02,B03,B04,B05,B06,B07,B08,B8A,B09,B11,B12,coordinates \n")
+    if os.path.exists(f'images/sentinel_2/stats/{foldername}_stats.csv'):
+        os.remove(f'images/sentinel_2/stats/{foldername}_stats.csv')
+    with open(f'images/sentinel_2/stats/{foldername}_stats.csv', 'x') as file:
+        file.write("name,B02,B03,B04,B05,B8A,coordinates \n")
 
 def write_stats_to_csv(name: str, band_data: np.ndarray, point: tuple, foldername: str) -> None:
     """
@@ -161,7 +154,7 @@ def write_stats_to_csv(name: str, band_data: np.ndarray, point: tuple, foldernam
     point (tuple): Center coordinates of the corresponding area which band_data covers,
     foldername (str): Name of the folder containing the data
     """
-    with open(f'stats/{foldername}_stats.csv', mode="a", newline="") as stats:
+    with open(f'images/sentinel_2/stats/{foldername}_stats.csv', mode="a", newline="") as stats:
         writer = csv.writer(stats)
         row = [name] + [np.shape(band_data[band]) for band in bands] + [point]
         writer.writerow(row)
@@ -174,21 +167,25 @@ def verify_data(name: str) -> None:
     name (str): Name of the folder containing the data
     """
     create_stats(name)
-    point_coordinates = get_coordinates_from_points('../coordinates/points.geojson')
+    point_coordinates = get_coordinates_from_points('images/coordinates/points.geojson')
 
-    for filename in os.listdir(f'{name}'):
+    for filename in os.listdir(f'images/sentinel_2/{name}'):
         if filename.endswith('.npz'):
             number = int(filename[:-4])
-            file = np.load(f'{name}/' + filename)
+            file = np.load(f'images/sentinel_2/{name}/' + filename)
             write_stats_to_csv(number, file, point_coordinates[number], name)
 
-def preprocess_data(name: str) -> None:
+def preprocess_s2_data(month: str, year: str) -> None:
     """
     Preprocess the data in the given directory by verifying dimensions, cropping the arrays, and writing statistics.
 
-    Parameters:
-    name (str): Name of the folder
+    Args:
+        month (str): Name of the month the data should be collected from
+        year (str): The year during which the data should be collected from
+
     """
+    name = f"{year[-2:]}_{month}"
+    
     verify_dimensions(name)
-    crop_data(name, 200, 100, 33)
+    crop_data(name, 200, 100)
     verify_data(name)
