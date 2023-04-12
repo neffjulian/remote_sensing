@@ -1,8 +1,8 @@
-images/planet_scope/*
+# images/planet_scope
 images/swissimage/*
 preprocess_images/temp/*
 images/sentinel_2/22_july/*
-images/sentinel_2/22_march
+images/sentinel_2/22_march/*
 images/sentinel_2/22_may/*
 .env
 *.pyc
