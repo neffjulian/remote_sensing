@@ -5,6 +5,8 @@ from images.sentinel_2.s2_preprocess import preprocess_s2_data
 
 from images.planet_scope.ps_download import download_ps_data
 
+from images.swissimage.si_download import download_si_data
+
 # Define a dictionary mapping month names to date ranges
 MONTHS = {
     'january': ("01-01", "01-31"),
@@ -28,11 +30,15 @@ def main(satellite: str, year: int, month: str) -> None:
     if month.lower() not in MONTHS:
         raise ValueError("Month invalid")
     
-    if satellite.startswith("s"):
+    if satellite.startswith("se"):
         download_s2_data(month, str(year))
         preprocess_s2_data(month, str(year))   
     elif satellite.startswith("p"):
         download_ps_data(month, year)
+    elif satellite.startswith("sw"):
+        download_si_data(month, year)
+    else:
+        raise Exception(f"Invalid Satellite selected: {satellite}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

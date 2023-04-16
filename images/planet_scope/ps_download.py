@@ -41,7 +41,6 @@ def get_orders(filename: str) -> list:
     orders = []
     for feature in file['features']: 
         gdf = gpd.GeoDataFrame.from_features([feature])
-        print(gdf.to_json())
         gdf = gdf.set_crs(epsg=4326)
         orders.append(gdf)
     return orders
@@ -69,45 +68,47 @@ def get_order_name(month: str, year: str, index: int) -> str:
     return f'{date.today()}_Julian_{year}_{month}_{index:04d}'
 
 def query_data_api(month: str, year: int, order: gpd.GeoDataFrame) -> PlanetAPIClient:
-    MONTHS = {
-        'january': (1, 31),
-        'february': (2, 28),
-        'march': (3, 31),
-        'april': (4, 30),
-        'may': (5, 31),
-        'june': (6, 30),
-        'july': (7, 31),
-        'august': (8, 31),
-        'september': (9, 30),
-        'october': (10, 31),
-        'november': (11, 30),
-        'december': (12, 31)
-    }
+    MONTHS = {'january': (1, 31), 'february': (2, 28), 'march': (3, 31), 'april': (4, 30), 'may': (5, 31), 'june': (6, 30), 
+              'july': (7, 31), 'august': (8, 31), 'september': (9, 30), 'october': (10, 31), 'november': (11, 30),'december': (12, 31)}
+
     month = MONTHS[month]
     client = PlanetAPIClient.query_planet_api(
         start_date = date(year, month[0], 1),
         end_date = date(year, month[0], month[1]),
         bounding_box = order,
-        cloud_cover_threshold=50.
+        cloud_cover_threshold=100
     )
     return client 
 
 def download_ps_data(month: str, year: int) -> int: # E.g. month = "may", year = "22"
-    download_dir = create_folder(month, year)
-    orders = get_orders("test_coordinates")
-    coordinates = get_coordinates("test_coordinates")
+    test()
+    # download_dir = create_folder(month, year)
+    # orders = get_orders("squares")
+    # coordinates = get_coordinates("squares")
 
-    for index, order in enumerate(orders):
-        client = query_data_api(month, year, order)
-        order_name = get_order_name(month, year, index)
-        order_url = client.place_order(
-            order_name = order_name,
-            processing_tools = [coordinates[index]])
-        status = client.check_order_status(
-            order_url = order_url, 
-            loop = True)
-        print(index, status)
-        client.download_order(
-            download_dir = download_dir,
-            order_name = order_name
-        )
+    # for index, order in enumerate(orders):
+    #     client = query_data_api(month, year, order)
+    #     order_name = get_order_name(month, year, index)
+    #     order_url = client.place_order(
+    #         order_name = order_name,
+    #         processing_tools = [{'clip': coordinates[index]}])
+    #     status = client.check_order_status(
+    #         order_url = order_url, 
+    #         loop = True)
+    #     client.download_order(
+    #         download_dir = download_dir,
+    #         order_name = order_name
+    #     )
+
+def test():
+    client = PlanetAPIClient.query_planet_api(
+        start_date = date(2022, 5, 1),
+        end_date = date(2022, 5, 28),
+        bounding_box = Path('images/coordinates/test_coordinates.geojson'),
+        cloud_cover_threshold=50.
+    )
+    order_name = "Julian_test"
+    download_dir = Path("images/planet_scope/22_may")
+    order_url = client.place_order(order_name = order_name)
+    client.check_order_status(order_url=order_url, loop=True) # Usually results in failed every time
+    client.download_order(download_dir=download_dir, order_name=order_name)
