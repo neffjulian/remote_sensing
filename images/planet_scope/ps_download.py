@@ -104,7 +104,7 @@ def test():
     client = PlanetAPIClient.query_planet_api(
         start_date = date(2022, 5, 1),
         end_date = date(2022, 5, 28),
-        bounding_box = Path('images/coordinates/test_coordinates.geojson'),
+        bounding_box = Path('images/coordinates/zhr_coordinates.geojson'),
         cloud_cover_threshold=50.
     )
     order_name = "Julian_test"

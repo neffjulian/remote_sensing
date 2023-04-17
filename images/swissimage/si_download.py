@@ -2,8 +2,8 @@ import requests
 import json
 import os
 from pathlib import Path
+import geopandas as gpd
 
-url = "http://data.geo.admin.ch/api/stac/v0.9/"
 
 def create_folder(month: str, year: str) -> Path:
     """
@@ -28,21 +28,28 @@ def get_orders(filename: str) -> list:
 
 def download_si_data(month:str, year:int) -> int:
     download_dir = create_folder(month, year)
-    orders = get_orders("test_coordinates")
+    # orders = get_orders("zhr_coordinates")
+    gdf = gpd.read_file('images/coordinates/zhr_coordinates.geojson')
+    bbox = gdf.total_bounds
+    image_size = '500,500'
+    image_format = 'png'
+    layers = 'ch.swisstopo.swissimage-product'
 
-    response = requests.get("https://data.geo.admin.ch/api/stac/v0.9/collections")
-    print(response.json())
-    # 
+    url = "https://api3.geo.admin.ch/rest/services/api/MapServer"
 
-    # for order in orders:
-    #     params = {
-    #         "format": "tiff",
-    #         "lang": "en",
-    #         "bbox": f"{order[0]},{order[1]},{order[2]},{order[3]}",
-    #         "layers": "ch.swisstopo.images-swissimage.metadata",
-    #         "geometryFormat": "geojson",
-    #         "sr": "2056"
-    #     }
 
-    #     response = requests.get(url, params=params)
-    #     print(response)
+    params = {
+         'bbox': ','.join(str(x) for x in bbox),
+         'size': image_size,
+         'format': image_format,
+         'layers': layers
+    }
+
+    response = requests.get(url, params=params)
+
+    # print(response.content)
+    with open('swissimage.png', 'wb') as f:
+         f.write(response.content)
+    
+
+    
