@@ -4,6 +4,7 @@ from images.sentinel_2.s2_download import download_s2_data
 from images.sentinel_2.s2_preprocess import preprocess_s2_data
 
 from images.planet_scope.ps_download import download_ps_data
+from images.planet_scope.ps_preprocess import preprocess_ps_data
 
 from images.swissimage.si_download import download_si_data
 
@@ -24,7 +25,7 @@ MONTHS = {
 }
 
 def main(satellite: str, year: int, month: str) -> None:
-    year = year % 100
+    year = (year % 2000) # In case input is '22' or '2022'
     if year > 22:
         raise ValueError("Year invalid", year)
     if month.lower() not in MONTHS:
@@ -34,7 +35,8 @@ def main(satellite: str, year: int, month: str) -> None:
         download_s2_data(month, str(year))
         preprocess_s2_data(month, str(year))   
     elif satellite.startswith("p"):
-        download_ps_data(month, year)
+        # download_ps_data(month, year)
+        preprocess_ps_data(month, year)
     elif satellite.startswith("sw"):
         download_si_data(month, year)
     else:

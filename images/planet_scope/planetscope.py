@@ -1,7 +1,7 @@
 # Based on "scripts/planet_download.py" from eodal repo
 import geopandas as gpd
 import os
-from osgeo import gdal as gd
+import osgeo.gdal as gd
 import matplotlib.pyplot as plt
 import numpy as np
 import shutil
@@ -158,8 +158,8 @@ def preprocess_data():
     numpy arrays, applying preprocessing, and saving the resulting arrays and
     a visual representation of the image to disk.
     """
-    source_dir = Path('planet_scope/downloaded_images')
-    target_dir = Path('planet_scope/preprocessed_images')
+    source_dir = Path('22_may')
+    target_dir = Path('22_may')
     for root, _, files in os.walk(source_dir):
         for file in files:
             curr_file = os.path.join(root, file)
@@ -172,7 +172,7 @@ def preprocess_data():
                 image = get_band_image(image_data, [2, 4, 6])
                 plt.imshow(image)
                 save_image(image_data, new_dir / "plot.png")
-                data = get_band_image(image_data, [1, 2, 3, 4, 5, 6, 7, 8])
+                data = get_band_image(image_data, [2, 4, 6, 7, 8])
                 np.save(new_dir / "data.npy", data)
             elif is_metadata(file):
                 new_file = new_dir / "metadata.json"

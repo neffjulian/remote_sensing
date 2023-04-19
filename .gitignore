@@ -5,6 +5,8 @@ preprocess_images/temp/*
 images/sentinel_2/22_july/*
 images/sentinel_2/22_march/*
 images/sentinel_2/22_may/*
+images/planet_scope/22_may/*
+images/planet_scope/22_april/*
 .env
 *.pyc
 *__pycache__
