@@ -1,52 +1,120 @@
 import json
-import os
+from pathlib import Path
+from datetime import datetime
 
 import numpy as np
-import planetary_computer
-import pystac_client
-import rasterio
 from PIL import Image
-from pystac.extensions.eo import EOExtension as eo
+import planetary_computer
+import rasterio
 from rasterio import features, warp, windows
+import pystac_client
+from pystac.extensions.eo import EOExtension as eo
 
-# Define the bands to retrieve
-bands = ["B02", "B03", "B04", "B05", "B8A"]
+SENTINEL_BANDS = ["B02", "B03", "B04", "B05", "B8A"]
+MONTHS = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
+          "may": "05", "jun": "06", "jul": "07", "aug": "08", 
+          "sep": "09", "oct": "10", "nov": "11", "dec": "12"}
 
-# Define a dictionary mapping month names to date ranges
-MONTHS = {
-    'january': ("01-01", "01-31"),
-    'february': ("02-01", "02-28"),
-    'march': ("03-01", "03-31"),
-    'april': ("04-01", "04-30"),
-    'may': ("05-01", "05-31"),
-    'june': ("06-01", "06-30"),
-    'july': ("07-01", "07-31"),
-    'august': ("08-01", "08-31"),
-    'september': ("09-01", "09-30"),
-    'october': ("10-01", "10-31"),
-    'november': ("11-01", "11-30"),
-    'december': ("12-01", "12-31"),
-}
-
-def query_catalog(catalog, area_of_interest, time_of_interest):
-    """Query the catalog for Sentinel-2 L2A collections that intersect the given area of interest
-    and have a cloud cover of less than 10% at the given time.
+def create_folder(month: str, year: str, index: int = None) -> Path:
+    """
+    Creates a new folder for storing Sentinel-2 images.
 
     Args:
-        catalog (pystac_client.Catalog): The STAC catalog to query.
-        area_of_interest (dict): A dictionary describing the area of interest in GeoJSON format.
-        time_of_interest (str): A datetime string in ISO 8601 format.
+        month (str): The month of the images to be stored, e.g. "aug".
+        year (str): The year of the images to be stored, e.g. "22".
+        index (int, optional): An optional index number for the folder.
+            If provided, the folder will be named "{year}_{month}/{index:04d}".
+            If not provided, the folder will be named "{year}_{month}".
 
     Returns:
-        pystac_client.ItemCollection: A collection of STAC items matching the query parameters.
+        Path: A Path object representing the path to the newly created folder.
     """
-    search = catalog.search(
-        collections=["sentinel-2-l2a"],
-        intersects=area_of_interest,
-        datetime=time_of_interest,
-        query={"eo:cloud_cover": {"lt": 25}},
-    )
-    return search.item_collection()
+    folder_location = f"images/sentinel_2/{year}_{month}"
+    folder_path = Path(folder_location)
+
+    if index is not None:
+        folder_path = folder_path.joinpath(f"{index:04d}")
+
+    if not folder_path.exists():
+        folder_path.mkdir()
+
+    return folder_path
+
+def create_stats(month: str, year: str) -> None:
+    """Create a CSV file with empty statistics data for Sentinel-2 images.
+
+    Args:
+        month (str): The month of the images to be stored, e.g. "aug".
+        year (str): The year of the images to be stored, e.g. "22".
+
+    Returns:
+        None
+
+    """
+    stats_location = f"images/sentinel_2/stats/{year}_{month}_stats.csv"
+    stats_path = Path(stats_location)
+
+    header = "index, date, coordinate, B02, B03, B04, B05, B8A"
+    data = np.empty((296, 8), dtype=object)
+    data[:, 0] = np.arange(0, 296)
+    np.savetxt(stats_path, data, header=header, delimiter=',', fmt='%s', encoding="utf-8")
+
+def write_date_to_stats(month: str, year: str, date: str, index: int) -> None:
+    """Write a date to the statistics CSV file for a specified index.
+
+    Args:
+        month (str): The month of the images to be stored, e.g. "aug".
+        year (str): The year of the images to be stored, e.g. "22".
+        date (str): A string representing the date in YYYY-MM-DD format, e.g. '2022-01-01' for January 1st, 2022.
+        index (int): An integer representing the index of the row to update in the CSV file.
+
+    Returns:
+        None
+
+    """
+    stats_location = f"images/sentinel_2/stats/{year}_{month}_stats.csv"
+    stats_path = Path(stats_location)
+
+    header = "index, date, coordinate, B02, B03, B04, B05, B8A"
+    data = np.loadtxt(stats_path, delimiter = ',', dtype=object)
+
+    data[index, 1] = date
+
+    np.savetxt(stats_path, data, header=header, delimiter=',', fmt='%s', encoding="utf-8")
+
+def get_coordinates() -> list:
+    """
+    Retrieves a list of coordinates from a GeoJSON file.
+
+    Returns:
+        List: A list of lists of coordinates.
+    """
+    coordinates_location = Path("images/coordinates/squares.geojson")
+    
+    with open(coordinates_location, "r") as f:
+        geojson_coordinates = json.load(f)
+    
+    coordinates = []
+    for feature in geojson_coordinates["features"]:
+        coordinate = feature["geometry"]["coordinates"]
+        coordinates.append(coordinate)
+
+    return coordinates
+
+
+def check_data_valid(data: np.ndarray) -> bool:
+    """
+    Checks if the input data is valid by counting the percentage of zero values.
+
+    Args:
+        data (np.ndarray): A NumPy array containing the data to be checked.
+
+    Returns:
+        bool: True if the percentage of zero values is less than 5% (e.g. black pixels), False otherwise.
+    """
+    num_zeros = np.count_nonzero(data == 0)
+    per_zeros = (num_zeros / data.size)
+    return per_zeros < 0.05
 
 def read_band_data(asset_href, area_of_interest):
     """Read the data for the given band from the Sentinel-2 L2A asset at the given href.
@@ -64,146 +132,95 @@ def read_band_data(asset_href, area_of_interest):
         aoi_window = windows.from_bounds(transform=ds.transform, *warped_aoi_bounds)
         return ds.read(window=aoi_window)
     
-def save_band_data(bands, band_data, name, foldername):
-    """Save the data for multiple bands to a compressed .npz file.
-
-    Args:
-        bands (list): A list of band names.
-        band_data (list): A list of band data arrays.
-        name (str): The name of the .npz file to create.
-        foldername (str): The folder to save the .npz file in.
+def save_as_np_array(least_cloudy_item, bands, area_of_interest, folder_path: Path):
     """
-    np.savez(
-        f"images/sentinel_2/{foldername}/{name}.npz",
-        **{band: data for band, data in zip(bands, band_data)}
-    )
-
-def process_data(least_cloudy_item, bands, area_of_interest, name, foldername):
-    """Process the data for a Sentinel-2 L2A item by saving it to a compressed .npz file and
-    converting it to a PNG image file.
+    Saves a set of Sentinel-2 bands as a NumPy array in the specified folder.
 
     Args:
-        least_cloudy_item (pystac_client.Item): The least cloudy item for the given area and time.
-        bands (list): A list of band names to process.
-        area_of_interest (dict): A dictionary describing the area of interest in GeoJSON format.
-        name (str): The name to use for the processed data file and image.
-        foldername (str): The folder to save the files in.
+        least_cloudy_item (pystac.item.Item): A Sentinel-2 image with the least amount of clouds.
+        bands (List[str]): A list of band names to save as a NumPy array.
+        area_of_interest (dict): The area of interest to crop the data.
+        folder_path (Path): The path to the folder where the NumPy array will be saved.
     """
     band_data = []
     for band in bands:
+        if band not in least_cloudy_item.assets:
+            raise ValueError(f"Band {band} is not available in the Sentinel-2 image")
         asset_href = least_cloudy_item.assets[band].href
         band_data.append(read_band_data(asset_href, area_of_interest))
-    save_band_data(bands, band_data, name, foldername)
-
-def convert_to_image_and_save(img_data, name, foldername):
-    """
-    Convert numpy array image data to a PIL Image and save it as a PNG file.
-
-    Args:
-        img_data (numpy.ndarray): Numpy array containing image data.
-        name (str): Name of the file to be saved.
-        foldername (str): Name of the folder where the file is to be saved.
-    """
-    img = Image.fromarray(np.transpose(img_data, axes=[1, 2, 0]))
-    img.save(f'images/sentinel_2/{foldername}/{name}.png')
-
-def get_coordinates():
-    """
-    Load geojson file containing coordinates and extract the coordinates of each feature.
-
-    Returns:
-        List of tuples, where each tuple represents the coordinates of a feature.
-    """
-    with open("images/coordinates/squares.geojson", "r") as f:
-        file = json.load(f)
-        f.close()
-    coordinates = []
-    for feature in file["features"]:
-        coordinates.append(feature["geometry"]["coordinates"])
-    return coordinates
-
-def open_catalog():
-    """
-    Open a connection to the Planetary Computer STAC API.
-
-    Returns:
-        pystac_client.Client: Instance of the Planetary Computer STAC API client.
-    """
-    return pystac_client.Client.open(
-        "https://planetarycomputer.microsoft.com/api/stac/v1",
-        modifier=planetary_computer.sign_inplace,
+    
+    np.savez(
+        folder_path.joinpath("data"),
+        **{band: data for band, data in zip(bands, band_data)}
     )
 
-def is_valid(file):
-    """
-    Check if the data contains any large black patches.
+def save_as_visual_plot(img_data, folder_path: Path):
+    """Save image data as a PNG file in the specified folder path.
 
     Args:
-        file (numpy.ndarray): Numpy array containing image data.
-
-    Returns:
-        bool: True if percentage of zero values is less than 0.01, False otherwise.
-    """
-    num_zeros = np.count_nonzero(file == 0)
-    per_zeros = (num_zeros / file.size)
-    return per_zeros < 0.05
-
-def create_folder(name):
-    """
-    Create a folder with the given name if it does not exist.
-
-    Args:
-        name (str): Name of the folder to be created.
-    """
-    if not os.path.exists(f"images/sentinel_2/{name}"):
-        os.mkdir(f"images/sentinel_2/{name}")
-
-def get_data(catalog, coordinates, time_of_interest, index, foldername) -> int:
-    """
-    Get Sentinel-2 L2A image data for the given coordinates and time of interest, and save it as a .npz and .png file.
-
-    Args:
-        catalog (pystac_client.Client): Instance of the Planetary Computer STAC API client.
-        coordinates (list of tuple): List of tuples, where each tuple represents the coordinates of a feature.
-        time_of_interest (str): Date and time of interest in ISO 8601 format.
-        index (int): Index of the coordinate in the list.
-        foldername (str): Name of the folder where the files are to be saved.
-    """
-    name = f"{index:04d}"
-    area_of_interest = {"type": "Polygon", "coordinates": coordinates}
-    try:
-        items = query_catalog(catalog, area_of_interest, time_of_interest)
-        least_cloudy_item = min(items, key=lambda item: eo.ext(item).cloud_cover)
-        visual_href = least_cloudy_item.assets["visual"].href
-        img_data = read_band_data(visual_href, area_of_interest)
-
-        if is_valid(img_data):
-            process_data(least_cloudy_item, bands, area_of_interest, name, foldername)
-            convert_to_image_and_save(img_data, name, foldername)
-    except:
-        return 0
-    return 1
-
-def download_s2_data(month: str, year: str):
-    """Downloads Sentinel-2 data for a given time of interest and saves it to disk.
-
-    Args:
-        month (str): Name of the month the data should be collected from
-        year (str): The year during which the data should be collected from
+        img_data (numpy.ndarray): An array containing image data.
+        folder_path (pathlib.Path): A Path object representing the folder path where the PNG file will be saved.
 
     Returns:
         None
+
     """
+    img = Image.fromarray(np.transpose(img_data, axes=[1, 2, 0]))
+    img.save(folder_path.joinpath("plot.png"))
 
-    time_of_interest = f"20{year[-2:]}-{MONTHS[month][0]}/20{year[-2:]}-{MONTHS[month][1]}"
-    name = f"{year[-2:]}_{month}"
+def get_data_from_coordinate(catalog, coordinate, month, year, index) -> int:
+    """Get image data from a specified coordinate and save it as a PNG and NumPy array.
 
-    create_folder(name)
-    catalog = open_catalog()
+    Args:
+        catalog (pystac_client.Client): A PySTAC client object.
+        coordinate (list): A list of coordinate pairs specifying a polygonal area of interest.
+        month (str): The month of the images to be stored, e.g. "aug".
+        year (str): The year of the images to be stored, e.g. "22".
+        index (int): An integer representing the index of the row to update in the CSV file.
+
+    Returns:
+        int: 1 if the image data is successfully retrieved and saved, 0 otherwise.
+
+    """
+    area_of_interest = {"type": "Polygon",
+                        "coordinates": coordinate}
+    time_of_interest = f"20{year}-{MONTHS[month]}-01/20{year}-{MONTHS[month]}-28"
+    try:
+        search = catalog.search(
+            collections=["sentinel-2-l2a"],
+            intersects=area_of_interest,
+            datetime=time_of_interest,
+            query={"eo:cloud_cover": {"lt": 25}},
+        )
+        items = search.item_collection()
+        least_cloudy_item = min(items, key=lambda item: eo.ext(item).cloud_cover)
+        visual_href = least_cloudy_item.assets["visual"].href
+        img_data = read_band_data(visual_href, area_of_interest)
+        
+        if check_data_valid(img_data):
+            date = least_cloudy_item.datetime.strftime("%Y-%m-%d")
+            folder_path = create_folder(month, year, index)
+            save_as_np_array(least_cloudy_item, SENTINEL_BANDS, area_of_interest, folder_path)
+            save_as_visual_plot(img_data, folder_path)
+            write_date_to_stats(month, year, date, index)
+            return 1
+        else:
+            return 0
+    except:
+        return 0
+
+def download_s2_data(month: str, year: str):
+    create_folder(month, year)
+    create_stats(month, year)
+
+    catalog = pystac_client.Client.open(
+        "https://planetarycomputer.microsoft.com/api/stac/v1",
+        modifier=planetary_computer.sign_inplace,
+    )
     coordinates = get_coordinates()
 
     successful_downloads = 0
     for index, coordinate in enumerate(coordinates):
-        successful_downloads += get_data(catalog, coordinate, time_of_interest, index, name)
-    
-    print(f"Successfully downloaded {successful_downloads} images for {month}-{year}")
+        successful_downloads += get_data_from_coordinate(catalog, coordinate, month, year, index)
+
+    print(f"Successfully downloaded {successful_downloads} images for {month} {year}")

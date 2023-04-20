@@ -94,6 +94,7 @@ def query_data_api(month: str, year: int, order):
 def download_ps_data(month: str, year: str) -> int:
     dates = MONTHS[month]
     create_folder(month, year)
+    orders = []
 
     with open('images/coordinates/squares_1.geojson', 'r') as f:
         file = json.load(f)
@@ -120,10 +121,10 @@ def download_ps_data(month: str, year: str) -> int:
                 }
             ]
         )
+        order_url.append()
 
         client.check_order_status(
-            order_url=order_url,
-            loop=True
+            order_url=order_url
         )
         
         client.download_order(

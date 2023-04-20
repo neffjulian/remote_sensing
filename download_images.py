@@ -9,38 +9,28 @@ from images.planet_scope.ps_preprocess import preprocess_ps_data
 from images.swissimage.si_download import download_si_data
 
 # Define a dictionary mapping month names to date ranges
-MONTHS = {
-    'january': ("01-01", "01-31"),
-    'february': ("02-01", "02-28"),
-    'march': ("03-01", "03-31"),
-    'april': ("04-01", "04-30"),
-    'may': ("05-01", "05-31"),
-    'june': ("06-01", "06-30"),
-    'july': ("07-01", "07-31"),
-    'august': ("08-01", "08-31"),
-    'september': ("09-01", "09-30"),
-    'october': ("10-01", "10-31"),
-    'november': ("11-01", "11-30"),
-    'december': ("12-01", "12-31"),
-}
+MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", \
+          "jul", "aug", "sep", "oct", "nov", "dec"]
 
 def main(satellite: str, year: int, month: str) -> None:
-    year = (year % 2000) # In case input is '22' or '2022'
-    if year > 22:
-        raise ValueError("Year invalid", year)
-    if month.lower() not in MONTHS:
-        raise ValueError("Month invalid")
+    if not(0 < year or year < 22):
+        raise ValueError(f"Year invalid ({year})")
+    if month not in MONTHS:
+        raise ValueError(f"Month invalid ({month})")
     
+    # TODO: change to more cleaner method
     if satellite.startswith("se"):
-        download_s2_data(month, str(year))
-        preprocess_s2_data(month, str(year))   
+        download_s2_data(month, year)
+        preprocess_s2_data(month, year)   
+
     elif satellite.startswith("p"):
-        # download_ps_data(month, year)
+        download_ps_data(month, year)
         preprocess_ps_data(month, year)
+        
     elif satellite.startswith("sw"):
         download_si_data(month, year)
     else:
-        raise Exception(f"Invalid Satellite selected: {satellite}")
+        raise ValueError(f"Satellite invalid ({satellite})")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -49,4 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--month", required=True, type=str)
 
     args = parser.parse_args()
-    main(**vars(args))
+    # main(**vars(args))
+
+    for month in MONTHS:
+        main("sentinel", 22, month)
