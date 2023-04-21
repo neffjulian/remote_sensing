@@ -15,6 +15,8 @@ MONTHS = {"jan": "01", "feb": "02", "mar": "03", "apr": "04",
           "may": "05", "jun": "06", "jul": "07", "aug": "08", 
           "sep": "09", "oct": "10", "nov": "11", "dec": "12"}
 
+COORDINATE_PATH = Path("images/coordinates/squares.geojson")
+
 def create_folder(month: str, year: str, index: int = None) -> Path:
     """
     Creates a new folder for storing Sentinel-2 images.
@@ -88,10 +90,8 @@ def get_coordinates() -> list:
 
     Returns:
         List: A list of lists of coordinates.
-    """
-    coordinates_location = Path("images/coordinates/squares.geojson")
-    
-    with open(coordinates_location, "r") as f:
+    """    
+    with open(COORDINATE_PATH, "r") as f:
         geojson_coordinates = json.load(f)
     
     coordinates = []
@@ -209,7 +209,7 @@ def get_data_from_coordinate(catalog, coordinate, month, year, index) -> int:
     except:
         return 0
 
-def download_s2_data(month: str, year: str):
+def download_s2_data(month: str, year: str) -> None:
     create_folder(month, year)
     create_stats(month, year)
 
