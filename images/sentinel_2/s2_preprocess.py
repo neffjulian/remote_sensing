@@ -36,7 +36,7 @@ def save_stats(month: str, year: str, data: np.ndarray) -> None:
         month (str): A string representing the month, e.g. 'jan' for January.
         year (str): A string representing the year, e.g. '22' for 2022.
         data (numpy.ndarray): A NumPy array containing the statistics data to be saved.
-
+# 
     Returns:
         None.
 

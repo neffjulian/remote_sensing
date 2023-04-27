@@ -1,0 +1,5 @@
+name: remote_sensing
+
+dependencies:
+  - arosics
+  

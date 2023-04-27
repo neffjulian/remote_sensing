@@ -8,6 +8,7 @@ from images.planet_scope.ps_download import place_ps_order, download_ps_data
 from images.planet_scope.ps_sample_download import test
 
 from images.swissimage.si_download import download_si_data
+from images.swissimage.si_preprocess import preprocess_si_data
 
 # Define a dictionary mapping month names to date ranges
 MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", \
@@ -24,12 +25,12 @@ def main(satellite: str, year: int, month: str) -> None:
         preprocess_s2_data(month, year)   
 
     elif satellite == "planetscope":
-        # test()
         place_ps_order(month, year)
         download_ps_data(month, year)
         # preprocess_ps_data(month, year)
     elif satellite == "swissimage":
         download_si_data(month, year)
+        preprocess_si_data(month, year)
     else:
         raise ValueError(f"Satellite invalid ({satellite}). Either use 'sentinel', 'planetscope' or 'swissimage'.")
 

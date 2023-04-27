@@ -236,11 +236,9 @@ def download_ps_data(month: str, year: str) -> None:
         None.
     """
     orders_path = Path(f'images/planet_scope/{year}_{month}/orders.csv')
-    orders = np.loadtxt(orders_path, delimiter=',', dtype=np.dtype([("index", np.int), 
-                                                                    ("order_name", "U100"), 
-                                                                    ("order_url", "U100")]))
+    orders = np.loadtxt(orders_path, delimiter=',', dtype=np.dtype([("index", np.int), ("order_name", "U100"), ("order_url", "U100")]))
     
-    # TODO: This fails currently. Show Lukas 
+    # TODO: This fails currently. Likely because there is not enough quota left. 
     client = PlanetAPIClient
     for index, order_name, order_url in orders:
         download_dir = create_folder(month, year, index)
