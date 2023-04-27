@@ -2,9 +2,9 @@
 images/swissimage/0.1
 images/swissimage/2
 preprocess_images/temp/*
-images/sentinel_2/22_*
-images/swissimage/22_*
-images/planet_scope/22_*
+images/sentinel_2/2*
+images/swissimage/2*
+images/planet_scope/2*
 .env
 *.pyc
 *__pycache__
