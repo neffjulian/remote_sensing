@@ -1,30 +1,24 @@
-# Guided Superresolution for Sentinel-2 and PlanetScope Satellite Data
+# Remote-Sensing
 
-## Getting Started
-
-### Installation
-To use this code, you need to have Python 3 installed on your computer. Then, you can install the necessary Python packages by running the following command in your terminal or command prompt:
+## Project Structure
 
 ```
-pip install -r requirements.txt
+├── remote_sensing
+│   ├── data
+|   |   ├── coordinates <- Contains geographic coordinates from different locations in Switzerland
+|   |   ├── interim <- Contains intermediate data that has been transformed
+|   |   ├── processed <- Contains the final, canonical data sets for modeling
+|   |   ├── raw <- Contains the original, immutable data dump
+│   ├── src
+|   |   ├── dataset 
+|   |   |   ├── download_dataset.py <- Contains scripts to download the dataset or access dataset from the data folder
+│   ├── .gitignore <- Tells Git which files to ignore when committing your project to the GitHub repository
+│   ├── .env <- Used to hide confidential data
+│   ├── environment.yml <- Contains all dependencies for an easy setup
+│   ├── README.md <- The top-level README for developers using this project
 ```
 
-This command will install all the dependencies required to run the code.
+## Downloading Images
+- Go to "/src"
+- python download_images.py --satellite sentinel --year 2022 --month mar
 
-### Downloading Satellite Data
-To download satellite images, run the following command in your terminal or command prompt:
-```
-python download_images.py --satellite <satellite-name> --year <year> --month <month>
-
-```
-Replace <satellite-name> with either "planetscope" or "sentinel-2", depending on which satellite you want to download images from. Replace <year> with the year you want the images to be taken from, and replace <month> with the month during which the images should have been taken.
-
-For example, to download Sentinel-2 images taken in March 2022, run:
-
-```
-python download_images.py --satellite sentinel-2 --year 2022 --month march
-```
-
-The downloaded images will be stored in the data directory.
-
-That's it! With these instructions, you should be able to set up and use the guided superresolution code.

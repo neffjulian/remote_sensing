@@ -1,10 +1,12 @@
-# images/planet_scope
-images/swissimage/0.1
-images/swissimage/2
-preprocess_images/temp/*
-images/sentinel_2/2*
-images/swissimage/2*
-images/planet_scope/2*
+data/raw/sentinel/*
+data/raw/planetscope/*
+
+# data/interim/sentinel/*
+# data/interim/planetscope/*
+
+# data/processed/sentinel/*
+# data/processed/planetscope/*
+
 .env
 *.pyc
 *__pycache__
