@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List
-
+import argparse
 import urllib
+
 import geopandas as gpd
 import planetary_computer
 from eodal.config import get_settings
@@ -17,6 +18,7 @@ from .utils import (
     write_date_to_csv,
     get_dates,
     get_point_coordinates,
+    MONTHS
 )
 
 Settings = get_settings()
@@ -138,3 +140,26 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
             write_date_to_csv(metadata_dir, i, date, coordinate_x, coordinate_y)
         except:
             continue
+
+def main(year: str, month: str, test: bool) -> None:
+    if not (2017 <= int(year) <= 2022):
+        raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
+    
+    if month not in MONTHS:
+        raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
+    
+    if test is True:
+        coordinate_file = 'point_ai.geojson'
+    else:
+        coordinate_file = 'points_ch.geojson'
+
+    download_sentinel_data(coordinate_file, year, month)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", required=True, type=str)
+    parser.add_argument("--month", required=True, type=str)
+    parser.add_argument("--test", type=bool)
+
+    args = parser.parse_args()
+    main(**vars(args))

@@ -1,4 +1,5 @@
 import os
+import argparse
 from pathlib import Path
 from datetime import datetime, date, timedelta
 
@@ -181,6 +182,7 @@ def download_planetscope_orders(year: str, month: str) -> None:
         try:
             order_name = row["order_name"]
             order_url = row["order_url"]
+            order_index = row[""]
 
             curr_download_dir = download_dir.joinpath(f"{index:04d}")
             curr_download_dir.mkdir(exist_ok=True)
@@ -200,3 +202,35 @@ def download_planetscope_orders(year: str, month: str) -> None:
             )
         except:
             pass
+
+def main(year: str, month: str, place_order: bool, download_orders: bool, test: bool) -> None:
+    if not (2017 <= int(year) <= 2022):
+        raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
+    
+    if month not in MONTHS:
+        raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
+    
+
+    if test is True:
+        coordinate_file = 'point_ai.geojson'
+    else:
+        coordinate_file = 'points_ch.geojson'
+
+    if place_order is True:
+        place_planetscope_orders(coordinate_file, year, month)
+    elif download_orders is True:
+        download_planetscope_orders(year, month)
+    else:
+        raise ValueError("Either select 'place_order' or 'download_orders'")
+    
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", required=True, type=str)
+    parser.add_argument("--month", required=True, type=str)
+    parser.add_argument("--test", type=bool)
+    parser.add_argument("--place_order", type=bool)
+    parser.add_argument("--download_order", type=bool)
+
+    args = parser.parse_args()
+    main(**vars(args))

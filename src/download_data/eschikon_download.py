@@ -1,8 +1,10 @@
 import os
+import argparse
 from pathlib import Path
 from datetime import datetime, date, timedelta
 from typing import List
 import urllib
+
 from dotenv import load_dotenv
 from eodal.downloader.planet_scope import PlanetAPIClient
 from eodal.config import get_settings
@@ -35,7 +37,7 @@ def create_dirs(year: str, month: str) -> None:
     curr_dir.mkdir(parents=True, exist_ok=True)
     return curr_dir
 
-def download_eschikon_sentinel(curr_dir: Path, start_date: datetime, end_date: datetime) -> None:
+def sentinel_eschikon(curr_dir: Path, start_date: datetime, end_date: datetime) -> None:
     metadata_filters: List[Filter] = [
         Filter('cloudy_pixel_percentage', '<=', 25),
         Filter('processing_level', '==', 'Level-2A')]
@@ -93,7 +95,7 @@ def download_eschikon_sentinel(curr_dir: Path, start_date: datetime, end_date: d
     # date
     return mapper.data.timestamps[0]
 
-def download_eschikon_planetscope(curr_dir: Path, start_date: datetime, end_date: datetime) -> None:
+def planetscope_eschikon(curr_dir: Path, start_date: datetime, end_date: datetime) -> None:
     client = PlanetAPIClient.query_planet_api(
         start_date=start_date,
         end_date=end_date,
@@ -109,17 +111,29 @@ def download_eschikon_planetscope(curr_dir: Path, start_date: datetime, end_date
     client.check_order_status(order_url, loop=True)
     client.download_order(curr_dir, order_url)
 
-def download_eschikon_data(year: str, month: str) -> None:
+def main(year: str, month: str):
+    if not (2017 <= int(year) <= 2022):
+        raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
+    
+    if month not in MONTHS:
+        raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
+    
     start_date = datetime(year, int(MONTHS[month]), 1)
     end_date = datetime(year, int(MONTHS[month]), int(DAY_IN_MONTH[month]))
     curr_dir = create_dirs(year, month)
 
-    date = download_eschikon_sentinel(curr_dir, start_date, end_date)
+    date = sentinel_eschikon(curr_dir, start_date, end_date)
     curr_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
     
     start_date = curr_date + timedelta(hours = 12)
     end_date = curr_date - timedelta(hours = 12)
 
-    print(start_date, end_date)
+    planetscope_eschikon(curr_dir, start_date, end_date)
 
-    download_eschikon_planetscope(curr_dir, start_date, end_date)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", required=True, type=str)
+    parser.add_argument("--month", required=True, type=str)
+
+    args = parser.parse_args()
+    main(**vars(args))

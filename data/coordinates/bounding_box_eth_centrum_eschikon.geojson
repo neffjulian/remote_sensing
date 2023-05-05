@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "bounding_box_eth_centrum_eschikon",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 8.537582009961115, 47.365078275761064 ], [ 8.535658236442822, 47.462236844817689 ], [ 8.749282828784024, 47.46348478295802 ], [ 8.750817514912304, 47.365594694048546 ], [ 8.537582009961115, 47.365078275761064 ] ] ] } }
+]
+}
