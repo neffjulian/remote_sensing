@@ -4,6 +4,8 @@ from download_data.sentinel2_download import download_sentinel_data
 
 from download_data.planetscope_download import place_planetscope_orders, download_planetscope_orders
 
+from download_data.eschikon_download import download_eschikon_data
+
 from download_data.utils import MONTHS
 
 def main(satellite: str, year: str, month: str, test: bool):
@@ -24,8 +26,10 @@ def main(satellite: str, year: str, month: str, test: bool):
         download_sentinel_data(coordinate_file, year, month)
 
     elif satellite == "planetscope":
-        # place_planetscope_orders(coordinate_file, year, month)
-        download_planetscope_orders(year, month)
+        place_planetscope_orders(coordinate_file, year, month)
+        # download_planetscope_orders(year, month)
+    elif satellite == "eschikon":
+        download_eschikon_data(year, month)
 
     else:
         raise ValueError(f"Satellite invalid ('{satellite}'). Either use 'sentinel' or 'planetscope'.")

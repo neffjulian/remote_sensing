@@ -62,8 +62,8 @@ def get_start_end_dates(date: datetime, added_hours: int) -> tuple:
     dates for that period. The start date is set to midnight on the specified date minus the number of hours, and the
     end date is set to 11:59pm on the specified date plus the number of hours.
     """
-    start_date = date.replace(hour=0, minute=0, second=0) - timedelta(hours=added_hours)
-    end_date = date.replace(hour=0, minute=0, second=0) + timedelta(days=1, hours=added_hours)
+    start_date = date - timedelta(hours=added_hours)
+    end_date = date + timedelta(hours=added_hours)
     return start_date, end_date
 
 
@@ -81,13 +81,16 @@ def filter_coordinates(sentinel_dates: pd.DataFrame, features: list) -> list:
     filtered_coordinates = []
     for index, feature in enumerate(features["features"]):
         if index in sentinel_dates["index"].values:
-            date = sentinel_dates.loc[index, "date"]
-            processing_tool = [{
-                "clip": {"aoi": feature['geometry']}
-                }]
-            gdf = gpd.GeoDataFrame.from_features([feature])
-            gdf = gdf.set_crs(epsg=4326)
-            filtered_coordinates.append((index, date, processing_tool, gdf))
+            try:
+                date = sentinel_dates.loc[index, "date"]
+                processing_tool = [{
+                    "clip": {"aoi": feature['geometry']}
+                    }]
+                gdf = gpd.GeoDataFrame.from_features([feature])
+                gdf = gdf.set_crs(epsg=4326)
+                filtered_coordinates.append((index, date, processing_tool, gdf))
+            except:
+                pass
     return filtered_coordinates
 
 def get_order_name(month: str, year: str, index: str) -> str:
@@ -175,18 +178,25 @@ def download_planetscope_orders(year: str, month: str) -> None:
     orders = pd.read_csv(orders_location)
     
     for index, row in orders.iterrows():
-        order_name = row["order_name"]
-        order_url = row["order_url"]
+        try:
+            order_name = row["order_name"]
+            order_url = row["order_url"]
 
-        status = client.check_order_status(
-            order_url=order_url
-        )
+            curr_download_dir = download_dir.joinpath(f"{index:04d}")
+            curr_download_dir.mkdir(exist_ok=True)
 
-        if status == "Failed":
-            print(f"Order '{order_name}' failed.")
-            continue
 
-        client.download_order(
-            download_dir=download_dir.joinpath(f"{index:04d}"),
-            order_name=order_name
-        )
+            status = client.check_order_status(
+                order_url=order_url
+            )
+
+            if status == "Failed":
+                print(f"Order '{order_name}' failed.")
+                continue
+        
+            client.download_order(
+                download_dir=curr_download_dir,
+                order_url=order_url
+            )
+        except:
+            pass
