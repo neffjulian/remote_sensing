@@ -1,11 +1,12 @@
 data/raw/sentinel/*
 data/raw/planetscope/*
 data/raw/eschikon/*
-# data/interim/sentinel/*
-# data/interim/planetscope/*
 
-data/preprocessed/sentinel/*
-data/preprocessed/planetscope/*
+data/processed/sentinel/*
+data/processed/planetscope/*
+
+data/raw_filtered/sentinel/*
+data/raw_filtered/planetscope/*
 
 .env
 *.pyc

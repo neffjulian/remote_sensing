@@ -15,6 +15,8 @@ from .utils import (
     MONTHS
 )
 
+# TODO: Fix index issue
+
 DOTENV_PATH = Path().absolute().parent.joinpath(".env")
 DATA_DIR = Path().absolute().parent.joinpath("data", "raw", "planetscope")
 load_dotenv(DOTENV_PATH)
