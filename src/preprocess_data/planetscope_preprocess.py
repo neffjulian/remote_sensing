@@ -14,16 +14,14 @@ from utils import (
     copy_metadata
 )
 
+np.seterr(divide='ignore', invalid='ignore')
+
+
 def check_sentinel_indices(year: str, month: str) -> list[str]:
     sentinel_dir = DATA_DIR.joinpath("raw", "sentinel", year, f"{MONTHS[month]}_{month}", "metadata")
     indices = [f.name[:4] for f in sentinel_dir.iterdir() if f.name[:4].isdigit()]
     print(f"Found {len(indices)} Sentinel files for {month} {year}")
     return indices
-
-def check_planetscope_indices(source_dir):
-    for file in source_dir.iterdir():
-        print(file.name, type(file.name))
-
 
 def copy_planetscope_data(year: str, month: str) -> None:
     source_dir = DATA_DIR.joinpath("raw", "planetscope", year, f"{MONTHS[month]}_{month}", "data")
@@ -57,32 +55,39 @@ def copy_planetscope_data(year: str, month: str) -> None:
                 else:
                     raise Exception("Error with file: ", file, " should be either a .tif file or .xml")
                 
-def crop_data_and_save_as_np(src: Path, dst: Path, plot_loc: Path):
+def crop_data_and_save_as_np(src: Path, dst: Path, plot_loc: Path, ndvi_file: Path, ndvi_plot: Path):
+    output_dim = (648, 648)
     with rasterio.open(src, 'r') as data:
-        b_02 = data.read(2)
-        b_04 = data.read(4)
-        b_06 = data.read(6)
-        b_07 = data.read(7)
-        b_08 = data.read(8)
-
-    # output_dim = (546, 546)
-    output_dim = (384, 384)
-    b_02_resized = numpy_resize_normalize(b_02, output_dim)
-    b_04_resized = numpy_resize_normalize(b_04, output_dim)
-    b_06_resized = numpy_resize_normalize(b_06, output_dim)
-    b_07_resized = numpy_resize_normalize(b_07, output_dim)
-    b_08_resized = numpy_resize_normalize(b_08, output_dim)
+        b_02 = numpy_resize_normalize(data.read(2), output_dim)
+        b_04 = numpy_resize_normalize(data.read(4), output_dim)
+        b_06 = numpy_resize_normalize(data.read(6), output_dim)
+        b_07 = numpy_resize_normalize(data.read(7), output_dim)
+        b_08 = numpy_resize_normalize(data.read(8), output_dim)
 
     np.savez(dst,
-        Blue = b_02_resized,
-        Green = b_04_resized,
-        Red = b_06_resized,
-        RedEdge = b_07_resized,
-        NIR = b_08_resized
+        Blue = b_02,
+        Green = b_04,
+        Red = b_06,
+        RedEdge = b_07,
+        NIR = b_08
     )
 
-    rgb = np.dstack((b_02_resized, b_04_resized, b_06_resized))
-    cv2.imwrite(plot_loc.as_posix(), rgb)
+    bgr = np.dstack((b_02, b_04, b_06))
+    bgr_rescaled = cv2.normalize(bgr, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    cv2.imwrite(plot_loc.as_posix(), bgr_rescaled)
+
+    ndvi = np.divide(b_06.astype(np.float64) - b_08.astype(np.float64), b_06.astype(np.float64) + b_08.astype(np.float64) + 0.0001)
+    ndvi_rescaled = cv2.normalize(ndvi, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_32F)
+    np.save(
+        file = ndvi_file,
+        arr =  ndvi_rescaled
+    )
+    cv2.imwrite(
+        ndvi_plot.as_posix(),
+        ndvi_rescaled
+    )
+
+
                     
 def preprocess_planetscope_data(year, month):
     source_dir = DATA_DIR.joinpath("raw_filtered", "planetscope", year, f"{MONTHS[month]}_{month}", "data")
@@ -99,7 +104,10 @@ def preprocess_planetscope_data(year, month):
         curr_target_filename = target_dir.joinpath(f"{file.name[:4]}.npz")
         curr_target_plotname = plot_dir.joinpath(f"{file.name[:4]}.png")
 
-        crop_data_and_save_as_np(file, curr_target_filename, curr_target_plotname)
+        curr_ndvi_filename = target_dir.joinpath(f"ndvi_{file.name[:4]}.npz")
+        curr_ndvi_plotname = plot_dir.joinpath(f"ndvi_{file.name[:4]}.png") 
+
+        crop_data_and_save_as_np(file, curr_target_filename, curr_target_plotname, curr_ndvi_filename, curr_ndvi_plotname)
     
     copy_metadata("planetscope", year, month)
 

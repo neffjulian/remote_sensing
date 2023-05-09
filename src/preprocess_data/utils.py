@@ -31,4 +31,5 @@ def numpy_resize_normalize(arr: np.ndarray, output_dim: tuple) -> np.ndarray:
 def copy_metadata(satellite: str, year: str, month: str) -> None:
     source_dir = DATA_DIR.joinpath("raw_filtered", satellite, year, f"{MONTHS[month]}_{month}", "metadata")
     target_dir = DATA_DIR.joinpath("processed", satellite, year, f"{MONTHS[month]}_{month}", "metadata")
-    shutil.copytree(source_dir, target_dir)
+    if not target_dir.exists():
+        shutil.copytree(source_dir, target_dir)

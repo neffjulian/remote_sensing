@@ -12,7 +12,7 @@ from eodal.mapper.feature import Feature
 from eodal.mapper.filter import Filter
 from eodal.mapper.mapper import Mapper, MapperConfigs
 
-from .utils import (
+from utils import (
     convert_to_squares,
     create_dirs,
     write_date_to_csv,
@@ -24,8 +24,8 @@ from .utils import (
 Settings = get_settings()
 Settings.USE_STAC = True
 
-DATA_DIR = Path().absolute().parent.joinpath("data", "raw", "sentinel")
-COORDINATE_DIR = Path().absolute().parent.joinpath("data", "coordinates")
+DATA_DIR = Path().absolute().parent.parent.joinpath("data", "raw", "sentinel")
+COORDINATE_DIR = Path().absolute().parent.parent.joinpath("data", "coordinates")
 COLLECTION = "sentinel2-msi"
 
 def get_features(coordinates_location: Path) -> list:
@@ -79,6 +79,8 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
         Filter('cloudy_pixel_percentage', '<=', 25),
         Filter('processing_level', '==', 'Level-2A')]
     
+    errors = []
+    
     for i, feature in enumerate(features):
         try:
             mapper_configs = MapperConfigs(
@@ -104,7 +106,7 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
             scene_kwargs = {
                 'scene_constructor': Sentinel2.from_safe,
                 'scene_constructor_kwargs': {
-                    'band_selection': ["B02", "B03", "B04", "B05", "B8A"]}}
+                    'band_selection': ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12"]}}
 
             mapper.load_scenes(scene_kwargs=scene_kwargs)
             # the data loaded into `mapper.data` as a EOdal SceneCollection
@@ -114,14 +116,19 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
             # save the scene to disk
             # we distinguish the 10 and 20m bands by the suffixes _10m and _20m
             scene_10m = RasterCollection()
-            for band in ['blue', 'green', 'red']:
+            for band in ['blue', 'green', 'red', 'nir_1']:
                 scene_10m.add_band(scene[band])
             scene_10m.to_rasterio(data_dir.joinpath(f'{i:04d}_scene_10m.tif'))
 
             scene_20m = RasterCollection()
-            for band in ['red_edge_1', 'nir_2']:
+            for band in ['red_edge_1', 'red_edge_2', 'red_edge_3', 'nir_2', 'swir_1', 'swir_2']:
                 scene_20m.add_band(scene[band])
             scene_20m.to_rasterio(data_dir.joinpath(f'{i:04d}_scene_20m.tif'))
+
+            scene_60m = RasterCollection()
+            for band in ['ultra_blue', 'nir_3']:
+                scene_60m.add_band(scene[band])
+            scene_60m.to_rasterio(data_dir.joinpath(f'{i:04d}_scene_60m.tif'))
 
             # save metadata xml to disk
             href_xml = mapper.metadata.assets.iloc[0]['granule-metadata']['href']
@@ -139,7 +146,9 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
             date = mapper.data.timestamps[0]
             write_date_to_csv(metadata_dir, i, date, coordinate_x, coordinate_y)
         except:
-            continue
+            errors.append(i)
+
+    print(f"In total {len(errors)} occured. Namely {errors}")
 
 def main(year: str, month: str, test: bool) -> None:
     if not (2017 <= int(year) <= 2022):

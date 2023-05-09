@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 
-COORDINATE_DIR = Path().absolute().parent.joinpath('data', 'coordinates')
+COORDINATE_DIR = Path().absolute().parent.parent.joinpath('data', 'coordinates')
 
 MONTHS = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
           "may": "05", "jun": "06", "jul": "07", "aug": "08", 
