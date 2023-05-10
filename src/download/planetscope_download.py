@@ -2,6 +2,7 @@ import os
 import argparse
 from pathlib import Path
 from datetime import datetime, date, timedelta
+import xml.etree.ElementTree as ET
 
 import pandas as pd
 import geopandas as gpd
@@ -9,16 +10,14 @@ from dotenv import load_dotenv
 from eodal.downloader.planet_scope import PlanetAPIClient
 from eodal.config import get_settings
 
-from .utils import (
+from utils import (
     convert_to_squares,
     create_dirs,
     MONTHS
 )
 
-# TODO: Fix index issue
-
-DOTENV_PATH = Path().absolute().parent.joinpath(".env")
-DATA_DIR = Path().absolute().parent.joinpath("data", "raw", "planetscope")
+DOTENV_PATH = Path().absolute().parent.parent.joinpath(".env")
+DATA_DIR = Path().absolute().parent.parent.joinpath("data", "raw", "planetscope")
 load_dotenv(DOTENV_PATH)
 
 settings = get_settings()
@@ -26,28 +25,17 @@ settings.PLANET_API_KEY = os.getenv('PLANET_API_KEY')
 settings.USE_STAC = True
 
 def get_sentinel_dates(year: str, month: str) -> list:
-    """
-    Extracts the dates from the Sentinel-2 metadata file for a given year and month.
+    sentinel_metadata = DATA_DIR.parent.joinpath("sentinel", f"{year}", f"{MONTHS[month]}_{month}", "metadata")
 
-    Parameters:
-    - year (str): The year for which Sentinel data has been downloaded.
-    - month (str): The month for which Sentinel data has been downloaded.
+    dates = {}
+    for file in sentinel_metadata.iterdir():
+        if file.name.endswith(".xml"):
+            root = ET.parse(file).getroot()
+            sensing_times = root.findall(".//SENSING_TIME")
+            sensing_times_datetime = [datetime.strptime(sensing_time.text, '%Y-%m-%dT%H:%M:%S.%fZ') for sensing_time in sensing_times]
 
-    Returns:
-    - A pandas DataFrame with two columns: "index" and "date".
+            dates[int(file.name[:4])] = sensing_times_datetime[0]
 
-    Raises:
-    - Exception: If the metadata file does not exist, an exception is raised indicating that Sentinel data does not
-    exist for the desired month.
-    """
-    sentinel_dir = DATA_DIR.parent.joinpath("sentinel", f"{year}", f"{MONTHS[month]}_{month}")
-    sentinel_metadata = sentinel_dir.joinpath("metadata", "dates.csv")
-
-    if not sentinel_dir.exists() or not sentinel_metadata.exists():
-        raise Exception("Sentinel data does not exist for the desired month.")
-    metadata = pd.read_csv(sentinel_metadata)
-    dates = metadata.loc[:, ["index", "date"]]
-    dates["date"] = dates["date"].apply(lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S"))
     return dates
 
 def get_start_end_dates(date: datetime, added_hours: int) -> tuple:
@@ -60,17 +48,13 @@ def get_start_end_dates(date: datetime, added_hours: int) -> tuple:
 
     Returns:
     - tuple: A tuple containing the start and end dates.
-
-    This function takes a datetime object and adds the specified number of hours to it, then returns the start and end
-    dates for that period. The start date is set to midnight on the specified date minus the number of hours, and the
-    end date is set to 11:59pm on the specified date plus the number of hours.
     """
     start_date = date - timedelta(hours=added_hours)
     end_date = date + timedelta(hours=added_hours)
     return start_date, end_date
 
 
-def filter_coordinates(sentinel_dates: pd.DataFrame, features: list) -> list:
+def filter_coordinates(sentinel_dates: dict, features: list) -> list:
     """
     Filters a list of geojson features based on whether their index is present in a given dataframe of Sentinel-2 dates.
     
@@ -83,17 +67,12 @@ def filter_coordinates(sentinel_dates: pd.DataFrame, features: list) -> list:
     """
     filtered_coordinates = []
     for index, feature in enumerate(features["features"]):
-        if index in sentinel_dates["index"].values:
-            try:
-                date = sentinel_dates.loc[index, "date"]
-                processing_tool = [{
-                    "clip": {"aoi": feature['geometry']}
-                    }]
-                gdf = gpd.GeoDataFrame.from_features([feature])
-                gdf = gdf.set_crs(epsg=4326)
-                filtered_coordinates.append((index, date, processing_tool, gdf))
-            except:
-                pass
+        if index in sentinel_dates:
+            processing_tool = [{"clip": {"aoi": feature['geometry']}}]
+            gdf = gpd.GeoDataFrame.from_features([feature])
+            gdf = gdf.set_crs(epsg=4326)
+            filtered_coordinate = (index, sentinel_dates[index], processing_tool, gdf)
+            filtered_coordinates.append(filtered_coordinate)
     return filtered_coordinates
 
 def get_order_name(month: str, year: str, index: str) -> str:
@@ -128,8 +107,6 @@ def place_planetscope_orders(coordinate_file: str, year: str, month: str) -> Non
     coordinates = convert_to_squares(coordinate_file)
     filtered_coordinates = filter_coordinates(sentinel_dates, coordinates)
 
-    # TODO: Sometimes we still download multiple orders. Leave as is and Delete one?
-
     orders = []
     for index, date, proc_tool, gdf in filtered_coordinates:
         added_hours = 0
@@ -149,8 +126,8 @@ def place_planetscope_orders(coordinate_file: str, year: str, month: str) -> Non
                     processing_tools=proc_tool
                 )
                 orders.append((index, order_name, order_url, added_hours))
-                break
             except:
+                print(added_hours)
                 added_hours += 6
 
     orders_csv = pd.DataFrame(orders, columns=["index", "order_name", "order_url", "added_hours"])
@@ -184,11 +161,9 @@ def download_planetscope_orders(year: str, month: str) -> None:
         try:
             order_name = row["order_name"]
             order_url = row["order_url"]
-            order_index = row[""]
 
             curr_download_dir = download_dir.joinpath(f"{index:04d}")
             curr_download_dir.mkdir(exist_ok=True)
-
 
             status = client.check_order_status(
                 order_url=order_url
@@ -205,7 +180,7 @@ def download_planetscope_orders(year: str, month: str) -> None:
         except:
             pass
 
-def main(year: str, month: str, place_order: bool, download_orders: bool, test: bool) -> None:
+def main(year: str, month: str, place_order: bool, download_order: bool, test: bool) -> None:
     if not (2017 <= int(year) <= 2022):
         raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
     
@@ -220,11 +195,10 @@ def main(year: str, month: str, place_order: bool, download_orders: bool, test: 
 
     if place_order is True:
         place_planetscope_orders(coordinate_file, year, month)
-    elif download_orders is True:
+    elif download_order is True:
         download_planetscope_orders(year, month)
     else:
         raise ValueError("Either select 'place_order' or 'download_orders'")
-    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

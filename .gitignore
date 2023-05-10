@@ -5,8 +5,8 @@ data/raw/eschikon/*
 data/processed/sentinel/*
 data/processed/planetscope/*
 
-data/raw_filtered/sentinel/*
-data/raw_filtered/planetscope/*
+data/filtered/sentinel/*
+data/filtered/planetscope/*
 
 .env
 *.pyc
