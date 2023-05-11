@@ -157,10 +157,11 @@ def download_planetscope_orders(year: str, month: str) -> None:
 
     orders = pd.read_csv(orders_location)
     
-    for index, row in orders.iterrows():
+    for _, row in orders.iterrows():
         try:
             order_name = row["order_name"]
             order_url = row["order_url"]
+            index = row["index"]
 
             curr_download_dir = download_dir.joinpath(f"{index:04d}")
             curr_download_dir.mkdir(exist_ok=True)
