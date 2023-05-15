@@ -54,7 +54,7 @@ def histogram_matching(year: str, month: str) -> None:
 def remove_entries_with_no_matching_pair(dir: Path, double_entries: list) -> None:
     to_remove = []
     for file in dir.iterdir():
-        index = (file.name[:-4])[-4:]
+        index = file.name[5:9]
         if index.isdigit() and index not in double_entries:
             to_remove.append(file)
 
@@ -78,10 +78,10 @@ def remove_non_image_pairs(year: str, month: str) -> None:
     if not s2_data_dir.exists():
         raise Exception("Sentinel dir does not exist: ", s2_data_dir)
 
-    planetscope_indices = [index.name[:4] for index in ps_data_dir.iterdir() 
-                           if not index.name.startswith("ndvi") and index.name[:4].isdigit()]
-    sentinel_indices = [index.name[:4] for index in s2_data_dir.iterdir() 
-                        if not index.name.startswith("ndvi")]
+    planetscope_indices = [index.name[5:9] for index in ps_data_dir.iterdir() 
+                           if index.name[5:9].isdigit()]
+    sentinel_indices = [index.name[5:9] for index in s2_data_dir.iterdir() 
+                        if index.name[5:9].isdigit()]
     
     double_indices = [entry for entry in planetscope_indices if entry in sentinel_indices]
     
@@ -153,7 +153,7 @@ def crop_data_and_save_as_np(src: Path, target_dir: Path, plot_dir: Path) -> Non
     Returns:
         None.
     """
-    dst_data = target_dir.joinpath(f"{src.name[:4]}.npz")
+    dst_data = target_dir.joinpath(f"{src.name[:4]}")
     dst_plot = plot_dir.joinpath(f"{src.name[:4]}.png")
 
     ndvi_data = target_dir.joinpath(f"ndvi_{src.name[:4]}")
@@ -167,11 +167,11 @@ def crop_data_and_save_as_np(src: Path, target_dir: Path, plot_dir: Path) -> Non
     b_07 = resize_arr(raster["rededge"].values, output_dim, normalize=True)
     b_08 = resize_arr(raster["nir"].values, output_dim, normalize=True)
 
-    np.savez(dst_data, B02 = b_02, B04 = b_04, B06 = b_06, B07 = b_07, B08 = b_08 )
+    # np.savez(dst_data, B02 = b_02, B04 = b_04, B06 = b_06, B07 = b_07, B08 = b_08 )
 
-    bgr = np.dstack((b_02, b_04, b_06))
-    bgr_rescaled = cv2.normalize(bgr, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-    cv2.imwrite(dst_plot.as_posix(), bgr_rescaled)
+    # bgr = np.dstack((b_02, b_04, b_06))
+    # bgr_rescaled = cv2.normalize(bgr, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    # cv2.imwrite(dst_plot.as_posix(), bgr_rescaled)
 
     ndvi = calculate_ndvi(b_06, b_08)
     ndvi_rescaled = cv2.normalize(ndvi, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_32F)
@@ -232,3 +232,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(**vars(args))
+
+    # main("2022", "apr")
+    # main("2022", "may")
+    # main("2022", "jun")
+    # main("2022", "sep")

@@ -46,7 +46,7 @@ def crop_data_and_save_as_np(path_10: Path, path_20: Path, path_60: Path, data_d
     Returns:
         None.
     """
-    dst_data = data_dir.joinpath(f"{path_10.name[:4]}.npz")
+    dst_data = data_dir.joinpath(f"{path_10.name[:4]}")
     dst_plot = plot_dir.joinpath(f"{path_10.name[:4]}.png")
 
     ndvi_data = data_dir.joinpath(f"ndvi_{path_10.name[:4]}")
@@ -73,12 +73,12 @@ def crop_data_and_save_as_np(path_10: Path, path_20: Path, path_60: Path, data_d
     # b_01 = resize_arr(raster_60["B01"].values, output_dim_60, normalize=True)
     # b_09 = resize_arr(raster_60["B09"].values, output_dim_60, normalize=True)
 
-    np.savez(dst_data, B02 = b_02, B03 = b_03, B04 = b_04, 
-             B05 = b_05, B8A = b_8A) 
+    # np.savez(dst_data, B02 = b_02, B03 = b_03, B04 = b_04, 
+    #          B05 = b_05, B8A = b_8A) 
 
-    bgr = np.dstack((b_02, b_03, b_04))
-    bgr_rescaled = cv2.normalize(bgr, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-    cv2.imwrite(dst_plot.as_posix(), bgr_rescaled)
+    # bgr = np.dstack((b_02, b_03, b_04))
+    # bgr_rescaled = cv2.normalize(bgr, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    # cv2.imwrite(dst_plot.as_posix(), bgr_rescaled)
 
     ndvi = calculate_ndvi(b_04, b_08)
     ndvi_rescaled = cv2.normalize(ndvi, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_32F)
@@ -129,9 +129,14 @@ def main(year: str, month: str) -> None:
     preprocess_sentinel_data(year, month)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--year", required=True, type=str)
-    parser.add_argument("--month", required=True, type=str)
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--year", required=True, type=str)
+    # parser.add_argument("--month", required=True, type=str)
 
-    args = parser.parse_args()
-    main(**vars(args))
+    # args = parser.parse_args()
+    # main(**vars(args))
+
+    main("2022", "apr")
+    main("2022", "may")
+    main("2022", "jun")
+    main("2022", "sep")
