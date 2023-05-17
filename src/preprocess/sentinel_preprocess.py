@@ -114,7 +114,9 @@ def preprocess_sentinel_data(year: str, month: str) -> None:
             file_60m = Path(file.as_posix().replace("10m", "60m"))
 
             if not (check_outlier(file, 10) and check_outlier(file_20m, 20) and check_outlier(file_60m, 60)):
+                print("The following file has been removed as it is not suited for training:", file)
                 continue
+
 
             crop_data_and_save_as_np(file, file_20m, file_60m, target_dir, plot_dir)
 

@@ -2,7 +2,6 @@
 Super-Resolution Convolutional Neural Network (2015)
 
 Paper: https://arxiv.org/abs/1501.00092
-Pytorch: https://github.com/Mirwaisse/SRCNN
 """
 
 import torch
@@ -15,7 +14,7 @@ class SRCNN(pl.LightningModule):
         super().__init__()
         self.super_resolution = nn.Sequential(
             nn.Conv2d(1, 64, kernel_size=9, padding=4),
-            nn.Conv2d(64, 32, kernel_size=1, padding=0),
+            nn.Conv2d(64, 32, kernel_size=3, padding=1),
             nn.Conv2d(32, 1, kernel_size=5, padding=2)
         )
 

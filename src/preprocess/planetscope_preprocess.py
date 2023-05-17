@@ -209,7 +209,7 @@ def preprocess_planetscope_data(year: str, month: str) -> None:
         if check_outlier(file, 3):
             crop_data_and_save_as_np(file, target_dir, plot_dir)
         else:
-            print(file)
+            print("The following file has been removed as it is not suited for training:", file)
 
     copy_metadata("planetscope", year, month)
 

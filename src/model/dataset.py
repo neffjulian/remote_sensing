@@ -60,10 +60,10 @@ def get_datasets():
     val_dataset = SRDataset(validation)
     return train_dataset, val_dataset
 
-def show_random_result(trai_model, train_dataset):
-    rand_int = random.randint(1, 13919)
+def show_random_result(train_model, train_dataset):
+    rand_int = random.randint(1, 12528)
     test_input, test_output = train_dataset[rand_int]
-    test_image = trai_model(test_input.unsqueeze(0))
+    test_image = train_model(test_input.unsqueeze(0))
     cv2.imshow("Original Input", test_input.squeeze().numpy())
     cv2.imshow("Model output", test_image.detach().squeeze().numpy())
     cv2.imshow("Original Output", test_output.squeeze().numpy())
