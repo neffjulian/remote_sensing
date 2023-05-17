@@ -1,8 +1,7 @@
 """
-Super-Resolution Convolutional Neural Network (2015)
+ Enhanced Deep Super-Resolution Network (2017)
 
-Paper: https://arxiv.org/abs/1501.00092
-Pytorch: https://github.com/Mirwaisse/SRCNN
+Paper: https://arxiv.org/pdf/1707.02921v1.pdf
 """
 
 import torch
@@ -10,23 +9,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 
-class SRCNN(pl.LightningModule):
+class EDSR(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        self.super_resolution = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=9, padding=4),
-            nn.Conv2d(64, 32, kernel_size=1, padding=0),
-            nn.Conv2d(32, 1, kernel_size=5, padding=2)
-        )
+        self.input_layer = nn.Conv2d(1, 256, kernel_size=3, padding=1)
+        self.output_layer = nn.Conv2d(256, 1, kernel_size=3, padding=1)
+        
+        residual_layers = [
+            nn.Sequential(
+                nn.Conv2d(256, 256, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(256, 256, kernel_size=3, padding=1)
+            )
+        ] * 32
 
-        for module in self.super_resolution.modules():
+        self.residual_layers = nn.Sequential(*residual_layers)
+
+        for module in self.modules():
             if isinstance(module, nn.Conv2d):
                 nn.init.normal_(module.weight, mean=0, std=0.001)
                 nn.init.constant_(module.bias, 0)
 
     def forward(self, x):
-        output = self.super_resolution(x)
-        return output
+        x = self.input_layer(x)
+        x = x + self.residual_layers(x)
+        x = self.output_layer(x)
+        return x
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr = 1e-3)
