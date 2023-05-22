@@ -13,7 +13,7 @@ def main(model: str):
     
     # train_loader = DataLoader(train_dataset, batch_size=32)
     # val_loader = DataLoader(val_dataset, batch_size=32)
-
+    
     train_loader = DataLoader(train_dataset, batch_size=32, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=32, num_workers=2)
 
@@ -31,10 +31,11 @@ def main(model: str):
         print("Torch cuda is not available!")
         trainer = pl.Trainer(max_epochs=10)
 
+
     trainer.fit(selected_model, train_loader, val_loader)
 
     for i in range(10):
-        show_random_result(selected_model, train_dataset)
+        show_random_result(selected_model)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
