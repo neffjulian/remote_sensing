@@ -23,3 +23,5 @@ cd ../src/download
 # torch
 # pytorch-lightning
 # lightning[extra]
+
+https://polybox.ethz.ch/index.php/s/AdiQZeI9YGmp9Ac
