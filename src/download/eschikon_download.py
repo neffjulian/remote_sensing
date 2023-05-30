@@ -17,14 +17,10 @@ from eodal.mapper.feature import Feature
 from eodal.mapper.filter import Filter
 from eodal.mapper.mapper import Mapper, MapperConfigs
 
-from .utils import (
+from utils import (
     MONTHS,
     DAY_IN_MONTH
 )
-
-COORDINATES_PATH = Path().absolute().parent.joinpath("data", "coordinates", "bounding_box_eth_centrum_eschikon.geojson")
-
-DATA_DIR = Path().absolute().parent.joinpath("data", "raw", "eschikon")
 DOTENV_PATH = Path().absolute().parent.joinpath(".env")
 load_dotenv(DOTENV_PATH)
 
@@ -32,18 +28,57 @@ settings = get_settings()
 settings.PLANET_API_KEY = os.getenv('PLANET_API_KEY')
 settings.USE_STAC = True
 
-def create_dirs(year: str, month: str) -> None:
-    curr_dir = DATA_DIR.joinpath(f"{year}", f"{MONTHS[month]}_{month}")
-    curr_dir.mkdir(parents=True, exist_ok=True)
-    return curr_dir
+DATA_DIR = Path().absolute().parent.parent.joinpath("data")
+COORDINATE_DIR = DATA_DIR.joinpath("coordinates")
 
-def sentinel_eschikon(curr_dir: Path, start_date: datetime, end_date: datetime) -> None:
+BROATEFAELD_SHP = COORDINATE_DIR.joinpath("Arenenberg", "Broatefaeld.shp")
+BRAMENWIES_SHP = COORDINATE_DIR.joinpath("Strickhof", "Bramenwies.shp")
+FLUEGENRAIN_SHP = COORDINATE_DIR.joinpath("Strickhof", "Fluegenrain.shp")
+HOHRUETI_SHP = COORDINATE_DIR.joinpath("Strickhof", "Hohrueti.shp")
+ALTKLOSTER_SHP = COORDINATE_DIR.joinpath("SwissFutureFarm", "Altkloster.shp")
+RUETTELI_SHP = COORDINATE_DIR.joinpath("SwissFutureFarm", "Ruetteli.shp")
+WITZWIL_SHP = COORDINATE_DIR.joinpath("Witzwil", "Parzelle35.shp")
+ESCHIKON_GEOJSON = COORDINATE_DIR.joinpath("bounding_box_eth_centrum_eschikon.geojson")
+STRICKHOF_GEOJSON = COORDINATE_DIR.joinpath("bounding_box_strickhof.geojson")
+
+FIELD_DIR = DATA_DIR.joinpath("fields")
+FIELD_DIR.mkdir(exist_ok=True)
+
+def planetscope_eschikon(shp_file: Path, curr_dir: Path, date: datetime) -> None:
+    field_name = shp_file.name[:-4].lower()
+
+    client = PlanetAPIClient.query_planet_api(
+        start_date = date + timedelta(hours = 24),
+        end_date = date + timedelta(hours = 24),
+        bounding_box = Feature.from_geoseries(gpd.read_file(shp_file).geometry),
+        cloud_cover_threshold = 25
+    )
+
+    order_name = f"{field_name}"
+    order_url = client.place_order(
+        order_name=order_name
+    )
+
+    client.check_order_status(order_url, loop=True)
+    client.download_order(curr_dir, order_url)
+
+def download_sentinel_data(shp_file: Path, year: str, month: str, curr_dir: Path):
+
+    data_dir = curr_dir.joinpath("data")
+    metadata_dir = curr_dir.joinpath("metadata")
+    plot_dir = curr_dir.joinpath("plot")
+
+    field_name = shp_file.name[:-4].lower()
+    print(field_name)
+
+    start_date = datetime(int(year), int(MONTHS[month]), 1)
+    end_date = datetime(int(year), int(MONTHS[month]), int(DAY_IN_MONTH[month]))
+
     metadata_filters: List[Filter] = [
         Filter('cloudy_pixel_percentage', '<=', 25),
         Filter('processing_level', '==', 'Level-2A')]
-    
-    feature = Feature.from_geoseries(gpd.read_file(COORDINATES_PATH).geometry)
-    
+
+    feature = Feature.from_geoseries(gpd.read_file(shp_file).geometry)
     mapper_configs = MapperConfigs(
         collection="sentinel2-msi",
         time_start=start_date,
@@ -51,9 +86,7 @@ def sentinel_eschikon(curr_dir: Path, start_date: datetime, end_date: datetime) 
         feature=feature,
         metadata_filters=metadata_filters
     )
-
-    mapper_configs.to_yaml(curr_dir.joinpath('sample_mapper_call.yaml'))
-
+    mapper_configs.to_yaml(metadata_dir.joinpath('sample_mapper_call.yaml'))
     mapper = Mapper(mapper_configs)
     mapper.query_scenes()
     mapper.metadata
@@ -73,67 +106,71 @@ def sentinel_eschikon(curr_dir: Path, start_date: datetime, end_date: datetime) 
     scene_10m = RasterCollection()
     for band in ['blue', 'green', 'red']:
         scene_10m.add_band(scene[band])
-    scene_10m.to_rasterio(curr_dir.joinpath(f'scene_10m.tif'))
+    scene_10m.to_rasterio(data_dir.joinpath(f'{field_name}_10m.tif'))
 
     scene_20m = RasterCollection()
     for band in ['red_edge_1', 'nir_2']:
         scene_20m.add_band(scene[band])
-    scene_20m.to_rasterio(curr_dir.joinpath(f'scene_20m.tif'))
+    scene_20m.to_rasterio(data_dir.joinpath(f'{field_name}_20m.tif'))
 
     # save metadata xml to disk
     href_xml = mapper.metadata.assets.iloc[0]['granule-metadata']['href']
     response = urllib.request.urlopen(
         planetary_computer.sign_url(href_xml)).read()
-    fpath_xml = curr_dir.joinpath(href_xml.split('/')[-1])
-    with open(fpath_xml, 'wb') as dst:
+    fpath_xml = metadata_dir.joinpath(href_xml.split('/')[-1])
+    with open(metadata_dir.joinpath(field_name), 'wb') as dst:
         dst.write(response)
 
     # plot scene
     fig = scene_10m.plot_multiple_bands(band_selection=['blue', 'green', 'red'])
-    fig.savefig(curr_dir.joinpath(f'scene_10m.png'), dpi=300)
+    fig.savefig(plot_dir.joinpath(f'{field_name}_10m.png'), dpi=300)
     
     # date
     return mapper.data.timestamps[0]
 
-def planetscope_eschikon(curr_dir: Path, start_date: datetime, end_date: datetime) -> None:
-    client = PlanetAPIClient.query_planet_api(
-        start_date=start_date,
-        end_date=end_date,
-        bounding_box=COORDINATES_PATH,
-        cloud_cover_threshold=25
-    )
-
-    order_name = f"eschikon_{start_date.year}_{start_date.month}"
-    order_url = client.place_order(
-        order_name=order_name
-    )
-
-    client.check_order_status(order_url, loop=True)
-    client.download_order(curr_dir, order_url)
-
 def main(year: str, month: str):
-    if not (2017 <= int(year) <= 2022):
-        raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
-    
-    if month not in MONTHS:
-        raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
-    
-    start_date = datetime(year, int(MONTHS[month]), 1)
-    end_date = datetime(year, int(MONTHS[month]), int(DAY_IN_MONTH[month]))
-    curr_dir = create_dirs(year, month)
+    # Create dirs 
+    sentinel_dir = FIELD_DIR.joinpath("sentinel", year, f"{MONTHS[month]}_{month}")
+    planetscope_dir = FIELD_DIR.joinpath("planetscope", year, f"{MONTHS[month]}_{month}")
 
-    date = sentinel_eschikon(curr_dir, start_date, end_date)
-    curr_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-    
-    start_date = curr_date + timedelta(hours = 12)
-    end_date = curr_date - timedelta(hours = 12)
+    sentinel_dir.mkdir(exist_ok=True, parents=True)
+    planetscope_dir.mkdir(exist_ok=True, parents=True)
 
-    planetscope_eschikon(curr_dir, start_date, end_date)
+    sentinel_dir.joinpath("data").mkdir(exist_ok=True, parents=True)
+    sentinel_dir.joinpath("metadata").mkdir(exist_ok=True, parents=True)
+    sentinel_dir.joinpath("plot").mkdir(exist_ok=True, parents=True)
+
+    planetscope_dir.joinpath("data").mkdir(exist_ok=True, parents=True)
+    planetscope_dir.joinpath("metadata").mkdir(exist_ok=True, parents=True)
+    planetscope_dir.joinpath("plot").mkdir(exist_ok=True, parents=True)
+
+
+    # Download Data
+    broatefaeld_date = download_sentinel_data(BROATEFAELD_SHP, year, month, sentinel_dir)
+    bramenwies_date = download_sentinel_data(BRAMENWIES_SHP, year, month, sentinel_dir)
+    fluegenrain_date = download_sentinel_data(FLUEGENRAIN_SHP, year, month, sentinel_dir)
+    hohrueti_date = download_sentinel_data(HOHRUETI_SHP, year, month, sentinel_dir)
+    altkloster_date =download_sentinel_data(ALTKLOSTER_SHP, year, month, sentinel_dir)
+    ruetteli_date = download_sentinel_data(RUETTELI_SHP, year, month, sentinel_dir)
+    witzwil_date = download_sentinel_data(WITZWIL_SHP, year, month, sentinel_dir)
+    eschikon_date = download_sentinel_data(ESCHIKON_GEOJSON, year, month, sentinel_dir)
+    strickhof_date = download_sentinel_data(STRICKHOF_GEOJSON, year, month, sentinel_dir)
+        
+    planetscope_eschikon(BROATEFAELD_SHP, sentinel_dir, broatefaeld_date)
+    planetscope_eschikon(BRAMENWIES_SHP, bramenwies_date, broatefaeld_date)
+    planetscope_eschikon(FLUEGENRAIN_SHP, fluegenrain_date, broatefaeld_date)
+    planetscope_eschikon(HOHRUETI_SHP, hohrueti_date, broatefaeld_date)
+    planetscope_eschikon(ALTKLOSTER_SHP, altkloster_date, broatefaeld_date)
+    planetscope_eschikon(RUETTELI_SHP, ruetteli_date, broatefaeld_date)
+    planetscope_eschikon(WITZWIL_SHP, witzwil_date, broatefaeld_date)
+    planetscope_eschikon(ESCHIKON_GEOJSON, eschikon_date, broatefaeld_date)
+    planetscope_eschikon(STRICKHOF_GEOJSON, strickhof_date, broatefaeld_date)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--year", required=True, type=str)
-    parser.add_argument("--month", required=True, type=str)
-
-    args = parser.parse_args()
-    main(**vars(args))
+    main("2022", "mar")
+    main("2022", "apr")
+    main("2022", "may")
+    main("2022", "jun")
+    main("2022", "jul")
+    main("2022", "aug")
+    main("2022", "sep")

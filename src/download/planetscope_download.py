@@ -101,7 +101,7 @@ def place_planetscope_orders(coordinate_file: str, year: str, month: str) -> Non
     Returns:
     - None
     """
-    data_dir, plot_dir, metadata_dir = create_dirs(DATA_DIR, year, month)
+    _, _, metadata_dir = create_dirs(DATA_DIR, year, month)
     sentinel_dates = get_sentinel_dates(year, month)
 
     coordinates = convert_to_squares(coordinate_file)
@@ -110,7 +110,7 @@ def place_planetscope_orders(coordinate_file: str, year: str, month: str) -> Non
     orders = []
     for index, date, proc_tool, gdf in filtered_coordinates:
         added_hours = 0
-        while(added_hours <= 50):
+        while(added_hours <= 48):
             try:
                 start_date, end_date = get_start_end_dates(date, added_hours)
                 client = PlanetAPIClient.query_planet_api(
@@ -120,15 +120,15 @@ def place_planetscope_orders(coordinate_file: str, year: str, month: str) -> Non
                     cloud_cover_threshold = 25
                 )
                 order_name = get_order_name(month, year, index)
-
                 order_url = client.place_order(
                     order_name=order_name,
                     processing_tools=proc_tool
                 )
                 orders.append((index, order_name, order_url, added_hours))
+
             except:
                 print(added_hours)
-                added_hours += 6
+                added_hours += 6                
 
     orders_csv = pd.DataFrame(orders, columns=["index", "order_name", "order_url", "added_hours"])
     orders_location = metadata_dir.joinpath("orders.csv")
@@ -145,33 +145,32 @@ def download_planetscope_orders(year: str, month: str) -> None:
     Returns:
     - None
     """
-    current_dir = DATA_DIR.joinpath(f"{year}", f"{MONTHS[month]}_{month}")
+    current_dir = DATA_DIR.joinpath(f"{year}", f"{MONTHS[month]}_{month}") # e.g. 2022/04_apr
     orders_location = current_dir.joinpath("metadata", "orders.csv")
     download_dir = current_dir.joinpath("data")
 
     if not orders_location.exists():
-        raise Exception("No matching orders found.")
+        raise Exception(f"No matching orders found for {orders_location}")
     
     client = PlanetAPIClient()
     client.authenticate(url=get_settings().ORDERS_URL)
-
     orders = pd.read_csv(orders_location)
     
     for _, row in orders.iterrows():
+        order_name = row["order_name"]
+        order_url = row["order_url"]
+        index = row["index"]
+
+        curr_download_dir = download_dir.joinpath(f"{index:04d}")
+        curr_download_dir.mkdir(exist_ok=True)
+
         try:
-            order_name = row["order_name"]
-            order_url = row["order_url"]
-            index = row["index"]
-
-            curr_download_dir = download_dir.joinpath(f"{index:04d}")
-            curr_download_dir.mkdir(exist_ok=True)
-
             status = client.check_order_status(
                 order_url=order_url
             )
 
             if status == "Failed":
-                print(f"Order '{order_name}' failed.")
+                print(f"Order '{order_name}' failed to be ordered.")
                 continue
         
             client.download_order(
@@ -179,15 +178,15 @@ def download_planetscope_orders(year: str, month: str) -> None:
                 order_url=order_url
             )
         except:
-            pass
+            print(f"Order '{order_name}' failed while downloading.")
+            
 
-def main(year: str, month: str, place_order: bool, download_order: bool, test: bool) -> None:
+def main(year: str, month: str, place_order: bool, download_order: bool, test: bool = False) -> None:
     if not (2017 <= int(year) <= 2022):
         raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
     
     if month not in MONTHS:
         raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
-    
 
     if test is True:
         coordinate_file = 'point_ai.geojson'

@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from shutil import copytree
+from shutil import copytree, copy
 
 import cv2
 import numpy as np
@@ -10,11 +10,10 @@ from utils import (
     MONTHS,
     DATA_DIR,
     resize_arr,
-    check_outlier,
-    calculate_ndvi
+    is_outlier
 )
 
-np.seterr(divide='ignore', invalid='ignore')
+# np.seterr(divide='ignore', invalid='ignore')
 
 def copy_sentinel_data(year: str, month: str) -> None:
     """Copy raw Sentinel data for a given year and month to the filtered directory.
@@ -32,58 +31,41 @@ def copy_sentinel_data(year: str, month: str) -> None:
         copytree(source_dir, target_dir, dirs_exist_ok=True)
 
 
-def crop_data_and_save_as_np(path_10: Path, path_20: Path, path_60: Path, data_dir: Path, plot_dir: Path) -> None:
+def crop_data_and_save_as_np(src_data: Path, tar_dir: Path, plot_dir: Path) -> None:
     """
     Save specified Sentinel raster bands as numpy arrays and a plot.
 
     Args:
-        path_10 (Path): The path to the 10m resolution Sentinel raster file.
-        path_20 (Path): The path to the 20m resolution Sentinel raster file.
-        path_60 (Path): The path to the 60m resolution Sentinel raster file.
-        target_file (Path): The path to save the output numpy array.
+        data (Path): The path to the LAI resolution Sentinel raster file.
+        tar_dir (Path): The path to save the output numpy array.
         plot_file (Path): The path to save the output plot.
 
     Returns:
         None.
     """
-    dst_data = data_dir.joinpath(f"{path_10.name[:4]}")
-    dst_plot = plot_dir.joinpath(f"{path_10.name[:4]}.png")
-
-    ndvi_data = data_dir.joinpath(f"ndvi_{path_10.name[:4]}")
-    ndvi_plot = plot_dir.joinpath(f"ndvi_{path_10.name[:4]}.png") 
-
-    output_dim_10 = (192, 192)
-    raster_10 = RasterCollection.from_multi_band_raster(path_10)
-    b_02 = resize_arr(raster_10["B02"].values, output_dim_10, normalize=True)
-    b_03 = resize_arr(raster_10["B03"].values, output_dim_10, normalize=True)
-    b_04 = resize_arr(raster_10["B04"].values, output_dim_10, normalize=True)
-    b_08 = resize_arr(raster_10["B08"].values, output_dim_10, normalize=True)
-
-    output_dim_20 = (96, 96)
-    raster_20 = RasterCollection.from_multi_band_raster(path_20)
-    b_05 = resize_arr(raster_20["B05"].values, output_dim_20, normalize=True)
-    # b_06 = resize_arr(raster_20["B06"].values, output_dim_20, normalize=True)
-    # b_07 = resize_arr(raster_20["B07"].values, output_dim_20, normalize=True)
-    b_8A = resize_arr(raster_20["B8A"].values, output_dim_20, normalize=True)
-    # b_11 = resize_arr(raster_20["B11"].values, output_dim_20, normalize=True)
-    # b_12 = resize_arr(raster_20["B12"].values, output_dim_20, normalize=True)
-
-    # output_dim_60 = (32, 32)
-    # raster_60 = RasterCollection.from_multi_band_raster(path_60)    
-    # b_01 = resize_arr(raster_60["B01"].values, output_dim_60, normalize=True)
-    # b_09 = resize_arr(raster_60["B09"].values, output_dim_60, normalize=True)
-
-    # np.savez(dst_data, B02 = b_02, B03 = b_03, B04 = b_04, 
-    #          B05 = b_05, B8A = b_8A) 
-
-    # bgr = np.dstack((b_02, b_03, b_04))
-    # bgr_rescaled = cv2.normalize(bgr, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-    # cv2.imwrite(dst_plot.as_posix(), bgr_rescaled)
-
-    ndvi = calculate_ndvi(b_04, b_08)
-    ndvi_rescaled = cv2.normalize(ndvi, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_32F)
-    np.save(ndvi_data, ndvi)
-    cv2.imwrite(ndvi_plot.as_posix(), ndvi_rescaled)
+    index = src_data.name[:4]
+    if not index.isdigit():
+        raise Exception(f"Error in naming convention: {src_data}")
+    
+    src_plot = src_data.parent.joinpath(f"{src_data.name[:-4]}.png")
+    if not src_plot.exists():
+        raise Exception(f"Missing plot for {src_data.name[:4]}")
+    
+    if src_data.name.endswith("10m_lai.tif"):
+        out_dim = (192, 192)
+        res = "10m"
+    elif src_data.name.endswith("20m_lai.tif"):
+        out_dim = (96, 96)
+        res = "20m"
+    else:
+        raise Exception(f"Invalid file encountered: {src_data.name}")
+    
+    tar_data = tar_dir.joinpath(f"{index}_{res}")
+    tar_plot = plot_dir.joinpath(f"{index}_{res}")
+    raster = RasterCollection.from_multi_band_raster(src_data)
+    lai = resize_arr(raster["lai"].values, out_dim, normalize=True)
+    np.save(tar_data, lai)
+    copy(src_plot, tar_plot)
 
 def preprocess_sentinel_data(year: str, month: str) -> None:
     """
@@ -97,48 +79,26 @@ def preprocess_sentinel_data(year: str, month: str) -> None:
         None.
     """
 
-    source_dir = DATA_DIR.joinpath("filtered", "sentinel", year, f"{MONTHS[month]}_{month}", "data")
-    target_dir = DATA_DIR.joinpath("processed", "sentinel", year, f"{MONTHS[month]}_{month}", "data")
+    source_dir = DATA_DIR.joinpath("filtered", "sentinel", year, f"{MONTHS[month]}_{month}", "lai")
+    target_dir = DATA_DIR.joinpath("processed", "sentinel", year, f"{MONTHS[month]}_{month}", "lai")
     plot_dir = DATA_DIR.joinpath("processed", "sentinel", year, f"{MONTHS[month]}_{month}", "plot")
     
     metadata_source_dir = DATA_DIR.joinpath("filtered", "sentinel", year, f"{MONTHS[month]}_{month}", "metadata")
     metadata_target_dir = DATA_DIR.joinpath("processed", "sentinel", year, f"{MONTHS[month]}_{month}", "metadata")
     copytree(metadata_source_dir, metadata_target_dir, dirs_exist_ok=True)
 
-    target_dir.mkdir(parents=True, exist_ok=True)
-    plot_dir.mkdir(parents=True, exist_ok=True)
+    target_dir.mkdir(parents=True)
+    plot_dir.mkdir(parents=True)
 
     for file in source_dir.iterdir():
-        if file.name.endswith("10m.tif"):
-            file_20m = Path(file.as_posix().replace("10m", "20m"))
-            file_60m = Path(file.as_posix().replace("10m", "60m"))
-
-            if not (check_outlier(file, 10) and check_outlier(file_20m, 20) and check_outlier(file_60m, 60)):
-                print("The following file has been removed as it is not suited for training:", file)
+        if file.name.endswith("10m_lai.tif"):
+            if is_outlier(file, 10):
+                # print("The following file will not be used for training as it is not suited for training:", file)
                 continue
+            crop_data_and_save_as_np(file, target_dir, plot_dir)
 
-
-            crop_data_and_save_as_np(file, file_20m, file_60m, target_dir, plot_dir)
-
-def main(year: str, month: str) -> None:
-    if not (2017 <= int(year) <= 2022):
-        raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
-    
-    if month not in MONTHS:
-        raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
-    
-    copy_sentinel_data(year, month)
-    preprocess_sentinel_data(year, month)
-
-if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--year", required=True, type=str)
-    # parser.add_argument("--month", required=True, type=str)
-
-    # args = parser.parse_args()
-    # main(**vars(args))
-
-    main("2022", "apr")
-    main("2022", "may")
-    main("2022", "jun")
-    main("2022", "sep")
+        if file.name.endswith("20m_lai.tif"):
+            if is_outlier(file, 20):
+                # print("The following file will not be used for training as it is not suited for training:", file)
+                continue
+            crop_data_and_save_as_np(file, target_dir, plot_dir)
