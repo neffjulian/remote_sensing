@@ -1,0 +1,142 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "bbox": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              null,
+              null
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "ID": 0,
+        "PARZ": "35",
+        "BEZEICHNUN": "",
+        "FLÃ¤CHE": 1158.01451149,
+        "Shape_Leng": 1527.24101849,
+        "Shape_Le_1": 1475.99806297,
+        "Shape_Area": 119892.744608
+      }
+    }
+  ]
+}

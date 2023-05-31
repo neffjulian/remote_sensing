@@ -34,6 +34,19 @@ def get_dates(year: str, month: str) -> tuple:
     end_date = datetime(int(year), int(MONTHS[month]), int(DAY_IN_MONTH[month]))
     return start_date, end_date
 
+def get_point_names(coordinate_file: str) -> list[str]:
+    point_location = COORDINATE_DIR.joinpath(coordinate_file)
+    point_file = point_location.open()
+    point_geojson = json.load(point_file)
+    point_names = []
+
+    for point in point_geojson["features"]:
+        coordinates = point["properties"]["name"]
+        point_names.append(coordinates)
+        
+    return point_names
+
+
 def get_point_coordinates(coordinate_file: str) -> list:
     """
     Extract the coordinates of points of interest from a geojson file.

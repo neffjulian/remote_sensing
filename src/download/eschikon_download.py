@@ -17,6 +17,8 @@ from eodal.mapper.feature import Feature
 from eodal.mapper.filter import Filter
 from eodal.mapper.mapper import Mapper, MapperConfigs
 
+from sentinel_download import download_eschikon
+
 from utils import (
     MONTHS,
     DAY_IN_MONTH
@@ -166,11 +168,15 @@ def main(year: str, month: str):
     planetscope_eschikon(ESCHIKON_GEOJSON, eschikon_date, broatefaeld_date)
     planetscope_eschikon(STRICKHOF_GEOJSON, strickhof_date, broatefaeld_date)
 
+def download_sentinel_data():
+    download_eschikon()
+
 if __name__ == "__main__":
-    main("2022", "mar")
-    main("2022", "apr")
-    main("2022", "may")
-    main("2022", "jun")
-    main("2022", "jul")
-    main("2022", "aug")
-    main("2022", "sep")
+    download_sentinel_data()
+    # main("2022", "mar")
+    # main("2022", "apr")
+    # main("2022", "may")
+    # main("2022", "jun")
+    # main("2022", "jul")
+    # main("2022", "aug")
+    # main("2022", "sep")

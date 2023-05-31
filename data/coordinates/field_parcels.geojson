@@ -1,0 +1,122 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "broatefaeld"
+            },
+            "geometry": {
+              "coordinates": [
+                9.068395434836702,
+                47.66611205552218
+              ],
+              "type": "Point"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "bramenwies"
+            },
+            "geometry": {
+              "coordinates": [
+                8.689483128248725,
+                47.44691037585423
+              ],
+              "type": "Point"
+            }
+      },
+      {
+            "type": "Feature",
+            "properties": {
+                "name": "fluegenrain"
+            },
+            "geometry": {
+            "coordinates": [
+                8.689480133890584,
+                47.4404285780694
+            ],
+            "type": "Point"
+            }
+      },
+      {
+            "type": "Feature",
+            "properties": {
+                "name": "hohrueti"
+            },
+            "geometry": {
+            "coordinates": [
+                8.680033697739304,
+                47.443621337658556
+            ],
+            "type": "Point"
+            }
+      },
+      {
+            "type": "Feature",
+            "properties": {
+                "name": "altkloster"
+            },
+            "geometry": {
+            "coordinates": [
+                8.911730890797145,
+                47.480606314846824
+            ],
+            "type": "Point"
+            }
+      },
+      {
+            "type": "Feature",
+            "properties": {
+                "name": "ruetteli"
+            },
+            "geometry": {
+            "coordinates": [
+                8.906788182477527,
+                47.47495727143112
+            ],
+            "type": "Point"
+            }
+      },
+      {
+            "type": "Feature",
+            "properties": {
+                "name": "witzwil"
+            },
+            "geometry": {
+            "coordinates": [
+                7.064771674833537,
+                46.988215496759494
+            ],
+            "type": "Point"
+            }
+      },
+      {
+            "type": "Feature",
+            "properties": {
+                "name": "strickhof"
+            },
+            "geometry": {
+            "coordinates": [
+                8.550026640469042,
+                47.3952066967162
+            ],
+            "type": "Point"
+            }
+      },
+      {
+            "type": "Feature",
+            "properties": {
+                "name": "eschikon"
+            },
+            "geometry": {
+            "coordinates": [
+                8.68108004498555,
+                47.448079356087106
+            ],
+            "type": "Point"
+            }
+      }
+    ]
+  }
