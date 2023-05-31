@@ -11,7 +11,8 @@ def cut_np_array(path: Path, target_dir: Path, year: str, month: str) -> list:
     tiles = 2
     name = f"{year.name[2:]}_{month.name[:2]}_{path.name[:4]}_"
 
-    data = np.load(path)    
+    data = np.load(path)
+  
     if data.shape != (192, 192) and data.shape != (648, 648) and data.shape != (96, 96):
         raise Exception(f"Invalid Shape: {data.shape}")
 
@@ -24,7 +25,6 @@ def cut_np_array(path: Path, target_dir: Path, year: str, month: str) -> list:
             sub_data.append(data[(i * new_x):((i+1) * new_x), (j * new_y):((j+1) * new_y)])
 
     for index, tile in enumerate(sub_data):
-
         filename = name + f"{index:01d}"
         np.save(target_dir.joinpath(filename), tile)
     

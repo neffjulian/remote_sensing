@@ -52,20 +52,17 @@ def calculate_ndvi(red: np.ndarray, nir: np.ndarray) -> np.ndarray:
 
 #     return new_arr
 
-def resize_arr(arr: np.ndarray, output_dim: tuple, normalize: bool = False) -> np.ndarray:
+def resize_arr(arr: np.ndarray, output_dim: tuple) -> np.ndarray:
     """Resizes a 2D numpy array to the specified output dimension.
 
     Args:
         arr (np.ndarray): The input array to be resized and normalized.
         output_dim (tuple): A tuple of integers (height, width) specifying the output dimension.
-        normalize (bool): If the values should also be resized
     Returns:
         np.ndarray: The resized and normalized array as a new 2D numpy array with dtype np.uint8.
     """
     out = cv2.resize(arr, output_dim, interpolation=cv2.INTER_AREA)
-    if normalize is True:
-        out = ((out - out.min()) / (out.max() - out.min())) * 255
-    return out.astype(np.uint8)
+    return np.nan_to_num(out)
 
 def is_outlier(src: Path, band: int) -> bool:
     """

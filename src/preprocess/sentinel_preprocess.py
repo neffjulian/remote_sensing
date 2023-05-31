@@ -63,7 +63,7 @@ def crop_data_and_save_as_np(src_data: Path, tar_dir: Path, plot_dir: Path) -> N
     tar_data = tar_dir.joinpath(f"{index}_{res}")
     tar_plot = plot_dir.joinpath(f"{index}_{res}")
     raster = RasterCollection.from_multi_band_raster(src_data)
-    lai = resize_arr(raster["lai"].values, out_dim, normalize=True)
+    lai = resize_arr(raster["lai"].values, out_dim)
     np.save(tar_data, lai)
     copy(src_plot, tar_plot)
 

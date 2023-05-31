@@ -9,10 +9,7 @@ from srcnn import SRCNN
 from dataset import get_datasets, show_random_result
 
 def main(model: str):
-    train_dataset, val_dataset = get_datasets()
-    
-    # train_loader = DataLoader(train_dataset, batch_size=32)
-    # val_loader = DataLoader(val_dataset, batch_size=32)
+    train_dataset, val_dataset = get_datasets(sentinel_resolution="10m", planetscope_bands="4b")
     
     train_loader = DataLoader(train_dataset, batch_size=32, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=32, num_workers=2)
@@ -32,10 +29,10 @@ def main(model: str):
         trainer = pl.Trainer(max_epochs=10)
 
 
-    trainer.fit(selected_model, train_loader, val_loader)
+    # trainer.fit(selected_model, train_loader, val_loader)
 
     for i in range(10):
-        show_random_result(selected_model)
+        show_random_result(selected_model, sentinel_resolution="10m", planetscope_bands="4b")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
