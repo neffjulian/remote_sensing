@@ -150,7 +150,7 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
         except:
             errors.append(i)
 
-    print(f"In total {len(errors)} occured. Namely {errors}")
+    print(f"In total {len(errors)} errors occured. Namely {errors}")
 
 def download_eschikon():
     field_dir = DATA_DIR.parent.parent.joinpath("fields", "sentinel")
@@ -260,7 +260,7 @@ def download_eschikon():
 
    
 
-def main(year: str, month: str, test: bool) -> None:
+def main(year: str, month: str, test: bool = False) -> None:
     if not (2017 <= int(year) <= 2022):
         raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
     

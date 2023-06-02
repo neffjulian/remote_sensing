@@ -95,7 +95,8 @@ def copy_planetscope_data(year: str, month: str) -> None:
     Returns:
         None.
     """
-    source_dir = DATA_DIR.joinpath("raw", "planetscope", year, f"{MONTHS[month]}_{month}", "lai")
+
+    source_dir = DATA_DIR.joinpath("raw", "planetscope", year, f"{MONTHS[month]}_{month}", "data")
     target_dir = DATA_DIR.joinpath("filtered", "planetscope", year, f"{MONTHS[month]}_{month}")
 
     if not target_dir.exists():
@@ -109,7 +110,22 @@ def copy_planetscope_data(year: str, month: str) -> None:
             if not curr_index.isdigit():
                 continue
 
-            curr_dir = Path(root).joinpath(dirs[0])
+            sizes = []
+            for dir in dirs:
+                curr_dir = Path(root).joinpath(dir)
+                curr_files = [os.path.getsize(filename) for filename in curr_dir.iterdir() if "Analytic" in filename.name and filename.name.endswith(".tif")]
+                if len(curr_files) > 1:
+                    raise Exception("Error in dir ", curr_dir, "too many options to choose from")
+                
+                sizes.append(curr_files[0])
+            max_size = max(sizes)
+            max_index = sizes.index(max_size)
+
+            if max_size < 4000000:
+                print(f"Index {curr_index} is too small ({max_size}).")
+                continue
+
+            curr_dir = Path(root).joinpath(dirs[max_index])
             for file in curr_dir.iterdir():
                 if not "Analytic" in file.name:
                     continue

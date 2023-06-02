@@ -108,8 +108,10 @@ def place_planetscope_orders(coordinate_file: str, year: str, month: str) -> Non
     filtered_coordinates = filter_coordinates(sentinel_dates, coordinates)
 
     orders = []
+    print("Start placing orders:")
     for index, date, proc_tool, gdf in filtered_coordinates:
         added_hours = 0
+        print("Trying to place order ", index)
         while(added_hours <= 48):
             try:
                 start_date, end_date = get_start_end_dates(date, added_hours)
@@ -125,10 +127,10 @@ def place_planetscope_orders(coordinate_file: str, year: str, month: str) -> Non
                     processing_tools=proc_tool
                 )
                 orders.append((index, order_name, order_url, added_hours))
-
+                print(f"Placed order: {order_name}")
+                break
             except:
-                print(added_hours)
-                added_hours += 6                
+                added_hours += 12                
 
     orders_csv = pd.DataFrame(orders, columns=["index", "order_name", "order_url", "added_hours"])
     orders_location = metadata_dir.joinpath("orders.csv")
@@ -179,7 +181,6 @@ def download_planetscope_orders(year: str, month: str) -> None:
             )
         except:
             print(f"Order '{order_name}' failed while downloading.")
-            
 
 def main(year: str, month: str, place_order: bool, download_order: bool, test: bool = False) -> None:
     if not (2017 <= int(year) <= 2022):
@@ -194,8 +195,10 @@ def main(year: str, month: str, place_order: bool, download_order: bool, test: b
         coordinate_file = 'points_ch.geojson'
 
     if place_order is True:
+        print(f"Placing order for {year} {month}...")
         place_planetscope_orders(coordinate_file, year, month)
     elif download_order is True:
+        print(f"Download order for {year} {month}...")
         download_planetscope_orders(year, month)
     else:
         raise ValueError("Either select 'place_order' or 'download_orders'")
