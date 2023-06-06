@@ -8,6 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
+from torch.optim import lr_scheduler
+from torchmetrics import PSNR
 
 class EDSR(pl.LightningModule):
     def __init__(self):
@@ -31,34 +33,41 @@ class EDSR(pl.LightningModule):
                 nn.init.constant_(module.bias, 0)
 
     def forward(self, x):
-        x = self.input_layer(x.unsqueeze(1)) + self.residual_layers(x)
+        x = self.input_layer(x) + self.residual_layers(x)
         x = self.output_layer(x)
-        return x.squueze()
+        return x
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr = 1e-3)
-        return optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr = 1e-2)
+        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
+        return scheduler
     
-    def training_step(self, train_batch, batch_idx):
-        x, y = train_batch
+    def training_step(self, batch, batch_idx):
+        x, y = batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
         return loss
 
-    def validation_step(self, val_batch, batch_idx):
-        x, y = val_batch
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
+        psnr = PSNR(y_hat, y)
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('val_psnr', psnr, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-    def test_step(self, test_batch, batch_idx):
-        x, y = test_batch
+    def test_step(self, batch, batch_idx):
+        x, y = batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        psnr = PSNR(y_hat, y)
+        self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('test_psnr', psnr, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-    def prediction_step(self, pred_batch, batch_idx):
-        x, y = pred_batch
+    def predict_step(self, batch, batch_idx):
+        x, y = batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        psnr = PSNR(y_hat, y)
+        self.log('prediction_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('prediction_psnr', psnr, on_step=True, on_epoch=True, prog_bar=True, logger=True)

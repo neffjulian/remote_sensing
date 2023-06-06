@@ -43,7 +43,7 @@ class SRDataset(Dataset):
     def __getitem__(self, idx):
         sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx]))
         planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
-        return sentinel_file, planetscope_file
+        return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
     def __init__(self, sentinel_bands: str, planetscope_bands: str, data_dir: Path = DATA_DIR, batch_size: int = 32):
@@ -75,7 +75,7 @@ class SRDataModule(pl.LightningDataModule):
             self.predict_dataset = SRDataset(self.sentinel_bands, self.planetscope_bands, files, predict = True)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size)
