@@ -1,9 +1,10 @@
 data/raw/*
 data/processed/*
 data/filtered/*
-data/tiles/*
-data/fields/*
+data/coordinates/field_parcels/*
+data/results/*
 
 .env
 *.pyc
 *__pycache__
+*lightning_logs

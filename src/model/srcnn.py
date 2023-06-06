@@ -71,4 +71,4 @@ class SRCNN(pl.LightningModule):
         y_hat = self.forward(x)
         psnr_val = psnr(y_hat, y)
         self.logger.log_metrics({'psnr': psnr_val})
-        return y_hat, y
+        return x, y_hat, y

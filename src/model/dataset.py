@@ -75,7 +75,7 @@ class SRDataModule(pl.LightningDataModule):
             self.predict_dataset = SRDataset(self.sentinel_bands, self.planetscope_bands, files, predict = True)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size)

@@ -19,8 +19,8 @@ def main(name: str, sentinel_bands: str, planetscope_bands: str):
     model = MODELS[name]()
     trainer = pl.Trainer()
 
-    trainer.fit(model, data_module)
-    trainer.test(model, data_module)
+    # trainer.fit(model, data_module)
+    # trainer.test(model, data_module)
 
     output = trainer.predict(model, data_module)
     visualize_output(name, output)
