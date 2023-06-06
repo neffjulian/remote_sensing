@@ -1,41 +1,31 @@
 import argparse
 
-import torch
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+
+from dataset import SRDataModule
 
 from edsr import EDSR
 from srcnn import SRCNN
-from dataset import get_datasets, show_random_result
 
-def main(model: str):
-    train_dataset, val_dataset = get_datasets(sentinel_resolution="10m", planetscope_bands="4b")
-    
-    train_loader = DataLoader(train_dataset, batch_size=32, num_workers=2)
-    val_loader = DataLoader(val_dataset, batch_size=32, num_workers=2)
+MODELS = {
+    'edsr': EDSR(),
+    'srcnn': SRCNN()
+}
 
-    if model == "srcnn":
-        selected_model = SRCNN()
-    elif model == "edsr":
-        selected_model = EDSR()
-    else:
-        raise Exception("Invalid model selected!")
-    
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        trainer = pl.Trainer(accelerator="gpu", max_epochs=10)
-    else:
-        print("Torch cuda is not available!")
-        trainer = pl.Trainer(max_epochs=10)
+def main(name: str, sentinel_bands: str, planetscope_bands: str):
+    data_module = SRDataModule(sentinel_bands, planetscope_bands)
+    data_module.setup()
 
+    model = MODELS[name]
+    trainer = pl.Trainer()
 
-    # trainer.fit(selected_model, train_loader, val_loader)
-
-    for i in range(10):
-        show_random_result(selected_model, sentinel_resolution="10m", planetscope_bands="4b")
+    trainer.fit(model, data_module)
+    trainer.test(model, data_module)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", required=True, type=str)
+    parser.add_argument("--name", required=True, type=str)
+    parser.add_argument("--sentinel_bands", default="10m", type=str)
+    parser.add_argument("--planetscope_bands", default="4b", type=str)
     args = parser.parse_args()
     main(**vars(args))

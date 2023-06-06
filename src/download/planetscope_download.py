@@ -3,6 +3,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime, date, timedelta
 import xml.etree.ElementTree as ET
+import shutil
 
 import pandas as pd
 import geopandas as gpd
@@ -182,24 +183,82 @@ def download_planetscope_orders(year: str, month: str) -> None:
         except:
             print(f"Order '{order_name}' failed while downloading.")
 
-def main(year: str, month: str, place_order: bool, download_order: bool, test: bool = False) -> None:
+def copy_planetscope_data(year: str, month: str) -> None:
+    """
+    Copy PlanetScope data from the raw directory to the filtered directory,
+    filtering out non-Analytic files and copying each image and its metadata file
+    to the data and metadata subdirectories, respectively.
+
+    Args:
+        year (str): The year of the data to copy.
+        month (str): The month of the data to copy.
+
+    Returns:
+        None.
+    """
+
+    source_dir = DATA_DIR.joinpath("raw", "planetscope", year, f"{MONTHS[month]}_{month}", "data")
+    target_dir = DATA_DIR.joinpath("filtered", "planetscope", year, f"{MONTHS[month]}_{month}")
+
+    if not target_dir.exists():
+        data_dir = target_dir.joinpath("data")
+        metadata_dir = target_dir.joinpath("metadata")
+        data_dir.mkdir(parents=True, exist_ok=True)
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+
+        for root, dirs, _ in os.walk(str(source_dir)):
+            curr_index = Path(root).name
+            if not curr_index.isdigit():
+                continue
+
+            sizes = []
+            for dir in dirs:
+                curr_dir = Path(root).joinpath(dir)
+                curr_files = [os.path.getsize(filename) for filename in curr_dir.iterdir() if "Analytic" in filename.name and filename.name.endswith(".tif")]
+                if len(curr_files) > 1:
+                    raise Exception("Error in dir ", curr_dir, "too many options to choose from")
+                
+                sizes.append(curr_files[0])
+            max_size = max(sizes)
+            max_index = sizes.index(max_size)
+
+            if max_size < 4000000:
+                print(f"Index {curr_index} is too small ({max_size}).")
+                continue
+
+            curr_dir = Path(root).joinpath(dirs[max_index])
+            for file in curr_dir.iterdir():
+                if not "Analytic" in file.name:
+                    continue
+
+                if file.name.endswith(".tif"):
+                    shutil.copy(src=file,
+                        dst=data_dir.joinpath(f"{curr_index}.tif"),
+                        follow_symlinks=False
+                    )
+                elif file.name.endswith(".xml"):
+                    shutil.copy(
+                        src=file,
+                        dst=metadata_dir.joinpath(f"{curr_index}.xml"),
+                        follow_symlinks=False
+                    )
+                else:
+                    raise Exception("Error with file: ", file, " should be either a .tif file or .xml")
+
+def main(year: str, month: str, place_order: bool, download_order: bool) -> None:
     if not (2017 <= int(year) <= 2022):
         raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
     
     if month not in MONTHS:
         raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
 
-    if test is True:
-        coordinate_file = 'point_ai.geojson'
-    else:
-        coordinate_file = 'points_ch.geojson'
-
     if place_order is True:
         print(f"Placing order for {year} {month}...")
-        place_planetscope_orders(coordinate_file, year, month)
+        place_planetscope_orders('points_ch.geojson', year, month)
     elif download_order is True:
         print(f"Download order for {year} {month}...")
         download_planetscope_orders(year, month)
+        copy_planetscope_data(year, month)
     else:
         raise ValueError("Either select 'place_order' or 'download_orders'")
 
@@ -207,7 +266,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", required=True, type=str)
     parser.add_argument("--month", required=True, type=str)
-    parser.add_argument("--test", type=bool)
     parser.add_argument("--place_order", type=bool)
     parser.add_argument("--download_order", type=bool)
 

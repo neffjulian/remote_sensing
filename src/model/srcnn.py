@@ -24,8 +24,7 @@ class SRCNN(pl.LightningModule):
                 nn.init.constant_(module.bias, 0)
 
     def forward(self, x):
-        output = self.super_resolution(x)
-        return output
+        return self.super_resolution(x.unsqueeze(1)).squeeze()
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr = 1e-3)
@@ -35,11 +34,22 @@ class SRCNN(pl.LightningModule):
         x, y = train_batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log('train_loss', loss)
         return loss
 
     def validation_step(self, val_batch, batch_idx):
         x, y = val_batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log('val_loss', loss)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+    def test_step(self, test_batch, batch_idx):
+        x, y = test_batch
+        y_hat = self.forward(x)
+        loss = F.mse_loss(y_hat, y)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+    def prediction_step(self, pred_batch, batch_idx):
+        x, y = pred_batch
+        y_hat = self.forward(x)
+        loss = F.mse_loss(y_hat, y)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)

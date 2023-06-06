@@ -31,10 +31,9 @@ class EDSR(pl.LightningModule):
                 nn.init.constant_(module.bias, 0)
 
     def forward(self, x):
-        x = self.input_layer(x)
-        x = x + self.residual_layers(x)
+        x = self.input_layer(x.unsqueeze(1)) + self.residual_layers(x)
         x = self.output_layer(x)
-        return x
+        return x.squueze()
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr = 1e-3)
@@ -44,11 +43,22 @@ class EDSR(pl.LightningModule):
         x, y = train_batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log('train_loss', loss)
         return loss
 
     def validation_step(self, val_batch, batch_idx):
         x, y = val_batch
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log('val_loss', loss)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+    def test_step(self, test_batch, batch_idx):
+        x, y = test_batch
+        y_hat = self.forward(x)
+        loss = F.mse_loss(y_hat, y)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+    def prediction_step(self, pred_batch, batch_idx):
+        x, y = pred_batch
+        y_hat = self.forward(x)
+        loss = F.mse_loss(y_hat, y)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)

@@ -4,6 +4,8 @@ import argparse
 import urllib
 from datetime import datetime
 
+import json
+import pandas as pd
 import geopandas as gpd
 import planetary_computer
 from eodal.config import get_settings
@@ -16,34 +18,102 @@ from eodal.mapper.mapper import Mapper, MapperConfigs
 from utils import (
     convert_to_squares,
     create_dirs,
-    write_date_to_csv,
-    get_dates,
-    get_point_coordinates,
-    get_point_names,
     MONTHS
 )
 
 Settings = get_settings()
 Settings.USE_STAC = True
 
+# Define the directories for storing data, metadata, and plots
 DATA_DIR = Path().absolute().parent.parent.joinpath("data", "raw", "sentinel")
 COORDINATE_DIR = Path().absolute().parent.parent.joinpath("data", "coordinates")
 COLLECTION = "sentinel2-msi"
 
-def get_features(coordinates_location: Path) -> list:
-    """
-    Extracts geographic features from a geojson file.
+DAY_IN_MONTH = {"jan": "31", "feb": "28", "mar": "31", "apr": "30", 
+          "may": "31", "jun": "30", "jul": "31", "aug": "31", 
+          "sep": "30", "oct": "31", "nov": "30", "dec": "31"}
 
-    Parameters:
-    - coordinates_location (Path): Path to the geojson file containing the geographic coordinates.
+def get_point_names(coordinate_file: str) -> list:
+    point_location = COORDINATE_DIR.joinpath(coordinate_file)
+    point_file = point_location.open()
+    point_geojson = json.load(point_file)
+    point_names = []
+
+    for point in point_geojson["features"]:
+        coordinates = point["properties"]["name"]
+        point_names.append(coordinates)
+        
+    return point_names
+
+
+def get_point_coordinates(coordinate_file: str) -> list:
+    """Get the names of the points from a coordinate file.
+
+    Args:
+        coordinate_file (str): The path to the coordinate file.
 
     Returns:
-    - features (list): A list of features extracted from the input geojson file.
+        List[str]: A list of point names.
+    """
+    point_location = COORDINATE_DIR.joinpath(coordinate_file)
+    point_file = point_location.open()
+    point_geojson = json.load(point_file)
+    point_coordinates = []
 
-    This function reads the input geojson file and extracts geographic features from it. The function uses the `convert_to_squares`
-    function to process the input geojson file and extract the coordinates. It then creates a GeoDataFrame from the coordinates
-    and creates a `Feature` object for each feature in the GeoDataFrame. The resulting list of features is returned as the output of
-    the function.
+    for point in point_geojson["features"]:
+        coordinates = point["geometry"]["coordinates"]
+        point_coordinates.append(coordinates)
+
+    return point_coordinates
+
+def get_dates(year: str, month: str) -> tuple:
+    """Get the coordinates of the points from a coordinate file.
+
+    Args:
+        coordinate_file (str): The path to the coordinate file.
+
+    Returns:
+        List: A list of point coordinates.
+    """
+    start_date = datetime(int(year), int(MONTHS[month]), 1)
+    end_date = datetime(int(year), int(MONTHS[month]), int(DAY_IN_MONTH[month]))
+    return start_date, end_date
+
+def write_date_to_csv(metadata_dir: Path, index: int, date: str, coordinate_x: float, coordinate_y) -> None:
+    """Get the start and end dates of a given month and year.
+
+    Args:
+        year (str): The year.
+        month (str): The month.
+
+    Returns:
+        tuple: A tuple containing the start date and end date.
+    """
+    file_location = metadata_dir.joinpath("dates.csv")
+    
+    try:
+        df = pd.read_csv(file_location)
+    except:
+        df = pd.DataFrame(columns=['index', 'date', 'x', 'y'])
+
+    new_row = pd.DataFrame({
+        'index': [index],
+        'date': [date],
+        'x': [coordinate_x],
+        'y': [coordinate_y]
+    })
+
+    df = pd.concat([df, new_row], ignore_index=True)
+    df.to_csv(file_location, header=True, index=False)
+
+def get_features(coordinates_location: Path) -> list:
+    """Convert square features to polygons.
+
+    Args:
+        coordinates_location (Path): The path to the coordinates.
+
+    Returns:
+        List: A list of features.
     """
     coordinates = convert_to_squares(coordinates_location)
 
@@ -55,22 +125,12 @@ def get_features(coordinates_location: Path) -> list:
     return features
 
 def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
-    """
-    Downloads Sentinel-2 data for a specific year and month, based on coordinates specified in a geojson file.
+    """Download Sentinel-2 data for a given coordinate file, year, and month.
 
-    Parameters:
-    - coordinate_file (str): Path to the geojson file containing the coordinates of the area of interest.
-    - year (str): The year for which data should be downloaded.
-    - month (str): The month for which data should be downloaded.
-
-    Returns:
-    - None: The function saves downloaded data to disk and does not return any value.
-
-    This function uses Sentinel-2 data accessed through the Planetary Computer API to download data for a specific year and
-    month. The function first extracts the geographic coordinates from the input geojson file and downloads the least
-    cloudy scene available from the STAC API for each set of coordinates. The downloaded data is then saved to disk in
-    both GeoTIFF and XML formats. Additionally, a PNG image is created for each downloaded scene, and the dates and coordinates about
-    the downloaded data is saved to a CSV file.
+    Args:
+        coordinate_file (str): The path to the coordinate file.
+        year (str): The year. e.g. "2022"
+        month (str): The month. e.g. "aug"
     """
     data_dir, plot_dir, metadata_dir = create_dirs(DATA_DIR, year, month)
     start_date, end_date = get_dates(year, month)
@@ -152,7 +212,14 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
 
     print(f"In total {len(errors)} errors occured. Namely {errors}")
 
-def download_eschikon():
+def download_eschikon() -> None:
+    """Download Eschikon data with available in-situ measurements
+
+    Args:
+        coordinate_file (str): The path to the coordinate file.
+        year (str): The year. E.g. "2022"
+        month (str): The month. E.g. "aug"
+    """
     field_dir = DATA_DIR.parent.parent.joinpath("fields", "sentinel")
     data_dir = field_dir.joinpath("data")
     metadata_dir = field_dir.joinpath("metadata")
