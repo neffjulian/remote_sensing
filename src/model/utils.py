@@ -88,8 +88,7 @@ def visualize_output(name: str, output: list) -> None:
     current_date = datetime.now()
     date_string = current_date.strftime("%Y_%m_%d_%H_%M_%S")
     results = RESULT_DIR.joinpath(f"{name}_{date_string}")
-    results.mkdir()
-    print(len(transformed_output))
+    results.mkdir(parents=True)
     for i, out in enumerate(transformed_output):
         out_file = results.joinpath(f"{i:04d}")
         print(out_file)

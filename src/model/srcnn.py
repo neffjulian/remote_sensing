@@ -8,21 +8,22 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-
-import pytorch_lightning as pl
+from pytorch_lightning import LightningModule
 
 def psnr(y_hat, y):
     mse = F.mse_loss(y_hat, y)
     psnr_val = 20 * torch.log10(torch.max(y) / torch.sqrt(mse))
     return psnr_val
 
-class SRCNN(pl.LightningModule):
-    def __init__(self):
+class SRCNN(LightningModule):
+    def __init__(self, batch_size: int = 32, lr: float = 0.0003):
         super().__init__()
+        self.batch_size = batch_size
+        self.lr = lr
         self.super_resolution = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=9, padding=4),
-            nn.Conv2d(64, 32, kernel_size=3, padding=1),
-            nn.Conv2d(32, 1, kernel_size=5, padding=2)
+            nn.Conv2d(1, 128, kernel_size=9, padding=4),
+            nn.Conv2d(128, 64, kernel_size=3, padding=1),
+            nn.Conv2d(64, 1, kernel_size=5, padding=2)
         )
 
         for module in self.super_resolution.modules():
@@ -34,13 +35,13 @@ class SRCNN(pl.LightningModule):
         return self.super_resolution(x)
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr = 1e-2)
+        optimizer = torch.optim.Adam(self.parameters(), lr = self.lr)
         scheduler = {
             'scheduler': ReduceLROnPlateau(optimizer, 'min'),
-            'monitor': 'val_loss',  # Specify the metric to monitor for reducing the learning rate
-            'interval': 'epoch',  # Adjust the learning rate on an epoch basis
-            'frequency': 1,  # Adjust the learning rate after every epoch
-            'strict': True  # Whether to raise an error if the scheduler doesn't step every epoch
+            'monitor': 'val_loss',
+            'interval': 'epoch',
+            'frequency': 1,
+            'strict': True
         }
         return [optimizer], [scheduler]
     

@@ -1,8 +1,9 @@
 import argparse
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import DeviceStatsMonitor
+from pytorch_lightning.tuner import Tuner
 
 from dataset import SRDataModule
-
 from edsr import EDSR
 from srcnn import SRCNN
 from utils import visualize_output
@@ -17,10 +18,18 @@ def main(name: str, sentinel_bands: str, planetscope_bands: str):
     data_module.setup()
 
     model = MODELS[name]()
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(profiler="simple", callbacks=[DeviceStatsMonitor()], log_every_n_steps = 1, min_epochs=5)
+    # trainer = pl.Trainer(profiler="simple", callbacks=[DeviceStatsMonitor()], log_every_n_steps = 1, min_epochs=5, precision='16-mixed')
 
-    # trainer.fit(model, data_module)
-    # trainer.test(model, data_module)
+    tuner = Tuner(trainer)
+    
+    tuner.scale_batch_size(model, datamodule=data_module)
+    tuner.lr_find(model)
+
+    trainer.fit(model, data_module)
+    trainer.test(model, data_module)
+
+    model.eval()
 
     output = trainer.predict(model, data_module)
     visualize_output(name, output)

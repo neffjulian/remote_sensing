@@ -12,8 +12,11 @@ from torch.optim import lr_scheduler
 from torchmetrics import PSNR
 
 class EDSR(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, batch_size: int = 32, lr: float = 0.0003):
         super().__init__()
+        self.batch_size = batch_size
+        self.lr = lr
+
         self.input_layer = nn.Conv2d(1, 256, kernel_size=3, padding=1)
         self.output_layer = nn.Conv2d(256, 1, kernel_size=3, padding=1)
         

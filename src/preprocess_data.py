@@ -10,7 +10,8 @@ MONTHS = {"jan": "01", "feb": "02", "mar": "03", "apr": "04",
           "sep": "09", "oct": "10", "nov": "11", "dec": "12"}
 
 DATA_DIR = Path().absolute().parent.joinpath("data")
-FOLDERS = {"4b": 3, "8b": 3, "10m": 10, "20m": 20}
+# FOLDERS = {"4b": 3, "8b": 3, "10m": 10, "20m": 20}
+FOLDERS = {"4b": 3, "10m": 10, "20m": 20}
 OUT_DIM = (640, 640)
 
 def get_filenames(foldername: str, in_situ: bool) -> list[str]:
@@ -118,20 +119,17 @@ def preprocess_folder(folder: Path, band: str, in_situ: bool) -> None:
                 preprocess_file(file, target_dir)
 
 def preprocess(satellite: str, in_situ: bool):
-    folder = DATA_DIR.joinpath("filtered", "in_situ", satellite) if in_situ else DATA_DIR.joinpath("filtered", satellite)
+    if in_situ:
+        folder = DATA_DIR.joinpath("filtered", "in_situ", satellite + "_in_situ")
+    else:
+        folder = DATA_DIR.joinpath("filtered", satellite)
+        
     bands = ("10m", "20m") if satellite == "sentinel" else ("4b", "8b")
     
     for year in folder.iterdir():
         for month in year.iterdir():
-            
-            # TODO: Remove after preprocessing
-            if satellite == "planetscope" and in_situ == False:
-                if month.name in ["03_mar", "05_may", "07_jul", "08_aug"]:
-                    continue
-
             if not month.name[-3:] in MONTHS:
                 continue
-
             print(f"Preprocess {satellite} data with in_situ ({in_situ}) for {year.name} {month.name}")
             data = month.joinpath("lai")
             preprocess_folder(data, bands[0], in_situ)
@@ -144,8 +142,9 @@ def rename_in_situ_data():
     for root, _, files in os.walk(in_situ_dir):
         for file in files:
             path = Path(root).joinpath(file)
-            new_name = file.replace(file[8:12], index_to_field[file[8:12]])
-            path.rename(Path(root).joinpath(new_name))
+            if file[8:12].isdigit():
+                new_name = file.replace(file[8:12], index_to_field[file[8:12]])
+                path.rename(Path(root).joinpath(new_name))
 
 def main():
     preprocess(satellite="sentinel", in_situ=False)
@@ -157,5 +156,7 @@ def main():
     remove_unused_images(in_situ=True)
 
     rename_in_situ_data()
+
+    
 if __name__ == "__main__":
     main()
