@@ -6,12 +6,12 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import random_split
 import pytorch_lightning as pl
 
-DATA_DIR = Path().absolute().parent.parent.joinpath('data', 'processed')
+DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed')
 
 # class SRDataset(Dataset):
-#     def __init__(self, sentinel_bands: str, planetscope_band:str, files: list[str]) -> None:
+#     def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str]) -> None:
 #         super().__init__()
-#         self.sentinel_dir = DATA_DIR.joinpath(sentinel_bands)
+#         self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
 #         self.planetscope_dir = DATA_DIR.joinpath(planetscope_band)
 
 #         self.sentinel_files = [torch.from_numpy(np.load(self.sentinel_dir.joinpath(file))) for file in files]
@@ -24,14 +24,14 @@ DATA_DIR = Path().absolute().parent.parent.joinpath('data', 'processed')
 #         return self.sentinel_files[idx], self.planetscope_files[idx]
 
 class SRDataset(Dataset):
-    def __init__(self, sentinel_bands: str, planetscope_band:str, files: list[str], predict: bool = False) -> None:
+    def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str], predict: bool = False) -> None:
         super().__init__()
 
         if predict:
-            self.sentinel_dir = DATA_DIR.joinpath("in_situ", sentinel_bands)
+            self.sentinel_dir = DATA_DIR.joinpath("in_situ", sentinel_resolution)
             self.planetscope_dir = DATA_DIR.joinpath("in_situ", planetscope_band)
         else:
-            self.sentinel_dir = DATA_DIR.joinpath(sentinel_bands)
+            self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
             self.planetscope_dir = DATA_DIR.joinpath(planetscope_band)
 
         self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
@@ -46,33 +46,37 @@ class SRDataset(Dataset):
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
-    def __init__(self, sentinel_bands: str, planetscope_bands: str, data_dir: Path = DATA_DIR, batch_size: int = 32):
+    def __init__(self, hparams: dict):
+    # def __init__(self, sentinel_resolution: str, planetscope_bands: str, batch_size: int = 32):
         super().__init__()
-        self.data_dir = data_dir
-        self.batch_size = batch_size
-        self.sentinel_bands = sentinel_bands
-        self.planetscope_bands = planetscope_bands
+        self.batch_size = hparams["datamodule"]["batch_size"]
+        self.sentinel_resolution = hparams["sentinel_resolution"]
+        self.planetscope_bands = hparams["planetscope_bands"]
 
-        self.files = [file.name for file in self.data_dir.joinpath("4b").iterdir()]
+        self.files = [file.name for file in DATA_DIR.joinpath("4b").iterdir()]
         
         total_size = len(self.files)
         train_size = int(0.8 * total_size)
         val_size = int(0.1 * total_size)
         test_size = total_size - train_size - val_size
 
-        self.train_set, self.val_set, self.test_set = random_split(self.files, [train_size, val_size, test_size])
+        self.train_set, self.val_set, self.test_set = random_split(
+            dataset = self.files, 
+            lengths = [train_size, val_size, test_size], 
+            generator =torch.Generator().manual_seed(hparams["random_seed"])
+        )
 
         self.predict_files = DATA_DIR.joinpath("in_situ")
 
     def setup(self, stage=None):
         # if stage == 'fit':
-            self.train_dataset = SRDataset(self.sentinel_bands, self.planetscope_bands, self.train_set)
-            self.val_dataset = SRDataset(self.sentinel_bands, self.planetscope_bands, self.val_set)
+            self.train_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, self.train_set)
+            self.val_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, self.val_set)
         # elif stage == 'test':
-            self.test_dataset = SRDataset(self.sentinel_bands, self.planetscope_bands, self.test_set)
+            self.test_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, self.test_set)
         # elif stage == 'predict':
-            files = [file.name for file in self.data_dir.joinpath("in_situ", "4b").iterdir()]
-            self.predict_dataset = SRDataset(self.sentinel_bands, self.planetscope_bands, files, predict = True)
+            files = [file.name for file in DATA_DIR.joinpath("in_situ", "4b").iterdir()]
+            self.predict_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, files, predict = True)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)

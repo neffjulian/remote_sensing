@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-RESULT_DIR = Path().absolute().parent.parent.joinpath('data', 'results')
+RESULT_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'results')
 
 def transform_model_output(model_output: list) -> list[np.ndarray]:
     img_s2 = []

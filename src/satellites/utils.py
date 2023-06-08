@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 
 # Set the base directory for coordinates
-COORDINATE_DIR = Path().absolute().parent.parent.joinpath('data', 'coordinates')
+COORDINATE_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'coordinates')
 
 # Mapping of month abbreviations to month numbers
 MONTHS = {

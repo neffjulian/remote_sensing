@@ -25,8 +25,8 @@ Settings = get_settings()
 Settings.USE_STAC = True
 
 # Define the directories for storing data, metadata, and plots
-DATA_DIR = Path().absolute().parent.parent.joinpath("data", "raw", "sentinel")
-COORDINATE_DIR = Path().absolute().parent.parent.joinpath("data", "coordinates")
+DATA_DIR = Path(__file__).parent.parent.parent.joinpath("data", "raw", "sentinel")
+COORDINATE_DIR = Path(__file__).parent.parent.parent.joinpath("data", "coordinates")
 COLLECTION = "sentinel2-msi"
 
 DAY_IN_MONTH = {"jan": "31", "feb": "28", "mar": "31", "apr": "30", 

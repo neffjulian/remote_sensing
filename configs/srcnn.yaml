@@ -1,0 +1,32 @@
+random_seed: 123
+
+experiment_name: SRCNN_baseline
+
+# resume_from_checkpoint: ...
+
+sentinel_resolution: "10m"
+planetscope_bands: "4b"
+
+train: true
+predict: true
+
+model:
+  name: srcnn
+  batch_size: 32
+
+datamodule:
+  batch_size: 32
+
+trainer:
+  max_epochs: 100
+  profiler: "simple"
+  log_every_n_steps: 5
+
+optimizer:
+  lr: 0.0003
+
+scheduler:
+  mode: min
+  patience: 5
+  min_lr: 0.000001
+  verbose: True

@@ -17,8 +17,8 @@ from utils import (
     MONTHS
 )
 
-DOTENV_PATH = Path().absolute().parent.parent.joinpath(".env")
-DATA_DIR = Path().absolute().parent.parent.joinpath("data", "raw", "planetscope")
+DOTENV_PATH = Path(__file__).parent.parent.parent.joinpath(".env")
+DATA_DIR = Path(__file__).parent.parent.parent.joinpath("data", "raw", "planetscope")
 load_dotenv(DOTENV_PATH)
 
 settings = get_settings()

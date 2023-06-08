@@ -9,9 +9,8 @@ MONTHS = {"jan": "01", "feb": "02", "mar": "03", "apr": "04",
           "may": "05", "jun": "06", "jul": "07", "aug": "08", 
           "sep": "09", "oct": "10", "nov": "11", "dec": "12"}
 
-DATA_DIR = Path().absolute().parent.joinpath("data")
-# FOLDERS = {"4b": 3, "8b": 3, "10m": 10, "20m": 20}
-FOLDERS = {"4b": 3, "10m": 10, "20m": 20}
+DATA_DIR = Path(__file__).parent.parent.joinpath("data")
+FOLDERS = {"4b": 3, "8b": 3, "10m": 10, "20m": 20}
 OUT_DIM = (640, 640)
 
 def get_filenames(foldername: str, in_situ: bool) -> list[str]:
@@ -156,7 +155,6 @@ def main():
     remove_unused_images(in_situ=True)
 
     rename_in_situ_data()
-
     
 if __name__ == "__main__":
     main()

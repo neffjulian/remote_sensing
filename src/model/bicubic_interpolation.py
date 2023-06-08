@@ -1,7 +1,7 @@
 """
-Super-Resolution Convolutional Neural Network (2015)
+Bicubic interpolation
 
-Paper: https://arxiv.org/abs/1501.00092
+The input is already upsampled with bicubic interpolation. Thus we do not need to train as the input is always equal to the output.
 """
 
 import torch
@@ -15,35 +15,18 @@ def psnr(y_hat, y):
     psnr_val = 20 * torch.log10(torch.max(y) / torch.sqrt(mse))
     return psnr_val
 
-class SRCNN(LightningModule):
-    def __init__(self, hparams: dict):
+class bicubic_interpolation(LightningModule):
+    def __init__(self, batch_size: int = 32, lr: float = 0.0003):
         super().__init__()
-        self.batch_size = hparams["model"]["batch_size"]
-        self.lr = hparams["optimizer"]["lr"]
-        self.scheduler = hparams["scheduler"]
-
-        self.super_resolution = nn.Sequential(
-            nn.Conv2d(1, 128, kernel_size=9, padding=4),
-            nn.Conv2d(128, 64, kernel_size=3, padding=1),
-            nn.Conv2d(64, 1, kernel_size=5, padding=2)
-        )
-
-        for module in self.super_resolution.modules():
-            if isinstance(module, nn.Conv2d):
-                nn.init.normal_(module.weight, mean=0, std=0.001)
-                nn.init.constant_(module.bias, 0)
+        self.batch_size = batch_size
 
     def forward(self, x):
-        return self.super_resolution(x)
+        return x
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr = self.lr)
         scheduler = {
-            'scheduler': ReduceLROnPlateau(
-                optimizer = optimizer, 
-                patience = self.scheduler["patience"], 
-                min_lr = self.scheduler["min_lr"], 
-                verbose = self.scheduler["verbose"]),
+            'scheduler': ReduceLROnPlateau(optimizer, 'max'),
             'monitor': 'val_loss',
             'interval': 'epoch',
             'frequency': 1,
