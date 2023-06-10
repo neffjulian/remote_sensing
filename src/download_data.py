@@ -18,8 +18,8 @@ def download_zip_files():
     print("\n...finished!")
 
     print("Start downloading PlanetScope data...")
-    planetscope_url = "https://polybox.ethz.ch/index.php/s/Tvj5Au8bg7cjnZX/download"
-    planetscope_in_situ_url = "https://polybox.ethz.ch/index.php/s/jFtT0TarzqcNHr8/download"
+    planetscope_url = "https://polybox.ethz.ch/index.php/s/zQYzJY4kLNvaxGA/download"
+    planetscope_in_situ_url = "https://polybox.ethz.ch/index.php/s/FtplTrxAFY3eOGA/download"
 
     wget.download(planetscope_url,out=str(FILTERED))
     wget.download(planetscope_in_situ_url,out=str(FILTERED_IN_SITU))
