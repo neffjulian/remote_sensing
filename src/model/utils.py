@@ -73,7 +73,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     # Plot for PlanetScope image
     ax3 = axes[2]
     im3 = ax3.imshow(planet_scope, cmap='viridis', vmin=0., vmax=8.)
-    ax3.set_title('Original Image')
+    ax3.set_title('PlanetScope Image')
     ax3.set_xlabel('X')
     ax3.set_ylabel('Y')
     ax3.set_aspect('equal')

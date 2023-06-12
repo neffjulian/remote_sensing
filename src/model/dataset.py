@@ -47,7 +47,6 @@ class SRDataset(Dataset):
 
 class SRDataModule(pl.LightningDataModule):
     def __init__(self, hparams: dict):
-    # def __init__(self, sentinel_resolution: str, planetscope_bands: str, batch_size: int = 32):
         super().__init__()
         self.batch_size = hparams["datamodule"]["batch_size"]
         self.sentinel_resolution = hparams["sentinel_resolution"]
@@ -66,7 +65,7 @@ class SRDataModule(pl.LightningDataModule):
             generator =torch.Generator().manual_seed(hparams["random_seed"])
         )
 
-        self.predict_files = DATA_DIR.joinpath("in_situ")
+        self.predict_files = DATA_DIR.joinpath("in_situ", self.planetscope_bands)
 
     def setup(self, stage=None):
         # if stage == 'fit':
@@ -75,8 +74,8 @@ class SRDataModule(pl.LightningDataModule):
         # elif stage == 'test':
             self.test_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, self.test_set)
         # elif stage == 'predict':
-            files = [file.name for file in DATA_DIR.joinpath("in_situ", "4b").iterdir()]
-            self.predict_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, files, predict = True)
+            files_in_situ = [file.name for file in self.predict_files.iterdir()]
+            self.predict_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, files_in_situ, predict = True)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
@@ -88,4 +87,4 @@ class SRDataModule(pl.LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.batch_size)
     
     def predict_dataloader(self):
-        return DataLoader(self.predict_dataset, batch_size=self.batch_size)
+        return DataLoader(self.predict_dataset, batch_size=self.batch_size, shuffle=False)

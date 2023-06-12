@@ -4,6 +4,8 @@ data/filtered/*
 data/coordinates/field_parcels/*
 data/results/*
 
+wandb/*
+
 .env
 *.pyc
 *__pycache__

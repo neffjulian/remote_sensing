@@ -7,8 +7,8 @@ experiment_name: SRCNN_baseline
 sentinel_resolution: "10m"
 planetscope_bands: "4b"
 
-train: true
-predict: true
+train: True
+predict: True
 
 model:
   name: srcnn
