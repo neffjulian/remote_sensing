@@ -47,7 +47,7 @@ def remove_unused_images(in_situ: bool = False) -> None:
     
     assert all(files[0] == files[i] for i in range(1, len(files)))
 
-def preprocess_file(src_data: Path, tar_dir: Path, flip: bool = False) -> None:
+def preprocess_file(src_data: Path, tar_dir: Path, rotate: bool = False) -> None:
     """Preprocess a single file and save the tiles."""
     file_index = src_data.name[:4]
     month = src_data.parent.parent.name[:2]
@@ -55,11 +55,11 @@ def preprocess_file(src_data: Path, tar_dir: Path, flip: bool = False) -> None:
 
     raster = RasterCollection.from_multi_band_raster(src_data)
     lai = cv2.resize(raster["lai"].values, OUT_DIM, interpolation=cv2.INTER_CUBIC)
-    lai_processed = np.nan_to_num(lai)
+    lai_processed = np.clip(np.nan_to_num(lai), 0, 8)
     tiles = create_tiles(lai_processed)
 
     for tile_index, tile in enumerate(tiles):
-        if flip:
+        if rotate:
             for i in range(4):
                 number = tile_index * 4 + i
                 tile_name = f"{year}_{month}_{file_index}_{number:02d}"

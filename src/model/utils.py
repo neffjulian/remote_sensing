@@ -14,36 +14,43 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     img_s2 = []
     img_sr = []
     img_ps = []
+    names = []
     for out in model_output:
-        s2, y, ps = out
+        s2, y, ps, name = out
         img_s2.append(s2)
         img_sr.append(y)
         img_ps.append(ps)
+        names.append(name)
 
     result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
     result_sr = torch.cat(img_sr, dim=0).squeeze().numpy()
     result_ps = torch.cat(img_ps, dim=0).squeeze().numpy()
 
     reconstructed_images = []
-    num_images  = int(result_sr.shape[0] / 4)
-    for i in range(num_images):
+
+    image_names = [string for tup in names for string in tup]
+    enumerated_names = [(i, str) for i, str in enumerate(image_names)]
+    sorted_names = sorted(enumerated_names, key=lambda x: x[1])
+
+    for i in range(0, len(sorted_names), 4):
+
         image_s2 = np.zeros((640, 640))
-        image_s2[:320, :320] = result_s2[(i*4)]
-        image_s2[:320, 320:] = result_s2[(i*4) + 1]
-        image_s2[320:, :320] = result_s2[(i*4) + 2]
-        image_s2[320:, 320:] = result_s2[(i*4) + 3]
+        image_s2[:320, :320] = result_s2[sorted_names[i][0]]
+        image_s2[:320, 320:] = result_s2[sorted_names[i+1][0]]
+        image_s2[320:, :320] = result_s2[sorted_names[i+2][0]]
+        image_s2[320:, 320:] = result_s2[sorted_names[i+3][0]]
 
         image_sr = np.zeros((640, 640))
-        image_sr[:320, :320] = result_sr[(i*4)]
-        image_sr[:320, 320:] = result_sr[(i*4) + 1]
-        image_sr[320:, :320] = result_sr[(i*4) + 2]
-        image_sr[320:, 320:] = result_sr[(i*4) + 3]
+        image_sr[:320, :320] = result_sr[sorted_names[i][0]]
+        image_sr[:320, 320:] = result_sr[sorted_names[i+1][0]]
+        image_sr[320:, :320] = result_sr[sorted_names[i+2][0]]
+        image_sr[320:, 320:] = result_sr[sorted_names[i+3][0]]
 
         image_ps = np.zeros((640, 640))
-        image_ps[:320, :320] = result_ps[(i*4)]
-        image_ps[:320, 320:] = result_ps[(i*4) + 1]
-        image_ps[320:, :320] = result_ps[(i*4) + 2]
-        image_ps[320:, 320:] = result_ps[(i*4) + 3]
+        image_ps[:320, :320] = result_ps[sorted_names[i][0]]
+        image_ps[:320, 320:] = result_ps[sorted_names[i+1][0]]
+        image_ps[320:, :320] = result_ps[sorted_names[i+2][0]]
+        image_ps[320:, 320:] = result_ps[sorted_names[i+3][0]]
 
         reconstructed_images.append((image_s2, image_sr, image_ps))
     
@@ -85,10 +92,8 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
 
 def visualize_output(name: str, output: list) -> None:
     transformed_output = transform_model_output(output)
-    current_date = datetime.now()
-    date_string = current_date.strftime("%Y_%m_%d_%H_%M_%S")
-    results = RESULT_DIR.joinpath(f"{name}_{date_string}")
-    results.mkdir(parents=True)
+    results = RESULT_DIR.joinpath(name)
+    results.mkdir(parents=True, exist_ok=True)
     for i, out in enumerate(transformed_output):
         out_file = results.joinpath(f"{i:04d}")
         print(out_file)

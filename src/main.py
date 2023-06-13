@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.loggers import WandbLogger
@@ -19,15 +20,15 @@ from model.utils import visualize_output
 DOTENV_PATH = Path(__file__).parent.parent.joinpath(".env")
 load_dotenv(DOTENV_PATH)
 WANDB_API_KEY = os.getenv('WANDB_API_KEY')
+os.environ["WANDB_SILENT"] = "true"
 
 MODELS = {
     "edsr": EDSR,
     "srcnn": SRCNN
 }
 
-
 def main(hparams: dict) -> None:
-    date_string = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    date_string = datetime.now().strftime("%Y_%m_%d_%H_%M")
     experiment_name = hparams["experiment_name"] + "_" + date_string
 
     seed_everything(hparams["random_seed"])
@@ -36,29 +37,31 @@ def main(hparams: dict) -> None:
     if "resume_from_checkpoint" in hparams:
         model.load_from_checkpoint(hparams["resume_from_checkpoint"])
 
-    data_module = SRDataModule(hparams)
-    data_module.setup()
-
-    wandb_logger = WandbLogger(experiment_name, project="remote_sensing")
-
-    trainer = pl.Trainer(
-        max_epochs = hparams["trainer"]["max_epochs"],
-        profiler = hparams["trainer"]["profiler"],
-        log_every_n_steps = hparams["trainer"]["log_every_n_steps"],
-        callbacks = [DeviceStatsMonitor()],
-        logger = wandb_logger
-    )
+    datamodule = SRDataModule(hparams)
 
     # # tuner = Tuner(trainer)
     
     # # tuner.scale_batch_size(model, datamodule=data_module)
     # # tuner.lr_find(model)
+
+
     if hparams["train"] is True:
-        trainer.fit(model, data_module)
-        trainer.test(model, data_module)
+        datamodule.setup()
+        wandb_logger = WandbLogger(experiment_name, project="remote_sensing")
+
+        trainer = pl.Trainer(
+            max_epochs = hparams["trainer"]["max_epochs"],
+            profiler = hparams["trainer"]["profiler"],
+            log_every_n_steps = hparams["trainer"]["log_every_n_steps"],
+            callbacks = [DeviceStatsMonitor()],
+            logger = wandb_logger,
+        )
+
+        trainer.fit(model=model, datamodule=datamodule)
     if hparams["predict"] is True:
+        trainer = pl.Trainer(devices=1, accelerator="cpu")
         model.eval()
-        output = trainer.predict(model, data_module)
+        output = trainer.predict(model=model, datamodule=datamodule)
         visualize_output(experiment_name, output)
 
 if __name__ == "__main__":

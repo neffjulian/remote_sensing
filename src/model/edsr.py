@@ -76,14 +76,6 @@ class EDSR(LightningModule):
         psnr_loss = psnr(y_hat, y)
         self.log_loss("val", loss, psnr_loss)
 
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self.forward(x)
-        loss = F.mse_loss(y_hat, y)
-        psnr_loss = psnr(y_hat, y)
-        self.log_loss("test", loss, psnr_loss)
-
-
     def predict_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.forward(x)

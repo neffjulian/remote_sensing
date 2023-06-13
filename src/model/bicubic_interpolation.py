@@ -48,14 +48,6 @@ class bicubic_interpolation(LightningModule):
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log('val_psnr', psnr_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self.forward(x)
-        loss = F.mse_loss(y_hat, y)
-        psnr_loss = psnr(y_hat, y)
-        self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log('test_psnr', psnr_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-
     def predict_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.forward(x)

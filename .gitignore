@@ -5,6 +5,10 @@ data/coordinates/field_parcels/*
 data/results/*
 
 wandb/*
+data/results/*
+
+src/model/.ipynb_checkpoints/*
+src/.ipynb_checkpoints/*
 
 .env
 *.pyc
