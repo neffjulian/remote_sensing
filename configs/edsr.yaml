@@ -1,6 +1,6 @@
 random_seed: 123
 
-experiment_name: SRCNN_baseline
+experiment_name: EDSR_baseline
 
 # resume_from_checkpoint: ...
 

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 
-torch.set_float32_matmul_precision("medium")
+# torch.set_float32_matmul_precision("medium")
 
 def psnr(y_hat, y):
     mse = torch.mean((y_hat - y) ** 2)
@@ -24,70 +24,58 @@ class SRCNN(LightningModule):
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler = hparams["scheduler"]
 
-        self.l1 = nn.Conv2d(1, 256, kernel_size=9, padding=4)
-        self.l2 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-        self.l3 = nn.Conv2d(128, 1, kernel_size=5, padding=2)
+        self.l1 = nn.Conv2d(1, 64, kernel_size=9, padding=4)
+        self.l2 = nn.Conv2d(64, 32, kernel_size=1, padding=0)
+        self.l3 = nn.Conv2d(32, 1, kernel_size=5, padding=2)
 
-        self._initialize_weights()
-
-    def _initialize_weights(self):
-        for layer in [self.l1, self.l2, self.l3]:
-            nn.init.normal_(layer.weight, mean=0, std=0.01)
-            nn.init.constant_(layer.bias, 0)
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        y_l1 = F.relu(self.l1(x))
-        y_l2 = F.relu(self.l2(y_l1))
-        y_l3 = F.relu(self.l3(y_l2))
-        return y_l3
+        x = self.relu(self.l1(x))
+        x = self.relu(self.l2(x))
+        x = self.l3(x)
+        return x
     
-def configure_optimizers(self):
-    optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-    scheduler = {
-        'scheduler': ReduceLROnPlateau(
-            optimizer=optimizer,
-            patience=self.scheduler["patience"],
-            min_lr=self.scheduler["min_lr"],
-            verbose=self.scheduler["verbose"]
-        ),
-        'interval': 'epoch',
-        'frequency': 1,
-        'strict': True
-    }
-    return {
-        'optimizer': optimizer,
-        'lr_scheduler': {
-            'scheduler': scheduler,
-            'monitor': 'val_psnr_loss'
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': ReduceLROnPlateau(
+                    optimizer=optimizer,
+                    patience=self.scheduler["patience"],
+                    min_lr=self.scheduler["min_lr"],
+                    verbose=self.scheduler["verbose"]
+                ),
+                'monitor': 'val_l1_loss',
+                'frequency': 5
+            }
         }
-    }
 
-def shared_step(self, batch, stage):
-    x, y = batch
-    y_hat = self.forward(x)
-
-    rmse_loss = torch.sqrt(F.mse_loss(y_hat, y))
-
-    if stage == "val":
+    def shared_step(self, batch, stage):
+        x, y = batch
+        y_hat = self.forward(x)
+        mse_loss = F.mse_loss(y_hat, y)
         l1_loss = F.l1_loss(y_hat, y)
-        psnr_loss = psnr(y_hat, y)
-        
-        self.log(f"{stage}_l1_loss", l1_loss)
-        self.log(f"{stage}_psnr_loss", psnr_loss)
-        self.log(f"{stage}_rmse_loss", rmse_loss)
+        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
+        self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True)        
 
-    return rmse_loss
+        if stage == "val":
+            rmse_loss = torch.sqrt(F.mse_loss(y_hat, y))
+            self.log(f"{stage}_rmse_loss", rmse_loss, sync_dist=True)
 
-def shared_epoch_end(self, outputs, stage):
-    self.log_dict
+            psnr_loss = psnr(y_hat, y)
+            self.log(f"{stage}_psnr_loss", psnr_loss, sync_dist=True)
 
-def training_step(self, batch, batch_idx):
-    return self.shared_step(batch, "train")
+        return mse_loss
 
-def validation_step(self, batch, batch_idx):
-    return self.shared_step(batch, "val")
+    def training_step(self, batch, batch_idx):
+        return self.shared_step(batch, "train")
 
-def predict_step(self, batch, batch_idx):
-    x, y, names = batch
-    y_hat = self.forward(x)
-    return x, y_hat, y, names
+    def validation_step(self, batch, batch_idx):
+        self.shared_step(batch, "val")
+
+    def predict_step(self, batch, batch_idx):
+        x, y, names = batch
+        y_hat = self.forward(x)
+        return x, y_hat, y, names

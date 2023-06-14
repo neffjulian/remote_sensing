@@ -9,13 +9,20 @@ import pytorch_lightning as pl
 DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed')
 
 # class SRDataset(Dataset):
-#     def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str]) -> None:
+#     def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str], predict: bool = False) -> None:
 #         super().__init__()
-#         self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
-#         self.planetscope_dir = DATA_DIR.joinpath(planetscope_band)
+#         if predict:
+#             self.sentinel_dir = DATA_DIR.joinpath("in_situ", sentinel_resolution)
+#             self.planetscope_dir = DATA_DIR.joinpath("in_situ", planetscope_band)
+#         else:
+#             self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
+#             self.planetscope_dir = DATA_DIR.joinpath(planetscope_band)
 
-#         self.sentinel_files = [torch.from_numpy(np.load(self.sentinel_dir.joinpath(file))) for file in files]
-#         self.planetscope_files = [torch.from_numpy(np.load(self.planetscope_dir.joinpath(file))) for file in files]
+#         self.sentinel_filenames = [self.sentinel_dir.joinpath(filename) for filename in files]
+#         self.planetscope_filenames = [self.planetscope_dir.joinpath(filename) for filename in files]
+
+#         self.sentinel_files = [torch.from_numpy(np.load(self.planetscope_dir.joinpath(file))).unsqueeze(0) for file in files]
+#         self.planetscope_files = [torch.from_numpy(np.load(self.planetscope_dir.joinpath(file))).unsqueeze(0) for file in files]
 
 #     def __len__(self):
 #         return len(self.sentinel_files)
@@ -36,6 +43,7 @@ class SRPredictDataset(Dataset):
 
         self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [self.planetscope_dir.joinpath(filename) for filename in files]
+
 
     def __len__(self):
         return len(self.sentinel_files)
