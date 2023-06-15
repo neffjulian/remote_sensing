@@ -9,8 +9,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
-from pytorch_lightning.tuner.tuning import Tuner
-
+from pytorch_lightning.utilities.memory import garbage_collection_cuda
 from model.dataset import SRDataModule
 from model.edsr import EDSR
 from model.srcnn import SRCNN
@@ -28,6 +27,8 @@ MODELS = {
 }
 
 def main(hparams: dict) -> None:
+    garbage_collection_cuda()
+
     date_string = datetime.now().strftime("%Y_%m_%d_%H_%M")
     experiment_name = hparams["experiment_name"] + "_" + date_string
 
@@ -46,18 +47,12 @@ def main(hparams: dict) -> None:
             log_every_n_steps = hparams["trainer"]["log_every_n_steps"],
             callbacks = [DeviceStatsMonitor()],
             logger = wandb_logger,
-            detect_anomaly=True
+            accumulate_grad_batches=8
         )
-        # tuner = Tuner(trainer)
-        # batch_size_scaled = tuner.scale_batch_size(model, datamodule)
-        # print("New batch size: ", batch_size_scaled)
-        
-        # new_lr = tuner.lr_find(model, datamodule)
-        # print("New learning rate: ", new_lr)
 
         trainer.fit(model=model, datamodule=datamodule)
     if hparams["predict"] is True:
-        trainer = pl.Trainer(devices=1, accelerator="cpu")
+        trainer = pl.Trainer(devices=1, accelerator="cpu", precision = 16)
         model.eval()
         output = trainer.predict(model=model, datamodule=datamodule)
         visualize_output(experiment_name, output)

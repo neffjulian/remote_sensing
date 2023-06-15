@@ -1,5 +1,5 @@
 import os
-
+import gc
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
@@ -97,3 +97,11 @@ def visualize_output(name: str, output: list) -> None:
         out_file = results.joinpath(f"{i:04d}")
         print(out_file)
         save_output_visualization(out[0], out[1], out[2], out_file)
+
+def report_gpu():
+   print(torch.cuda.list_gpu_processes())
+   gc.collect()
+   torch.cuda.empty_cache()
+
+if __name__ == "__main__":
+    report_gpu()

@@ -1,8 +1,11 @@
-# wget
-# py7zr
-# opencv-python
-# eodal
-# scikit-image
-# numpy
-# torch
-# pytorch-lightning
+wget==3.2
+py7zr==0.20.5
+numpy==1.23.5
+opencv-python==4.5.5.64
+opencv-python-headless==4.7.0.72
+eodal==0.2.0
+scikit-image==0.20.0
+pytorch-lightning==1.5.10
+torch==1.11.0
+torchmetrics==0.7.2
+pytorch-lightning==1.5.10

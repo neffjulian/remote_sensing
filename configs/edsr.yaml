@@ -12,21 +12,21 @@ predict: true
 
 model:
   name: edsr
-  batch_size: 32
+  batch_size: 16
 
 datamodule:
-  batch_size: 32
+  batch_size: 16
 
 trainer:
-  max_epochs: 100
+  max_epochs: 50
   profiler: "simple"
   log_every_n_steps: 5
 
 optimizer:
-  lr: 0.0003
+  lr: 0.0001
 
 scheduler:
   mode: min
-  patience: 5
+  patience: 3
   min_lr: 0.000001
   verbose: True

@@ -10,11 +10,13 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 
-# torch.set_float32_matmul_precision("medium")
+torch.set_float32_matmul_precision("medium")
 
-def psnr(y_hat, y):
-    mse = torch.mean((y_hat - y) ** 2)
-    return 20 * torch.log10(255.0 / torch.sqrt(mse))
+def mse(y_hat, y):
+    return torch.mean((y_hat - y) ** 2)
+
+def psnr(mse):
+    return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class EDSR(LightningModule):
     def __init__(self, hparams: dict):
@@ -52,24 +54,7 @@ class EDSR(LightningModule):
                     min_lr=self.scheduler["min_lr"],
                     verbose=self.scheduler["verbose"]
                 ),
-                'monitor': 'val_l1_loss',
-                'frequency': 5
-            }
-        }
-    
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': ReduceLROnPlateau(
-                    optimizer=optimizer,
-                    patience=self.scheduler["patience"],
-                    min_lr=self.scheduler["min_lr"],
-                    verbose=self.scheduler["verbose"]
-                ),
-                'monitor': 'val_l1_loss',
-                'frequency': 5
+                'monitor': 'val_l1_loss'
             }
         }
 
@@ -77,16 +62,12 @@ class EDSR(LightningModule):
         x, y = batch
         y_hat = self.forward(x)
 
-        l1_loss = F.l1_loss(y_hat, y)
-        self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True)        
-
-        if stage == "val":
-            rmse_loss = torch.sqrt(F.mse_loss(y_hat, y))
-            self.log(f"{stage}_rmse_loss", rmse_loss, sync_dist=True)
-
-            psnr_loss = psnr(y_hat, y)
-            self.log(f"{stage}_psnr_loss", psnr_loss, sync_dist=True)
-
+        if stage == "train":
+            return F.l1_loss(y_hat, y)       
+        
+        l1_loss = F.l1_loss(y_hat, y)       
+        self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True) 
+        self.log(f"{stage}_psnr", psnr(mse(y_hat, y)), sync_dist=True)
         return l1_loss
 
     def training_step(self, batch, batch_idx):
