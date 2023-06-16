@@ -145,6 +145,35 @@ def rename_in_situ_data():
                 new_name = file.replace(file[8:12], index_to_field[file[8:12]])
                 path.rename(Path(root).joinpath(new_name))
 
+def check_and_remove_outliers(threshold:float = .85):
+    print(f"Checking for outliers which have more than {int((1-threshold)*100)}% of zero entries")
+    folder_names = ["4b", "8b", "10m", "20m"]
+    folders = [DATA_DIR.joinpath("processed", folder_name) for folder_name in folder_names]
+
+    to_remove = []
+    for folder in folders:
+        to_remove += count_zeros(folder, threshold)
+
+    to_remove = list(set(to_remove))
+    number_of_files = len([file for file in folders[0].iterdir()])
+    print(f"Percentage of outliers {int(len(to_remove) / number_of_files * 100)}%. Removing them now.")
+
+    for folder in folders:
+        remove_outliers(folder, to_remove)
+
+def count_zeros(folder: Path, threshold: float):
+    percentage_zeros = []
+    for file in folder.iterdir():
+        file_np = np.load(file)
+        percentage_zeros.append((np.count_nonzero(file_np) / np.size(file_np), file.name))
+    return [x[1] for x in percentage_zeros if x[0] < threshold]
+
+def remove_outliers(folder: Path, files_to_remove: list[str]):
+    for file in files_to_remove:
+        file_location = folder.joinpath(file)
+        assert file_location.exists(), file_location
+        file_location.unlink()
+
 def main():
     preprocess(satellite="sentinel", in_situ=False)
     preprocess(satellite="planetscope", in_situ=False)
@@ -155,6 +184,7 @@ def main():
     remove_unused_images(in_situ=True)
 
     rename_in_situ_data()
+    check_and_remove_outliers()
     
 if __name__ == "__main__":
     main()
