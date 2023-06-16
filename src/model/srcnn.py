@@ -32,6 +32,15 @@ class SRCNN(LightningModule):
 
         self.relu = nn.ReLU(inplace=True)
 
+
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for layer in [self.l1, self.l2, self.l3]:
+            nn.init.normal_(layer.weight, mean=0.5, std=0.1)
+            # nn.init.kaiming_normal_(layer.weight, a=.1)
+            nn.init.constant_(layer.bias, 0)
+
     def forward(self, x):
         x = self.relu(self.l1(x))
         x = self.relu(self.l2(x))

@@ -47,12 +47,13 @@ def main(hparams: dict) -> None:
             log_every_n_steps = hparams["trainer"]["log_every_n_steps"],
             callbacks = [DeviceStatsMonitor()],
             logger = wandb_logger,
-            accumulate_grad_batches=8
+            # accumulate_grad_batches=8,
+            detect_anomaly = True
         )
 
         trainer.fit(model=model, datamodule=datamodule)
     if hparams["predict"] is True:
-        trainer = pl.Trainer(devices=1, accelerator="cpu", precision = 16)
+        trainer = pl.Trainer(devices=1, accelerator="gpu")
         model.eval()
         output = trainer.predict(model=model, datamodule=datamodule)
         visualize_output(experiment_name, output)
