@@ -4,6 +4,9 @@ from pathlib import Path
 import numpy as np
 import cv2
 from eodal.core.raster import RasterCollection
+from skimage.exposure import match_histograms
+
+from matplotlib import pyplot as plt
 
 MONTHS = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
           "may": "05", "jun": "06", "jul": "07", "aug": "08", 
@@ -174,6 +177,42 @@ def remove_outliers(folder: Path, files_to_remove: list[str]):
         assert file_location.exists(), file_location
         file_location.unlink()
 
+# def check_means():
+#     folder_names = ["4b", "8b", "10m", "20m"]
+#     folders = [DATA_DIR.joinpath("processed", folder_name) for folder_name in folder_names]
+
+#     max_diff_sentinel = 0
+#     max_diff_planet = 0
+#     for file in folders[0].iterdir():
+#         try:
+#             np_4b = np.load(DATA_DIR.joinpath("processed", "4b", file.name)).mean()
+#             np_8b = np.load(DATA_DIR.joinpath("processed", "8b", file.name)).mean()
+#             np_10m = np.load(DATA_DIR.joinpath("processed", "10m", file.name)).mean()
+#             np_20m = np.load(DATA_DIR.joinpath("processed", "20m", file.name)).mean()
+#             thrsh = 1
+
+#             max_diff_planet = max(max_diff_planet, abs(np_4b - np_8b))
+#             max_diff_sentinel = max(max_diff_sentinel, abs(np_10m - np_20m))
+#             if abs(np_4b - np_8b) > thrsh:
+#                 print(file, "4b", "8b")
+
+#             if abs(np_10m - np_20m) > thrsh:
+#                 print(file, "10m", "20m")
+#         except:
+#             continue
+#     print(max_diff_planet, max_diff_sentinel)
+
+def do_histogram_matching(s2_bands: str, ps_bands: str):
+    s2_folder = DATA_DIR.joinpath("processed", s2_bands)
+    ps_folder = DATA_DIR.joinpath("processed", ps_bands)
+
+    filenames = [file.name for file in s2_folder.iterdir()]
+    for filename in filenames:
+        s2_file = s2_folder.joinpath(filename)
+        ps_file = ps_folder.joinpath(filename)
+        np.save(ps_file, match_histograms(np.load(ps_file), np.load(s2_file)))
+
+
 def main():
     preprocess(satellite="sentinel", in_situ=False)
     preprocess(satellite="planetscope", in_situ=False)
@@ -182,9 +221,10 @@ def main():
     preprocess(satellite="sentinel", in_situ=True)
     preprocess(satellite="planetscope", in_situ=True)
     remove_unused_images(in_situ=True)
-
     rename_in_situ_data()
+
     check_and_remove_outliers()
+    do_histogram_matching("10m", "4b")
     
 if __name__ == "__main__":
     main()
