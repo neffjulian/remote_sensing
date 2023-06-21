@@ -23,7 +23,7 @@ trainer:
   log_every_n_steps: 1
 
 optimizer:
-  lr: 0.001
+  lr: 0.0001
 
 scheduler:
   mode: min
