@@ -62,13 +62,14 @@ class EDSR(LightningModule):
     def shared_step(self, batch, stage):
         x, y = batch
         y_hat = self.forward(x)
+        l1_loss = F.l1_loss(y_hat, y)     
 
-        if stage == "train":
-            return F.l1_loss(y_hat, y)       
-        
-        l1_loss = F.l1_loss(y_hat, y)       
-        self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True) 
-        self.log(f"{stage}_psnr", psnr(mse(y_hat, y)), sync_dist=True)
+        mse_loss = mse(y_hat, y)
+        self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True)
+        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
+        if stage == "val":
+            self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
+            self.log(f"{stage}_ssim", self.ssim(y_hat, y), sync_dist=True)
         return l1_loss
 
     def training_step(self, batch, batch_idx):

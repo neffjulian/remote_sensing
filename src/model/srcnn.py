@@ -70,10 +70,8 @@ class SRCNN(LightningModule):
         y_hat = self.forward(x)
         mse_loss = mse(y_hat, y)
         self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
-
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
-            # ssim_loss = ssim((y_hat * (255 / 8)), (y * (255 / 8)), full=True)
             self.log(f"{stage}_ssim", self.ssim(y_hat, y), sync_dist=True)
         return mse_loss
 
