@@ -37,7 +37,7 @@ class EDSR(LightningModule):
                 nn.ReLU(),
                 nn.Conv2d(256, 256, kernel_size=3, padding=1)
             )
-        ] * 32
+        ] * 8
 
         self.residual_layers = nn.Sequential(*residual_layers)
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
