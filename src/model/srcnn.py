@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
-from skimage.metrics import structural_similarity as ssim
+from torchmetrics import StructuralSimilarityIndexMeasure
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("high")
@@ -35,7 +35,7 @@ class SRCNN(LightningModule):
 
         self.relu = nn.ReLU(inplace=True)
 
-
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
         self._initialize_weights()
 
     def _initialize_weights(self):
@@ -73,8 +73,8 @@ class SRCNN(LightningModule):
 
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
-            ssim_loss = ssim((y_hat * (255 / 8)), (y * (255 / 8)), full=True)
-            self.log(f"{stage}_ssim", ssim_loss, sync_dist=True)
+            # ssim_loss = ssim((y_hat * (255 / 8)), (y * (255 / 8)), full=True)
+            self.log(f"{stage}_ssim", self.ssim(y_hat, y), sync_dist=True)
         return mse_loss
 
     def training_step(self, batch, batch_idx):
