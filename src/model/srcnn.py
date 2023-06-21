@@ -40,7 +40,7 @@ class SRCNN(LightningModule):
 
     def _initialize_weights(self):
         for layer in [self.l1, self.l2, self.l3]:
-            nn.init.normal_(layer.weight, mean=0.5, std=0.1)
+            nn.init.normal_(layer.weight, mean=0, std=0.01)
             # nn.init.kaiming_normal_(layer.weight, a=.1)
             nn.init.constant_(layer.bias, 0)
 
