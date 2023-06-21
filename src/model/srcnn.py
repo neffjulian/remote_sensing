@@ -4,10 +4,8 @@ Super-Resolution Convolutional Neural Network (2015)
 Paper: https://arxiv.org/abs/1501.00092
 """
 
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure

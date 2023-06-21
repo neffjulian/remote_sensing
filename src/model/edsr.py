@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
+from torchmetrics import StructuralSimilarityIndexMeasure
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -39,6 +40,7 @@ class EDSR(LightningModule):
         ] * 32
 
         self.residual_layers = nn.Sequential(*residual_layers)
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
     def forward(self, x):
         x_hat = self.input_layer(x)
