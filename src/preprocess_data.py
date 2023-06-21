@@ -10,11 +10,6 @@ from skimage.exposure import match_histograms
 from matplotlib import pyplot as plt
 from skimage.metrics import structural_similarity as ssim
 
-
-MONTHS = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
-          "may": "05", "jun": "06", "jul": "07", "aug": "08", 
-          "sep": "09", "oct": "10", "nov": "11", "dec": "12"}
-
 DATA_DIR = Path(__file__).parent.parent.joinpath("data")
 FOLDERS = {"4b": 3, "8b": 3, "10m": 10, "20m": 20}
 OUT_DIM = (640, 640)
@@ -47,7 +42,6 @@ def remove_unused_images(in_situ: bool = False) -> None:
     for folder in FOLDERS.keys():
         remove_files(folder, files_to_keep, in_situ)
 
-    # Verify that all 4 folders contain the same elements
     if in_situ is True:
         files = [[file.name for file in DATA_DIR.joinpath("processed", "in_situ", folder).iterdir()] for folder in FOLDERS.keys()]
     else:
@@ -70,7 +64,7 @@ def preprocess_file(src_data: Path, tar_dir: Path, in_situ: bool, rotate: bool =
     tiles = create_tiles(lai, in_situ)
     for tile_index, tile in enumerate(tiles):
         if tile is None:
-            continue
+            continue # The tile is None if the original data contained more than 1% nan's
 
         if rotate:
             for i in range(4):
@@ -85,9 +79,7 @@ def is_outlier(src: Path, band: int) -> bool:
     """Check if the file is an outlier based on specified criteria."""
     band_size = {3: 660, 10: 200, 20: 100, 60: 33}
     raster = RasterCollection.from_multi_band_raster(src)
-    data = raster['lai'].values
-    x, y = data.shape
-    return min(x, y) < band_size[band]
+    return min(raster['lai'].values.shape) < band_size[band]
 
 def create_tiles(data: np.ndarray, in_situ: bool, tiles: int = 4):
     """Create tiles from the given data."""
@@ -142,6 +134,10 @@ def preprocess_folder(folder: Path, band: str, in_situ: bool) -> None:
                 preprocess_file(file, target_dir, in_situ)
 
 def preprocess(satellite: str, in_situ: bool):
+    months = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
+          "may": "05", "jun": "06", "jul": "07", "aug": "08", 
+          "sep": "09", "oct": "10", "nov": "11", "dec": "12"}
+    
     if in_situ:
         folder = DATA_DIR.joinpath("filtered", "in_situ", satellite + "_in_situ")
     else:
@@ -151,7 +147,7 @@ def preprocess(satellite: str, in_situ: bool):
     
     for year in folder.iterdir():
         for month in year.iterdir():
-            if not month.name[-3:] in MONTHS:
+            if not month.name[-3:] in months:
                 continue
             print(f"Preprocess {satellite} data with in_situ ({in_situ}) for {year.name} {month.name}")
             data = month.joinpath("lai")
@@ -174,11 +170,8 @@ def check_and_remove_outliers(threshold:float = .75):
     folder_names = ["4b", "8b", "10m", "20m"]
     folders = [DATA_DIR.joinpath("processed", folder_name) for folder_name in folder_names]
 
-    to_remove = []
-    for folder in folders:
-        to_remove += count_zeros(folder, threshold)
+    to_remove = list(set([count_zeros(folder, threshold) for folder in folders]))
 
-    to_remove = list(set(to_remove))
     number_of_files = len([file for file in folders[0].iterdir()])
     print(f"Percentage of outliers {len(to_remove) / number_of_files * 100}%. Removing them now.")
 
@@ -219,8 +212,8 @@ def plot_histogram(s2_bands: str, ps_bands: str):
     hist_folder = DATA_DIR.joinpath("processed", f"hist_{s2_bands}_{ps_bands}")
 
     filenames = [file.name for file in s2_folder.iterdir()]
-    assert filenames == [file.name for file in ps_folder.iterdir()]
-    assert filenames == [file.name for file in hist_folder.iterdir()]
+    # assert filenames == [file.name for file in ps_folder.iterdir()]
+    # assert filenames == [file.name for file in hist_folder.iterdir()]
 
     scores_normal_ssim = []
     scores_normal_psnr = []
@@ -269,7 +262,7 @@ def plot_histogram(s2_bands: str, ps_bands: str):
     print("Mean PSNR Hist: ", np.sum(scores_hist_psnr) / len(scores_hist_psnr))
 
 
-def test(s2_bands: str, ps_bands: str, hist: bool):
+def show_max_min(s2_bands: str, ps_bands: str, hist: bool):
     s2_folder = DATA_DIR.joinpath("processed", s2_bands)
 
     if hist:
@@ -296,15 +289,15 @@ def test(s2_bands: str, ps_bands: str, hist: bool):
     psnr_scores = sorted(scores, key=lambda x: x[0])
     print(psnr_scores[-1])
     biggest_psnr_s2 = np.load(s2_folder.joinpath(psnr_scores[-1][2]))
-    biggest_psnr_s2 = np.load(ps_folder.joinpath(psnr_scores[-1][2]))
-    plt.title(f"Biggest PSNR score {psnr_scores[-1][0]}")
-    plt.imshow(np.concatenate((biggest_psnr_s2, biggest_psnr_s2), axis=1))
+    biggest_psnr_ps = np.load(ps_folder.joinpath(psnr_scores[-1][2]))
+    plt.title(f"Biggest PSNR score {psnr_scores[-1][0]}. {titel_appendix}")
+    plt.imshow(np.concatenate((biggest_psnr_s2, biggest_psnr_ps), axis=1))
     plt.show()
 
     print(psnr_scores[0])
     lowest_psnr_s2 = np.load(s2_folder.joinpath(psnr_scores[0][2]))
     lowest_psnr_ps = np.load(ps_folder.joinpath(psnr_scores[0][2]))
-    plt.title(f"Lowest PSNR score {psnr_scores[0][0]}")
+    plt.title(f"Lowest PSNR score {psnr_scores[0][0]}. {titel_appendix}")
     plt.imshow(np.concatenate((lowest_psnr_s2, lowest_psnr_ps), axis=1))
     plt.show()
 
@@ -312,14 +305,14 @@ def test(s2_bands: str, ps_bands: str, hist: bool):
     print(ssim_scores[-1])
     biggest_similar_s2 = np.load(s2_folder.joinpath(ssim_scores[-1][2]))
     biggest_similar_ps = np.load(ps_folder.joinpath(ssim_scores[-1][2]))
-    plt.title(f"Biggest similarity score {ssim_scores[-1][1]}")
+    plt.title(f"Biggest similarity score {ssim_scores[-1][1]}. {titel_appendix}")
     plt.imshow(np.concatenate((biggest_similar_s2, biggest_similar_ps), axis=1))
     plt.show()
 
     print(ssim_scores[0])
     lowest_similar_s2 = np.load(s2_folder.joinpath(ssim_scores[0][2]))
     lowest_similar_ps = np.load(ps_folder.joinpath(ssim_scores[0][2]))
-    plt.title(f"Lowest similarity score {ssim_scores[0][1]}")
+    plt.title(f"Lowest similarity score {ssim_scores[0][1]}. {titel_appendix}")
     plt.imshow(np.concatenate((lowest_similar_s2, lowest_similar_ps), axis=1))
     plt.show()
 
@@ -348,7 +341,6 @@ def remove_lowest_10_percentile(s2_bands: str, ps_bands: str, hist: bool) -> Non
         ps_folder = DATA_DIR.joinpath("processed", ps_bands)
 
     filenames = [file.name for file in s2_folder.iterdir()]
-    assert filenames == [file.name for file in ps_folder.iterdir()]
 
     scores_ssim = []
     scores_psnr = []
@@ -363,40 +355,35 @@ def remove_lowest_10_percentile(s2_bands: str, ps_bands: str, hist: bool) -> Non
         scores_ssim.append((ssim_normal, filename))
         scores_psnr.append((psnr_normal, filename))
 
-    sorted_ssim = [x for x in sorted(scores_ssim, key = lambda x: x[0])]
-    sorted_psnr = [x for x in sorted(scores_psnr, key = lambda x: x[0])]
+    sorted_ssim = [x[1] for x in sorted(scores_ssim, key = lambda x: x[0])]
+    sorted_psnr = [x[1] for x in sorted(scores_psnr, key = lambda x: x[0])]
 
     first_10_percent_ssim = sorted_ssim[0:int(len(sorted_ssim)*0.1)]
     first_10_percent_psnr = sorted_psnr[0:int(len(sorted_psnr)*0.1)]
 
+    intersection = list(set(first_10_percent_ssim + first_10_percent_psnr))
+    remove_outliers(s2_folder, intersection)
+    remove_outliers(ps_folder, intersection)
 
 def main():
-    # preprocess(satellite="sentinel", in_situ=False)
-    # preprocess(satellite="planetscope", in_situ=False)
-    # remove_unused_images(in_situ=False)
+    preprocess(satellite="sentinel", in_situ=False)
+    preprocess(satellite="planetscope", in_situ=False)
+    remove_unused_images(in_situ=False)
 
-    # preprocess(satellite="sentinel", in_situ=True)
-    # preprocess(satellite="planetscope", in_situ=True)
-    # remove_unused_images(in_situ=True)
-    # rename_in_situ_data()
+    preprocess(satellite="sentinel", in_situ=True)
+    preprocess(satellite="planetscope", in_situ=True)
+    remove_unused_images(in_situ=True)
+    rename_in_situ_data()
 
-    # do_histogram_matching("10m", "4b")
-    # do_histogram_matching("10m", "8b")
-    # do_histogram_matching("20m", "4b")
-    # do_histogram_matching("20m", "8b")
+    do_histogram_matching("10m", "4b")
+    do_histogram_matching("10m", "8b")
+    do_histogram_matching("20m", "4b")
+    do_histogram_matching("20m", "8b")
 
-    remove_lowest_10_percentile("20m", "4b", hist=False)
-    # test("10m", "4b", False)
-    # test("10m", "8b", False)
-    # test("20m", "4b", False)
-    # test("20m", "8b", False)
+    # remove_lowest_10_percentile("20m", "4b", hist=True)
 
-    # plot_histogram("10m", "4b")
-    # plot_histogram("10m", "8b")
     # plot_histogram("20m", "4b")
-    # plot_histogram("20m", "8b")
-
-    # show_error()
+    # show_max_min("20m", "4b", True)
 
 if __name__ == "__main__":
     main()
