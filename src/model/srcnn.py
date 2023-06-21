@@ -4,13 +4,16 @@ Super-Resolution Convolutional Neural Network (2015)
 Paper: https://arxiv.org/abs/1501.00092
 """
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
+from skimage.metrics import structural_similarity as ssim
 
-torch.set_float32_matmul_precision("high")
+if torch.cuda.is_available():
+    torch.set_float32_matmul_precision("high")
 
 def mse(y_hat, y):
     return torch.mean((y_hat - y) ** 2)
@@ -70,7 +73,8 @@ class SRCNN(LightningModule):
 
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
-
+            ssim_loss = ssim((y_hat * (255 / 8)).astype(np.uint8), (y * (255 / 8)).astype(np.uint8), full=True)
+            self.log(f"{stage}_ssim", ssim_loss, sync_dist=True)
         return mse_loss
 
     def training_step(self, batch, batch_idx):

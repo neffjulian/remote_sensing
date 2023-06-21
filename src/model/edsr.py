@@ -10,7 +10,8 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 
-torch.set_float32_matmul_precision("medium")
+if torch.cuda.is_available():
+    torch.set_float32_matmul_precision("medium")
 
 def mse(y_hat, y):
     return torch.mean((y_hat - y) ** 2)

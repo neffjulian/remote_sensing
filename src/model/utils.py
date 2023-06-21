@@ -1,6 +1,8 @@
 import os
 import gc
 from pathlib import Path
+from math import sqrt
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -25,34 +27,25 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     result_sr = torch.cat(img_sr, dim=0).squeeze().numpy()
     result_ps = torch.cat(img_ps, dim=0).squeeze().numpy()
 
-    reconstructed_images = []
-
     image_names = [string for tup in names for string in tup]
     enumerated_names = [(i, str) for i, str in enumerate(image_names)]
     sorted_names = sorted(enumerated_names, key=lambda x: x[1])
 
-    for i in range(0, len(sorted_names), 4):
+    tiles = len(sorted_names) / 48
+    sqrt_tiles = sqrt(tiles)
 
+    reconstructed_images = []
+    for i in range(0, len(sorted_names), tiles):
         image_s2 = np.zeros((640, 640))
-        image_s2[:320, :320] = result_s2[sorted_names[i][0]]
-        image_s2[:320, 320:] = result_s2[sorted_names[i+1][0]]
-        image_s2[320:, :320] = result_s2[sorted_names[i+2][0]]
-        image_s2[320:, 320:] = result_s2[sorted_names[i+3][0]]
-
         image_sr = np.zeros((640, 640))
-        image_sr[:320, :320] = result_sr[sorted_names[i][0]]
-        image_sr[:320, 320:] = result_sr[sorted_names[i+1][0]]
-        image_sr[320:, :320] = result_sr[sorted_names[i+2][0]]
-        image_sr[320:, 320:] = result_sr[sorted_names[i+3][0]]
-
         image_ps = np.zeros((640, 640))
-        image_ps[:320, :320] = result_ps[sorted_names[i][0]]
-        image_ps[:320, 320:] = result_ps[sorted_names[i+1][0]]
-        image_ps[320:, :320] = result_ps[sorted_names[i+2][0]]
-        image_ps[320:, 320:] = result_ps[sorted_names[i+3][0]]
+        for j in range(sqrt_tiles):
+            for k in range(sqrt_tiles):
+                image_s2[(j*160):((j+1)*160), (k*160):((k+1)*160)] = result_s2[sorted_names[i + j*4 + k][0]]
+                image_sr[(j*160):((j+1)*160), (k*160):((k+1)*160)] = result_sr[sorted_names[i + j*4 + k][0]]
+                image_ps[(j*160):((j+1)*160), (k*160):((k+1)*160)] = result_ps[sorted_names[i + j*4 + k][0]]
 
         reconstructed_images.append((image_s2, image_sr, image_ps))
-    
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
@@ -90,6 +83,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
+    print(name, output)
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)

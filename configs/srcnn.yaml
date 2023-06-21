@@ -7,7 +7,7 @@ experiment_name: SRCNN_baseline
 sentinel_resolution: "20m"
 planetscope_bands: "hist_20m_4b"
 
-train: True
+train: False
 predict: True
 
 model:
