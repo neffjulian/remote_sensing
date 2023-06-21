@@ -4,11 +4,9 @@ data/filtered/*
 data/coordinates/field_parcels/*
 data/results/*
 
-wandb/*
-data/results/*
-
 src/model/.ipynb_checkpoints/*
 src/.ipynb_checkpoints/*
+logs/*
 
 .env
 *.pyc

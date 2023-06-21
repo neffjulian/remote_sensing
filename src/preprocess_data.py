@@ -380,7 +380,7 @@ def main():
     do_histogram_matching("20m", "4b")
     do_histogram_matching("20m", "8b")
 
-    # remove_lowest_10_percentile("20m", "4b", hist=True)
+    remove_lowest_10_percentile("20m", "4b", hist=True)
 
     # plot_histogram("20m", "4b")
     # show_max_min("20m", "4b", True)

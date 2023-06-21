@@ -17,6 +17,7 @@ from model.utils import visualize_output
 
 
 DOTENV_PATH = Path(__file__).parent.parent.joinpath(".env")
+LOG_DIR = Path(__file__).parent.parent.joinpath("logs")
 load_dotenv(DOTENV_PATH)
 WANDB_API_KEY = os.getenv('WANDB_API_KEY')
 os.environ["WANDB_SILENT"] = "true"
@@ -39,7 +40,10 @@ def main(hparams: dict) -> None:
     datamodule.setup()
 
     if hparams["train"] is True:
-        wandb_logger = WandbLogger(experiment_name, project="remote_sensing")
+        wandb_logger = WandbLogger(
+            name=experiment_name, 
+            project="remote_sensing",
+            save_dir=LOG_DIR)
 
         trainer = pl.Trainer(
             max_epochs = hparams["trainer"]["max_epochs"],
@@ -48,12 +52,13 @@ def main(hparams: dict) -> None:
             callbacks = [DeviceStatsMonitor()],
             logger = wandb_logger,
             # accumulate_grad_batches=8,
-            detect_anomaly = True
+            detect_anomaly = True,
+            default_root_dir=LOG_DIR
         )
 
         trainer.fit(model=model, datamodule=datamodule)
     if hparams["predict"] is True:
-        trainer = pl.Trainer(devices=1, accelerator="gpu")
+        trainer = pl.Trainer(devices=1, accelerator="gpu", default_root_dir = LOG_DIR)
         model.eval()
         output = trainer.predict(model=model, datamodule=datamodule)
         visualize_output(experiment_name, output)

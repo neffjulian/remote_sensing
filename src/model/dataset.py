@@ -8,42 +8,19 @@ import pytorch_lightning as pl
 
 DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed')
 
-# class SRDataset(Dataset):
-#     def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str], predict: bool = False) -> None:
-#         super().__init__()
-#         if predict:
-#             self.sentinel_dir = DATA_DIR.joinpath("in_situ", sentinel_resolution)
-#             self.planetscope_dir = DATA_DIR.joinpath("in_situ", planetscope_band)
-#         else:
-#             self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
-#             self.planetscope_dir = DATA_DIR.joinpath(planetscope_band)
-
-#         self.sentinel_filenames = [self.sentinel_dir.joinpath(filename) for filename in files]
-#         self.planetscope_filenames = [self.planetscope_dir.joinpath(filename) for filename in files]
-
-#         self.sentinel_files = [torch.from_numpy(np.load(self.planetscope_dir.joinpath(file))).unsqueeze(0) for file in files]
-#         self.planetscope_files = [torch.from_numpy(np.load(self.planetscope_dir.joinpath(file))).unsqueeze(0) for file in files]
-
-#     def __len__(self):
-#         return len(self.sentinel_files)
-    
-#     def __getitem__(self, idx):
-#         return self.sentinel_files[idx], self.planetscope_files[idx]
-
 class SRPredictDataset(Dataset):
     def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str], predict: bool = False) -> None:
         super().__init__()
 
         if predict:
             self.sentinel_dir = DATA_DIR.joinpath("in_situ", sentinel_resolution)
-            self.planetscope_dir = DATA_DIR.joinpath("in_situ", planetscope_band)
+            self.planetscope_dir = DATA_DIR.joinpath("in_situ", planetscope_band[-2:])
         else:
             self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
-            self.planetscope_dir = DATA_DIR.joinpath(planetscope_band)
+            self.planetscope_dir = DATA_DIR.joinpath(planetscope_band[-2:])
 
         self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [self.planetscope_dir.joinpath(filename) for filename in files]
-
 
     def __len__(self):
         return len(self.sentinel_files)
@@ -71,8 +48,8 @@ class SRDataset(Dataset):
         return len(self.sentinel_files)
     
     def __getitem__(self, idx):
-        sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx],  mmap_mode='r'))
-        planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx],  mmap_mode='r'))
+        sentinel_file = torch.load(self.sentinel_files[idx])
+        planetscope_file = torch.load(self.planetscope_files[idx])
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
@@ -94,7 +71,7 @@ class SRDataModule(pl.LightningDataModule):
             generator =torch.Generator().manual_seed(hparams["random_seed"])
         )
 
-        self.predict_files = DATA_DIR.joinpath("in_situ", self.planetscope_bands)
+        self.predict_files = DATA_DIR.joinpath("in_situ", self.planetscope_bands[-2:])
 
     def setup(self, stage=None):
         # if stage == 'fit':

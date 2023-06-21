@@ -4,8 +4,8 @@ experiment_name: SRCNN_baseline
 
 # resume_from_checkpoint: ...
 
-sentinel_resolution: "10m"
-planetscope_bands: "4b"
+sentinel_resolution: "20m"
+planetscope_bands: "hist_20m_4b"
 
 train: True
 predict: True
@@ -23,7 +23,7 @@ trainer:
   log_every_n_steps: 1
 
 optimizer:
-  lr: 0.0001
+  lr: 0.001
 
 scheduler:
   mode: min
