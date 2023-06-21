@@ -26,8 +26,8 @@ class SRPredictDataset(Dataset):
         return len(self.sentinel_files)
     
     def __getitem__(self, idx):
-        sentinel_file = torch.load(self.sentinel_files[idx])
-        planetscope_file = torch.load(self.planetscope_files[idx])
+        sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx],  mmap_mode='r'))
+        planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx],  mmap_mode='r'))
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0), self.sentinel_files[idx].name
 
 class SRDataset(Dataset):
@@ -48,8 +48,8 @@ class SRDataset(Dataset):
         return len(self.sentinel_files)
     
     def __getitem__(self, idx):
-        sentinel_file = torch.load(self.sentinel_files[idx])
-        planetscope_file = torch.load(self.planetscope_files[idx])
+        sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx],  mmap_mode='r'))
+        planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx],  mmap_mode='r'))
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
