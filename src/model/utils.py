@@ -31,8 +31,8 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     enumerated_names = [(i, str) for i, str in enumerate(image_names)]
     sorted_names = sorted(enumerated_names, key=lambda x: x[1])
 
-    tiles = len(sorted_names) / 48
-    sqrt_tiles = sqrt(tiles)
+    tiles = int(len(sorted_names) / 48)
+    sqrt_tiles = int(sqrt(tiles))
 
     reconstructed_images = []
     for i in range(0, len(sorted_names), tiles):
