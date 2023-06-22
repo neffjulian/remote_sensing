@@ -13,11 +13,11 @@ predict: true
 model:
   name: srresnet
   batch_size: 8
-  channels: 1
-  blocks: 1
+  channels: 64
+  blocks: 16
 
 datamodule:
-  batch_size: 8
+  batch_size: 16
 
 trainer:
   max_epochs: 50
@@ -25,7 +25,7 @@ trainer:
   log_every_n_steps: 5
 
 optimizer:
-  lr: 0.0001
+  lr: 0.001
 
 scheduler:
   mode: min

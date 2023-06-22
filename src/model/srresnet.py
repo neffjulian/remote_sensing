@@ -43,12 +43,16 @@ class SRResNet(LightningModule):
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
         self.channels = hparams["model"]["channels"]
         self.nr_blocks = hparams["model"]["blocks"]
-
         
-        self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1)
-        self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1)
-
-
+        self.input_layer = nn.Sequential(
+            nn.Conv2d(1, self.channels, kernel_size=3, padding=1),
+            nn.LeakyReLU(0.2)
+        )
+        self.output_layer = nn.Sequential(
+            nn.Conv2d(self.channels, 1, kernel_size=3, padding=1),
+            nn.LeakyReLU(0.2)
+        )
+        
         blocks = [ResidualBlock(self.channels)] * self.nr_blocks
 
         self.body = nn.Sequential(*blocks)
