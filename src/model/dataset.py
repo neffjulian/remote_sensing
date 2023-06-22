@@ -1,3 +1,4 @@
+from math import log10, sqrt
 from pathlib import Path
 
 import numpy as np
@@ -5,20 +6,20 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import random_split
 import pytorch_lightning as pl
+from skimage.metrics import structural_similarity as ssim
+
 
 DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed')
 
+def psnr(x, y):
+    return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
 class SRPredictDataset(Dataset):
-    def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str], predict: bool = False) -> None:
+    def __init__(self, hparams: dict, files: list[str]) -> None:
         super().__init__()
 
-        if predict:
-            self.sentinel_dir = DATA_DIR.joinpath("in_situ", sentinel_resolution)
-            self.planetscope_dir = DATA_DIR.joinpath("in_situ", planetscope_band[-2:])
-        else:
-            self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
-            self.planetscope_dir = DATA_DIR.joinpath(planetscope_band[-2:])
-
+        self.sentinel_dir = DATA_DIR.joinpath("in_situ", hparams["sentinel_resolution"])
+        self.planetscope_dir = DATA_DIR.joinpath("in_situ", hparams["planetscope_bands"][-2:])
+ 
         self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [self.planetscope_dir.joinpath(filename) for filename in files]
 
@@ -31,18 +32,33 @@ class SRPredictDataset(Dataset):
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0), self.sentinel_files[idx].name
 
 class SRDataset(Dataset):
-    def __init__(self, sentinel_resolution: str, planetscope_band:str, files: list[str], predict: bool = False) -> None:
+    def __init__(self, hparams: dict, files: list[str], train_dataset: bool) -> None:
         super().__init__()
-
-        if predict:
-            self.sentinel_dir = DATA_DIR.joinpath("in_situ", sentinel_resolution)
-            self.planetscope_dir = DATA_DIR.joinpath("in_situ", planetscope_band)
-        else:
-            self.sentinel_dir = DATA_DIR.joinpath(sentinel_resolution)
-            self.planetscope_dir = DATA_DIR.joinpath(planetscope_band)
+        
+        self.sentinel_dir = DATA_DIR.joinpath(hparams["sentinel_resolution"])
+        self.planetscope_dir = DATA_DIR.joinpath(hparams["planetscope_bands"])
 
         self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [self.planetscope_dir.joinpath(filename) for filename in files]
+
+        if train_dataset:
+            # With psnr_threshold = 20.0 and ssim_threshold = 0.5 we remove 46% of files
+            psnr_threshold = 20.0
+            ssim_threshold = 0.5
+
+            to_drop = []
+
+            for i, (s2_file, ps_file) in enumerate(zip(self.sentinel_files, self.planetscope_files)):
+                s2_data = np.load(s2_file)
+                ps_data = np.load(ps_file)
+
+                if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255 / 8)).astype(np.uint8), (ps_data * (255 / 8)).astype(np.uint8), full=True)[0] < ssim_threshold:
+                    to_drop.append(i)
+
+            self.sentinel_files = [file for i, file in enumerate(self.sentinel_files) if i not in to_drop]
+            self.planetscope_files = [file for i, file in enumerate(self.planetscope_files) if i not in to_drop]
+
+            assert len(self.sentinel_files) == len(files) - len(to_drop)
 
     def __len__(self):
         return len(self.sentinel_files)
@@ -55,6 +71,7 @@ class SRDataset(Dataset):
 class SRDataModule(pl.LightningDataModule):
     def __init__(self, hparams: dict):
         super().__init__()
+        self.params = hparams
         self.batch_size = hparams["datamodule"]["batch_size"]
         self.sentinel_resolution = hparams["sentinel_resolution"]
         self.planetscope_bands = hparams["planetscope_bands"]
@@ -75,11 +92,11 @@ class SRDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         # if stage == 'fit':
-            self.train_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, self.train_set)
-            self.val_dataset = SRDataset(self.sentinel_resolution, self.planetscope_bands, self.val_set)
+            self.train_dataset = SRDataset(self.params, self.train_set, True)
+            self.val_dataset = SRDataset(self.params, self.val_set, False)
         # elif stage == 'predict':
             files_in_situ = [file.name for file in self.predict_files.iterdir()]
-            self.predict_dataset = SRPredictDataset(self.sentinel_resolution, self.planetscope_bands, files_in_situ, predict = True)
+            self.predict_dataset = SRPredictDataset(self.params, files_in_situ)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=16, pin_memory=True)

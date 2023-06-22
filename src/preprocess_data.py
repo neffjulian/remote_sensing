@@ -380,10 +380,17 @@ def main():
     do_histogram_matching("20m", "4b")
     do_histogram_matching("20m", "8b")
 
-    remove_lowest_10_percentile("20m", "4b", hist=True)
-
     # plot_histogram("20m", "4b")
+    # plot_histogram("20m", "8b")
+
+    # show_max_min("10m", "4b", True)
+    # show_max_min("10m", "8b", True)
+    # show_max_min("10m", "4b", False)
+    # show_max_min("10m", "8b", False)
     # show_max_min("20m", "4b", True)
+    # show_max_min("20m", "8b", True)
+    # show_max_min("20m", "4b", False)
+    # show_max_min("20m", "8b", False)
 
 if __name__ == "__main__":
     main()

@@ -13,6 +13,7 @@ predict: True
 model:
   name: srcnn
   batch_size: 32
+  channels: 32
 
 datamodule:
   batch_size: 32

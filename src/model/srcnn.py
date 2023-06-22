@@ -1,5 +1,5 @@
 """
-Super-Resolution Convolutional Neural Network (2015)
+Super-Resolution Convolutional Neural Network (2015) by Dong et al.
 
 Paper: https://arxiv.org/abs/1501.00092
 """
@@ -26,10 +26,12 @@ class SRCNN(LightningModule):
         self.batch_size = hparams["model"]["batch_size"]
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler = hparams["scheduler"]
+        first_channel_size = hparams["model"]["channels"]
+        second_channel_size = int(first_channel_size/2)
 
-        self.l1 = nn.Conv2d(1, 64, kernel_size=9, padding=4)
-        self.l2 = nn.Conv2d(64, 32, kernel_size=3, padding=1)
-        self.l3 = nn.Conv2d(32, 1, kernel_size=5, padding=2)
+        self.l1 = nn.Conv2d(1, first_channel_size, kernel_size=9, padding=4)
+        self.l2 = nn.Conv2d(first_channel_size, second_channel_size, kernel_size=3, padding=1)
+        self.l3 = nn.Conv2d(second_channel_size, 1, kernel_size=5, padding=2)
 
         self.relu = nn.ReLU(inplace=True)
 

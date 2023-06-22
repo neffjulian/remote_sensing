@@ -13,6 +13,7 @@ from pytorch_lightning.utilities.memory import garbage_collection_cuda
 from model.dataset import SRDataModule
 from model.edsr import EDSR
 from model.srcnn import SRCNN
+from model.srresnet import SRResNet
 from model.utils import visualize_output
 
 
@@ -24,7 +25,8 @@ os.environ["WANDB_SILENT"] = "true"
 
 MODELS = {
     "edsr": EDSR,
-    "srcnn": SRCNN
+    "srcnn": SRCNN,
+    "srresnet": SRResNet
 }
 
 def main(hparams: dict) -> None:

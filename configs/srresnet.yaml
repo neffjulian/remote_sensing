@@ -1,6 +1,6 @@
 random_seed: 123
 
-experiment_name: EDSR_baseline
+experiment_name: SRResNet_baseline
 
 # resume_from_checkpoint: ...
 
@@ -11,10 +11,10 @@ train: true
 predict: true
 
 model:
-  name: edsr
+  name: srresnet
   batch_size: 8
-  channels: 128
-  blocks: 16
+  channels: 1
+  blocks: 1
 
 datamodule:
   batch_size: 8

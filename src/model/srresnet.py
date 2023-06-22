@@ -1,7 +1,7 @@
 """
-Enhanced Deep Residual Networks for Single Image Super-Resolution (2017) by Lim et al.
+Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network (2017) by Ledig et al.
 
-Paper: https://arxiv.org/abs/1707.02921
+Paper: https://arxiv.org/abs/1609.04802
 """
 
 import torch
@@ -20,34 +20,42 @@ def mse(y_hat, y):
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
-class EDSR(LightningModule):
+class ResidualBlock(nn.Sequential):
+    def __init__(self, channels: int):
+        super(ResidualBlock, self).__init__()
+        self.channels = channels
+        self.block = nn.Sequential(
+            nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(self.channels),
+            nn.LeakyReLU(negative_slope=0.2)
+        )
+
+    def forward(self, x):
+        return self.block(x) + x
+
+class SRResNet(LightningModule):
     def __init__(self, hparams: dict):
         super().__init__()
 
         self.batch_size = hparams["model"]["batch_size"]
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler = hparams["scheduler"]
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
         self.channels = hparams["model"]["channels"]
         self.nr_blocks = hparams["model"]["blocks"]
 
+        
         self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1)
         self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1)
-        
-        
-        residual_layers = [
-            nn.Sequential(
-                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1),
-                nn.ReLU(),
-                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1)
-            )
-        ] * self.nr_blocks
 
-        self.residual_layers = nn.Sequential(*residual_layers)
-        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
+
+        blocks = [ResidualBlock(self.channels)] * self.nr_blocks
+
+        self.body = nn.Sequential(*blocks)
 
     def forward(self, x):
         x_hat = self.input_layer(x)
-        return self.output_layer(x_hat + self.residual_layers(x_hat))
+        return self.output_layer(x_hat + self.body(x_hat))
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
