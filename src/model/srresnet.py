@@ -11,32 +11,24 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
+from losses import mse, psnr
+
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
-def mse(y_hat, y):
-    return torch.mean((y_hat - y) ** 2)
-
-def psnr(mse):
-    return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class ResidualBlock(nn.Sequential):
-    def __init__(self, channels: int, last: bool):
+    def __init__(self, channels: int):
         super(ResidualBlock, self).__init__()
-        out_channels = channels if last is False else channels * 4
-        self.last = last
 
         self.block = nn.Sequential(
-            nn.Conv2d(channels, out_channels, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.BatchNorm2d(channels),
             nn.LeakyReLU(negative_slope=0.2)
         )        
 
     def forward(self, x):
-        if self.last:
-            return self.block(x)
-        else:
-            return self.block(x) + x
+        return self.block(x) + x
 
 class SRResNet(LightningModule):
     def __init__(self, hparams: dict):
@@ -54,14 +46,18 @@ class SRResNet(LightningModule):
             nn.LeakyReLU(0.2)
         )
         
-        blocks = [ResidualBlock(self.channels, False)] * (self.nr_blocks - 1) + [ResidualBlock(self.channels, True)]
+        blocks = [ResidualBlock(self.channels)] * self.nr_blocks
         self.body = nn.Sequential(*blocks)
+
+        self.last_layer = nn.Sequential(
+            nn.Conv2d(self.channels * 4, self.channels * 4, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.LeakyReLU(0.2)
+        )
 
         self.output_layer = nn.Sequential(
             nn.Conv2d(self.channels * 4, 1, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.LeakyReLU(0.2)
         )
-
 
     def forward(self, x):
         x_hat = self.input_layer(x)

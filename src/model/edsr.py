@@ -11,14 +11,11 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
+from losses import mse, psnr
+
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
-def mse(y_hat, y):
-    return torch.mean((y_hat - y) ** 2)
-
-def psnr(mse):
-    return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class EDSR(LightningModule):
     def __init__(self, hparams: dict):
