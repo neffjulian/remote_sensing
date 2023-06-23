@@ -25,7 +25,7 @@ class ResidualBlock(nn.Sequential):
         super(ResidualBlock, self).__init__()
         self.channels = channels
         self.block = nn.Sequential(
-            nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1),
+            nn.Conv2d(self.channels, self.channels, kernel_size=5, padding=2, padding_mode="replicate"),
             nn.BatchNorm2d(self.channels),
             nn.LeakyReLU(negative_slope=0.2)
         )
@@ -45,11 +45,11 @@ class SRResNet(LightningModule):
         self.nr_blocks = hparams["model"]["blocks"]
         
         self.input_layer = nn.Sequential(
-            nn.Conv2d(1, self.channels, kernel_size=3, padding=1),
+            nn.Conv2d(1, self.channels, kernel_size=9, padding=4, padding_mode="replicate"),
             nn.LeakyReLU(0.2)
         )
         self.output_layer = nn.Sequential(
-            nn.Conv2d(self.channels, 1, kernel_size=3, padding=1),
+            nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.LeakyReLU(0.2)
         )
         
@@ -67,10 +67,7 @@ class SRResNet(LightningModule):
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': ReduceLROnPlateau(
-                    optimizer=optimizer,
-                    patience=self.scheduler["patience"],
-                    min_lr=self.scheduler["min_lr"],
-                    verbose=self.scheduler["verbose"]
+                    optimizer=optimizer
                 ),
                 'monitor': 'val_l1_loss'
             }
@@ -79,7 +76,7 @@ class SRResNet(LightningModule):
     def shared_step(self, batch, stage):
         x, y = batch
         y_hat = self.forward(x)
-        l1_loss = F.l1_loss(y_hat, y)     
+        l1_loss = F.smooth_l1_loss(y_hat, y)     
 
         mse_loss = mse(y_hat, y)
         self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True)

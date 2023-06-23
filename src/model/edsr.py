@@ -30,15 +30,15 @@ class EDSR(LightningModule):
         self.channels = hparams["model"]["channels"]
         self.nr_blocks = hparams["model"]["blocks"]
 
-        self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1)
-        self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1)
+        self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
+        self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
         
         
         residual_layers = [
             nn.Sequential(
-                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1),
+                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
                 nn.ReLU(),
-                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1)
+                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
             )
         ] * self.nr_blocks
 
@@ -56,9 +56,6 @@ class EDSR(LightningModule):
             'lr_scheduler': {
                 'scheduler': ReduceLROnPlateau(
                     optimizer=optimizer,
-                    patience=self.scheduler["patience"],
-                    min_lr=self.scheduler["min_lr"],
-                    verbose=self.scheduler["verbose"]
                 ),
                 'monitor': 'val_l1_loss'
             }
