@@ -51,11 +51,12 @@ class SRResNet(LightningModule):
 
         self.last_layer = nn.Sequential(
             nn.Conv2d(self.channels, self.channels * 4, kernel_size=3, padding=1, padding_mode="replicate"),
-            nn.LeakyReLU(0.2)
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(self.channels * 4, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
         )
 
         self.output_layer = nn.Sequential(
-            nn.Conv2d(self.channels * 4, 1, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.LeakyReLU(0.2)
         )
 
