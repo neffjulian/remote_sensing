@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-from model.losses import mse, psnr
+from model.losses import psnr
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -40,6 +40,7 @@ class SRResNet(LightningModule):
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
         self.channels = hparams["model"]["channels"]
         self.nr_blocks = hparams["model"]["blocks"]
+        self.mse = nn.MSELoss()
         
         self.input_layer = nn.Sequential(
             nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
@@ -83,7 +84,7 @@ class SRResNet(LightningModule):
         y_hat = self.forward(x)
         l1_loss = F.smooth_l1_loss(y_hat, y)     
 
-        mse_loss = mse(y_hat, y)
+        mse_loss = self.mse(y_hat, y)
         self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True)
         self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
         if stage == "val":

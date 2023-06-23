@@ -13,7 +13,7 @@ from torchmetrics import StructuralSimilarityIndexMeasure
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("high")
 
-from model.losses import mse, psnr
+from model.losses import psnr
 
 class SRCNN(LightningModule):
     def __init__(self, hparams: dict):
@@ -30,6 +30,7 @@ class SRCNN(LightningModule):
         self.l3 = nn.Conv2d(second_channel_size, 1, kernel_size=5, padding=2, padding_mode="replicate")
 
         self.relu = nn.ReLU(inplace=True)
+        self.mse = nn.MSELoss()
 
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
         self._initialize_weights()
@@ -61,7 +62,7 @@ class SRCNN(LightningModule):
     def shared_step(self, batch, stage):
         x, y = batch
         y_hat = self.forward(x)
-        mse_loss = mse(y_hat, y)
+        mse_loss = self.mse(y_hat, y)
         self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
