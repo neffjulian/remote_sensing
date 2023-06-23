@@ -24,6 +24,7 @@ class ResidualBlock(nn.Sequential):
     def __init__(self, channels: int, last: bool):
         super(ResidualBlock, self).__init__()
         out_channels = channels if last is False else channels * 4
+        self.last = last
 
         self.block = nn.Sequential(
             nn.Conv2d(channels, out_channels, kernel_size=3, padding=1, padding_mode="replicate"),
@@ -32,7 +33,10 @@ class ResidualBlock(nn.Sequential):
         )        
 
     def forward(self, x):
-        return self.block(x) + x
+        if self.last:
+            return self.block(x)
+        else:
+            return self.block(x) + x
 
 class SRResNet(LightningModule):
     def __init__(self, hparams: dict):
