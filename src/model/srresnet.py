@@ -27,7 +27,7 @@ class ResidualBlock(nn.Sequential):
 
         self.block = nn.Sequential(
             nn.Conv2d(channels, out_channels, kernel_size=3, padding=1, padding_mode="replicate"),
-            nn.BatchNorm2d(self.channels),
+            nn.BatchNorm2d(channels),
             nn.LeakyReLU(negative_slope=0.2)
         )        
 
