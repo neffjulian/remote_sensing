@@ -50,7 +50,7 @@ class SRResNet(LightningModule):
             nn.LeakyReLU(0.2)
         )
         
-        blocks = [ResidualBlock(self.channels)] * (self.nr_blocks - 1) + [ResidualBlock(self.channels, True)]
+        blocks = [ResidualBlock(self.channels, False)] * (self.nr_blocks - 1) + [ResidualBlock(self.channels, True)]
         self.body = nn.Sequential(*blocks)
 
         self.output_layer = nn.Sequential(
