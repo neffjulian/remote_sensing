@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-from losses import mse, psnr
+from model.losses import mse, psnr
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")

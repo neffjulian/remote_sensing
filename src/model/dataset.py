@@ -8,11 +8,12 @@ from torch.utils.data.dataset import random_split
 import pytorch_lightning as pl
 from skimage.metrics import structural_similarity as ssim
 
-
 DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed')
 
 def psnr(x, y):
     return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
+
+
 class SRPredictDataset(Dataset):
     def __init__(self, hparams: dict, files: list[str]) -> None:
         super().__init__()

@@ -14,11 +14,7 @@ from torchmetrics import StructuralSimilarityIndexMeasure
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
-def mse(y_hat, y):
-    return torch.mean((y_hat - y) ** 2)
-
-def psnr(mse):
-    return 20 * torch.log10(8. / torch.sqrt(mse))
+from model.losses import mse, psnr
 
 class ResidualBlock(nn.Sequential):
     def __init__(self, channels: int, last: bool):

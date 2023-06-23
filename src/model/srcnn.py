@@ -13,7 +13,7 @@ from torchmetrics import StructuralSimilarityIndexMeasure
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("high")
 
-from losses import mse, psnr
+from model.losses import mse, psnr
 
 class SRCNN(LightningModule):
     def __init__(self, hparams: dict):
