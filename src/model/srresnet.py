@@ -21,14 +21,15 @@ def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class ResidualBlock(nn.Sequential):
-    def __init__(self, channels: int):
+    def __init__(self, channels: int, last: bool):
         super(ResidualBlock, self).__init__()
-        self.channels = channels
+        out_channels = channels if last is False else channels * 4
+
         self.block = nn.Sequential(
-            nn.Conv2d(self.channels, self.channels, kernel_size=5, padding=2, padding_mode="replicate"),
+            nn.Conv2d(channels, out_channels, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.BatchNorm2d(self.channels),
             nn.LeakyReLU(negative_slope=0.2)
-        )
+        )        
 
     def forward(self, x):
         return self.block(x) + x
@@ -45,17 +46,18 @@ class SRResNet(LightningModule):
         self.nr_blocks = hparams["model"]["blocks"]
         
         self.input_layer = nn.Sequential(
-            nn.Conv2d(1, self.channels, kernel_size=9, padding=4, padding_mode="replicate"),
+            nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.LeakyReLU(0.2)
         )
+        
+        blocks = [ResidualBlock(self.channels)] * (self.nr_blocks - 1) + [ResidualBlock(self.channels, True)]
+        self.body = nn.Sequential(*blocks)
+
         self.output_layer = nn.Sequential(
             nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.LeakyReLU(0.2)
         )
-        
-        blocks = [ResidualBlock(self.channels)] * self.nr_blocks
 
-        self.body = nn.Sequential(*blocks)
 
     def forward(self, x):
         x_hat = self.input_layer(x)

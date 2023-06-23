@@ -35,7 +35,7 @@ def main(hparams: dict) -> None:
     date_string = datetime.now().strftime("%Y_%m_%d_%H_%M")
     experiment_name = hparams["experiment_name"] + "_" + date_string
 
-    seed_everything(hparams["random_seed"])
+    # seed_everything(hparams["random_seed"])
     model = MODELS[hparams["model"]["name"]](hparams)
 
     datamodule = SRDataModule(hparams)
