@@ -16,7 +16,8 @@ from torchvision.models import vgg19
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
         super().__init__()
-
+        self.automatic_optimization = False
+        
         vgg = vgg19(pretrained=True)
         self.vgg = nn.Sequential(*list(vgg.features)[:-1]).eval()
         for p in self.vgg.parameters():
