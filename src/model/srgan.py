@@ -12,7 +12,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
 
-from pl_bolts.models.gans import SRGAN
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -158,7 +157,7 @@ class SRGAN(pl.LightningModule):
     
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         self._shared_step(batch, batch_idx, "val")
-        
+
     def predict_step(self, batch, batch_idx):
         x, y, names = batch
         y_hat = self.forward(x)
