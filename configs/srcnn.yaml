@@ -12,11 +12,11 @@ predict: True
 
 model:
   name: srcnn
-  batch_size: 1
-  channels: 16
+  batch_size: 16
+  channels: 128
 
 datamodule:
-  batch_size: 1
+  batch_size: 16
 
 trainer:
   max_epochs: 50
