@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
 
-
+from pl_bolts.models.gans import SRGAN
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -130,7 +130,7 @@ class SRGAN(pl.LightningModule):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.generator(x)
     
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def _shared_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str) -> None:
         lr_image, hr_image = batch
         opt_gen, opt_disc = self.optimizers()
         sched_gen, sched_disc = self.lr_schedulers()
@@ -139,7 +139,7 @@ class SRGAN(pl.LightningModule):
         loss = self._generator_loss(lr_image, hr_image)
         self.manual_backward(loss)
         opt_gen.step()
-        self.log("loss_gen", loss, on_step=True, on_epoch=True)
+        self.log(f"{stage}_loss_gen", loss, on_step=True, on_epoch=True)
         if self.trainer.is_last_batch:
             sched_gen.step()
 
@@ -148,15 +148,26 @@ class SRGAN(pl.LightningModule):
             loss = self._discriminator_step(lr_image, hr_image)
             self.manual_backward(loss)
             opt_disc.step()
-            self.log("loss_disc", loss, on_step=True, on_epoch=True)
+            self.log(f"{stage}_loss_disc", loss, on_step=True, on_epoch=True)
 
             if self.trainer.is_last_batch:
                 sched_disc.step()
+
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+        self._shared_step(batch, batch_idx, "train")
     
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+        self._shared_step(batch, batch_idx, "val")
+        
     def predict_step(self, batch, batch_idx):
         x, y, names = batch
         y_hat = self.forward(x)
         return x, y_hat, y, names
+    
+    def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        fake = self(lr_image)
+        fake_pred = self.discriminator(fake)
+        return fake, fake_pred
 
     def _discriminator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
         real_pred = self.discriminator(hr_image)
