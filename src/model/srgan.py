@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import vgg19
+from torchvision.models import vgg19, VGG19_Weights
 
 
 class VGG19FeatureExtractor(nn.Module):
@@ -18,7 +18,7 @@ class VGG19FeatureExtractor(nn.Module):
         super().__init__()
         self.automatic_optimization = False
         
-        vgg = vgg19(pretrained=True)
+        vgg = vgg19(weights=VGG19_Weights.IMAGENET1K_V1)
         self.vgg = nn.Sequential(*list(vgg.features)[:-1]).eval()
         for p in self.vgg.parameters():
             p.requires_grad = False
@@ -132,9 +132,8 @@ class SRGAN(pl.LightningModule):
     
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         lr_image, hr_image = batch
-        optimizers, schedulers = self.optimizers()
-        opt_gen, opt_disc = optimizers
-        sched_gen, sched_disc = schedulers
+        opt_gen, opt_disc = self.optimizers()
+        sched_gen, sched_disc = self.lr_schedulers()
 
         opt_gen.zero_grad()
         loss = self._generator_loss(lr_image, hr_image)
