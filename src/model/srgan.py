@@ -108,6 +108,8 @@ class Discriminator(nn.Module):
 class SRGAN(pl.LightningModule):
     def __init__(self, hparams: dict) -> None:
         super().__init__()
+        self.automatic_optimization = False
+
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
 
@@ -123,23 +125,34 @@ class SRGAN(pl.LightningModule):
         sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
         sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
 
-        return ({"optimizer": opt_gen,"lr_scheduler": sched_gen}, {"optimizer": opt_disc, "lr_scheduler": sched_disc})
+        return [opt_gen, opt_disc], [sched_gen, sched_disc]
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.generator(x)
     
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, optimizer_idx: int) -> torch.Tensor:
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         lr_image, hr_image = batch
+        optimizers, schedulers = self.optimizers()
+        opt_gen, opt_disc = optimizers
+        sched_gen, sched_disc = schedulers
 
-        loss = None
-        if optimizer_idx == 0:
-            loss = self._generator_loss(lr_image, hr_image)
-            self.log("loss_gen", loss, on_step=True, on_epoch=True)
+        opt_gen.zero_grad()
+        loss = self._generator_loss(lr_image, hr_image)
+        self.manual_backward(loss)
+        opt_gen.step()
+        self.log("loss_gen", loss, on_step=True, on_epoch=True)
+        if self.trainer.is_last_batch:
+            sched_gen.step()
 
-        if optimizer_idx == 1:
+        if (batch_idx + 1) % 5 == 0:
+            opt_disc.zero_grad()
             loss = self._discriminator_step(lr_image, hr_image)
+            self.manual_backward(loss)
+            opt_disc.step()
             self.log("loss_disc", loss, on_step=True, on_epoch=True)
-        return loss
+
+            if self.trainer.is_last_batch:
+                sched_disc.step()
     
     def predict_step(self, batch, batch_idx):
         x, y, names = batch
