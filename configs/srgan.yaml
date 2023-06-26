@@ -1,6 +1,6 @@
 random_seed: 123
 
-experiment_name: SRResNet_baseline
+experiment_name: SRGAN
 
 # resume_from_checkpoint: ...
 
@@ -11,10 +11,11 @@ train: true
 predict: true
 
 model:
-  name: srresnet
+  name: srgan
   batch_size: 16
-  channels: 64
-  blocks: 24
+  feature_maps_gen: 64
+  feature_maps_disc: 64
+  num_res_blocks: 16
 
 datamodule:
   batch_size: 16

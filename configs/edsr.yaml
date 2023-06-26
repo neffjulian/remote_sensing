@@ -1,6 +1,6 @@
 random_seed: 123
 
-experiment_name: EDSR_baseline
+experiment_name: EDSR
 
 # resume_from_checkpoint: ...
 
@@ -26,6 +26,8 @@ trainer:
 
 optimizer:
   lr: 0.0001
+  scheduler_step: 100
+
 
 scheduler:
   mode: min

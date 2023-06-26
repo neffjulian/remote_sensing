@@ -10,11 +10,14 @@ from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
 from pytorch_lightning.utilities.memory import garbage_collection_cuda
+
 from model.dataset import SRDataModule
+from model.utils import visualize_output
+
 from model.edsr import EDSR
 from model.srcnn import SRCNN
 from model.srresnet import SRResNet
-from model.utils import visualize_output
+from model.srgan import SRGAN
 
 
 DOTENV_PATH = Path(__file__).parent.parent.joinpath(".env")
@@ -26,7 +29,8 @@ os.environ["WANDB_SILENT"] = "true"
 MODELS = {
     "edsr": EDSR,
     "srcnn": SRCNN,
-    "srresnet": SRResNet
+    "srresnet": SRResNet,
+    "srgan": SRGAN
 }
 
 def main(hparams: dict) -> None:

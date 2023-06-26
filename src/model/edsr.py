@@ -7,11 +7,10 @@ Paper: https://arxiv.org/abs/1707.02921
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import MultiStepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
-
-from model.losses import mse, psnr
+from model.losses import psnr
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -22,13 +21,13 @@ class EDSR(LightningModule):
 
         self.batch_size = hparams["model"]["batch_size"]
         self.lr = hparams["optimizer"]["lr"]
+        self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         self.scheduler = hparams["scheduler"]
         self.channels = hparams["model"]["channels"]
         self.nr_blocks = hparams["model"]["blocks"]
 
         self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
         self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
-        
         
         residual_layers = [
             nn.Sequential(
@@ -50,10 +49,11 @@ class EDSR(LightningModule):
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
-                'scheduler': ReduceLROnPlateau(
+                'scheduler': MultiStepLR(
                     optimizer=optimizer,
-                ),
-                'monitor': 'val_l1_loss'
+                    milestones=[self.scheduler_step],
+                    gamma=0.1
+                )
             }
         }
 
@@ -61,14 +61,16 @@ class EDSR(LightningModule):
         x, y = batch
         y_hat = self.forward(x)
         l1_loss = F.l1_loss(y_hat, y)     
+        mse_loss = nn.MSELoss(y_hat, y)
 
-        mse_loss = mse(y_hat, y)
         self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True)
-        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
+        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)    
+
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
             self.log(f"{stage}_ssim", self.ssim(y_hat, y), sync_dist=True)
-        return l1_loss
+            
+        return mse_loss
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")

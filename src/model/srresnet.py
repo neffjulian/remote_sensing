@@ -7,7 +7,7 @@ Paper: https://arxiv.org/abs/1609.04802
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import MultiStepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
@@ -36,7 +36,8 @@ class SRResNet(LightningModule):
 
         self.batch_size = hparams["model"]["batch_size"]
         self.lr = hparams["optimizer"]["lr"]
-        self.scheduler = hparams["scheduler"]
+        self.scheduler_step = hparams["optimizer"]["scheduler_step"]
+
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
         self.channels = hparams["model"]["channels"]
         self.nr_blocks = hparams["model"]["blocks"]
@@ -72,10 +73,11 @@ class SRResNet(LightningModule):
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
-                'scheduler': ReduceLROnPlateau(
-                    optimizer=optimizer
-                ),
-                'monitor': 'val_l1_loss'
+                'scheduler': MultiStepLR(
+                    optimizer=optimizer,
+                    milestones=[self.scheduler_step],
+                    gamma=0.1
+                )
             }
         }
 

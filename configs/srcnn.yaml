@@ -1,6 +1,6 @@
 random_seed: 123
 
-experiment_name: SRCNN_baseline
+experiment_name: SRCNN
 
 # resume_from_checkpoint: ...
 
@@ -13,7 +13,7 @@ predict: True
 model:
   name: srcnn
   batch_size: 1
-  channels: 1
+  channels: 16
 
 datamodule:
   batch_size: 1
@@ -25,6 +25,7 @@ trainer:
 
 optimizer:
   lr: 0.0001
+  scheduler_step: 100
 
 scheduler:
   mode: min
