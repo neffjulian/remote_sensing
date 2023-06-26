@@ -39,7 +39,7 @@ def main(hparams: dict) -> None:
     date_string = datetime.now().strftime("%Y_%m_%d_%H_%M")
     experiment_name = hparams["experiment_name"] + "_" + date_string
 
-    # seed_everything(hparams["random_seed"])
+    seed_everything(hparams["random_seed"])
     model = MODELS[hparams["model"]["name"]](hparams)
 
     datamodule = SRDataModule(hparams)
@@ -57,7 +57,6 @@ def main(hparams: dict) -> None:
             log_every_n_steps = hparams["trainer"]["log_every_n_steps"],
             callbacks = [DeviceStatsMonitor()],
             logger = wandb_logger,
-            accumulate_grad_batches=2,
             detect_anomaly = True,
             default_root_dir=LOG_DIR
         )

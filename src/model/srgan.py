@@ -58,7 +58,7 @@ class Generator(nn.Module):
 
         self.output_block = nn.Sequential(
             nn.Conv2d(feature_maps, 1, kernel_size=9, padding=4, padding_mode="replicate"),
-            nn.Tanh(),
+            # nn.Tanh(),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

@@ -59,8 +59,6 @@ class SRDataset(Dataset):
             self.sentinel_files = [file for i, file in enumerate(self.sentinel_files) if i not in to_drop]
             self.planetscope_files = [file for i, file in enumerate(self.planetscope_files) if i not in to_drop]
 
-            assert len(self.sentinel_files) == len(files) - len(to_drop)
-
     def __len__(self):
         return len(self.sentinel_files)
     

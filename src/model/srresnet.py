@@ -24,7 +24,7 @@ class ResidualBlock(nn.Sequential):
         self.block = nn.Sequential(
             nn.Conv2d(channels, channels, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.BatchNorm2d(channels),
-            nn.LeakyReLU(negative_slope=0.2)
+            nn.PReLU()
         )        
 
     def forward(self, x):
@@ -45,7 +45,7 @@ class SRResNet(LightningModule):
         
         self.input_layer = nn.Sequential(
             nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
-            nn.LeakyReLU(0.2)
+            nn.PReLU()
         )
         
         blocks = [ResidualBlock(self.channels)] * self.nr_blocks
@@ -53,7 +53,7 @@ class SRResNet(LightningModule):
 
         self.last_layer = nn.Sequential(
             nn.Conv2d(self.channels, self.channels * 4, kernel_size=3, padding=1, padding_mode="replicate"),
-            nn.LeakyReLU(0.2),
+            nn.PReLU(),
             nn.Conv2d(self.channels * 4, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
         )
 
@@ -82,16 +82,14 @@ class SRResNet(LightningModule):
         }
 
     def shared_step(self, batch, stage):
-        x, y = batch
-        y_hat = self.forward(x)
-        l1_loss = F.smooth_l1_loss(y_hat, y)     
+        lr_image, hr_image = batch
+        sr_image = self.forward(lr_image)
+        l1_loss = F.smooth_l1_loss(sr_image, hr_image)     
 
-        mse_loss = self.mse(y_hat, y)
         self.log(f"{stage}_l1_loss", l1_loss, sync_dist=True)
-        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
         if stage == "val":
-            self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
-            self.log(f"{stage}_ssim", self.ssim(y_hat, y), sync_dist=True)
+            self.log(f"{stage}_psnr", psnr(F.mse_loss(sr_image, hr_image)), sync_dist=True)
+            self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
         return l1_loss
 
     def training_step(self, batch, batch_idx):
@@ -101,6 +99,6 @@ class SRResNet(LightningModule):
         self.shared_step(batch, "val")
 
     def predict_step(self, batch, batch_idx):
-        x, y, names = batch
-        y_hat = self.forward(x)
-        return x, y_hat, y, names
+        lr_image, hr_image, names = batch
+        sr_image = self.forward(lr_image)
+        return lr_image, sr_image, hr_image, names
