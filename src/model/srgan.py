@@ -130,6 +130,9 @@ class SRGAN(pl.LightningModule):
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, optimizer_idx: int) -> None:
         lr_image, hr_image = batch
 
+        if optimizer_idx != 0:
+            print(optimizer_idx)
+
         loss = None
         if (batch_idx + 1 ) % 5 == 0:
             loss = self._generator_loss(lr_image, hr_image)
