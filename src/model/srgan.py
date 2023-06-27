@@ -131,21 +131,18 @@ class SRGAN(pl.LightningModule):
         lr_image, hr_image = batch
 
         loss = None
-        if optimizer_idx == 0:
+        if optimizer_idx == 0 and (batch_idx + 1 ) % 5 == 0:
             loss = self._generator_loss(lr_image, hr_image)
-            self.log("train_loss_gen", loss, on_step=True, on_epoch=True)
         
         if optimizer_idx == 1:
             loss = self._discriminator_loss(lr_image, hr_image)
-            self.manual_backward(loss)
-            self.log("train_loss_disc", loss, on_step=True, on_epoch=True)
         return loss
     
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         lr_image, hr_image = batch
 
         loss = self._generator_loss(lr_image, hr_image)
-        self.log("val_loss_gen", loss, on_step=True, on_epoch=True)
+        self.log("val_loss_gen", loss, on_step=True, on_epoch=True, sync_dist=True)
         return loss
 
     def predict_step(self, batch, batch_idx):
