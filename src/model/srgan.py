@@ -11,7 +11,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
-from pl_bolts.models.gans import SRGAN
 
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
