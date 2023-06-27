@@ -134,6 +134,7 @@ class SRGAN(pl.LightningModule):
 
         opt_gen.zero_grad()
         loss = self._generator_loss(lr_image, hr_image)
+        print("loss requires grad", loss.requires_grad)
         self.manual_backward(loss)
         opt_gen.step()
         self.log(f"{stage}_loss_gen", loss, on_step=True, on_epoch=True)
@@ -162,6 +163,7 @@ class SRGAN(pl.LightningModule):
         return x, y_hat, y, names
     
     def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        print("lr image", lr_image.requires_grad)
         fake = self(lr_image)
         fake_pred = self.discriminator(fake)
         return fake, fake_pred
@@ -177,6 +179,7 @@ class SRGAN(pl.LightningModule):
 
     def _generator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
         fake, fake_pred = self._fake_pred(lr_image)
+        print("fake", fake.requires_grad)
 
         perceptual_loss = self._perceptual_loss(fake, hr_image)
         adv_loss = self._adv_loss(fake_pred, ones=True)
