@@ -19,8 +19,6 @@ class VGG19FeatureExtractor(nn.Module):
         
         vgg = vgg19(weights=VGG19_Weights.IMAGENET1K_V1)
         self.vgg = nn.Sequential(*list(vgg.features)[:-1]).eval()
-        for p in self.vgg.parameters():
-            p.requires_grad = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.vgg(x.repeat(1, 3, 1, 1))
@@ -192,6 +190,7 @@ class SRGAN(pl.LightningModule):
         return F.binary_cross_entropy_with_logits(pred, target)
     
     def _perceptual_loss(self, hr_image: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
-        real_features = self.feature_extractor(hr_image)
-        fake_features = self.feature_extractor(fake)
-        return F.mse_loss(real_features, fake_features)
+        with torch.no_grad():
+            real_features = self.feature_extractor(hr_image)
+            fake_features = self.feature_extractor(fake)
+            return F.mse_loss(real_features, fake_features)
