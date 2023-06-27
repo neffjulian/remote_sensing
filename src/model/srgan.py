@@ -82,7 +82,8 @@ class Discriminator(nn.Module):
             nn.Conv2d(feature_maps * 8, feature_maps * 16, kernel_size=1),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv2d(feature_maps * 16, 1, kernel_size=1),
-            nn.Flatten()
+            nn.Flatten(),
+            nn.Sigmoid()
         )
 
     def _make_double_conv_block(self, in_channels: int, out_channels: int, first_batch_norm: bool = True) -> nn.Sequential:
