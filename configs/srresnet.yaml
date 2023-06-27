@@ -26,7 +26,7 @@ trainer:
 
 optimizer:
   lr: 0.001
-  scheduler_step: 100
+  scheduler_step: 10
 
 scheduler:
   mode: min
