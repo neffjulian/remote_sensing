@@ -123,8 +123,17 @@ class SRGAN(pl.LightningModule):
         sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
         sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
 
-        return [opt_gen, opt_disc], [sched_gen, sched_disc]
-
+        # return [opt_gen, opt_disc], [sched_gen, sched_disc]
+        return (
+            {
+                "optimizer": opt_gen,
+                "lr_scheduler": {
+                    "scheduler": sched_gen,
+                    "frequency": 5
+                }
+            },
+            {"optimizer": opt_disc, "lr_scheduler": sched_disc}
+        )
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.generator(x)
 
@@ -132,7 +141,7 @@ class SRGAN(pl.LightningModule):
         lr_image, hr_image = batch
 
         loss = None
-        if optimizer_idx == 0 and (batch_idx + 1 ) % 5 == 0:
+        if optimizer_idx == 0:
             loss = self._generator_loss(lr_image, hr_image)
         if optimizer_idx == 1:
             loss = self._discriminator_loss(lr_image, hr_image)
