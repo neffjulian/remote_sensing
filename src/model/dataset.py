@@ -64,7 +64,7 @@ class SRDataset(Dataset):
 
 
     def __len__(self):
-        return len(self.sentinel_files)
+        return len(self.files)
     
     def __getitem__(self, idx):
         sentinel_filename, planetscope_filename, rotate = self.files[idx]
