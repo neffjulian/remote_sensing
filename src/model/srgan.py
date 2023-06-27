@@ -141,7 +141,7 @@ class SRGAN(pl.LightningModule):
             self.log("train_loss_disc", loss, on_step=True, on_epoch=True)
         return loss
     
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, optimizer_idx: int) -> None:
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         lr_image, hr_image = batch
 
         loss = self._generator_loss(lr_image, hr_image)

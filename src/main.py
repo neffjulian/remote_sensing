@@ -58,7 +58,9 @@ def main(hparams: dict) -> None:
             callbacks = [DeviceStatsMonitor()],
             logger = wandb_logger,
             detect_anomaly = True,
-            default_root_dir=LOG_DIR
+            default_root_dir=LOG_DIR,
+            accelerator="gpu",
+            devices=4
         )
 
         trainer.fit(model=model, datamodule=datamodule)
