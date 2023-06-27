@@ -19,7 +19,6 @@ class SRCNN(LightningModule):
     def __init__(self, hparams: dict):
         super().__init__()
 
-        self.batch_size = hparams["model"]["batch_size"]
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         self.scheduler = hparams["scheduler"]

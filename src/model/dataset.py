@@ -28,7 +28,6 @@ class SRPredictDataset(Dataset):
         return len(self.sentinel_files)
     
     def __getitem__(self, idx):
-        assert self.sentinel_files[idx].name == self.planetscope_files[idx].name, self.sentinel_files[idx].name + "_" + self.planetscope_files[idx].name
         sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx]))
         planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0), self.sentinel_files[idx].name
@@ -37,11 +36,11 @@ class SRDataset(Dataset):
     def __init__(self, hparams: dict, files: list[str], train_dataset: bool) -> None:
         super().__init__()
         
-        self.sentinel_dir = DATA_DIR.joinpath(hparams["sentinel_resolution"])
-        self.planetscope_dir = DATA_DIR.joinpath(hparams["planetscope_bands"])
+        sentinel_dir = DATA_DIR.joinpath(hparams["sentinel_resolution"])
+        planetscope_dir = DATA_DIR.joinpath(hparams["planetscope_bands"])
 
-        self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
-        self.planetscope_files = [self.planetscope_dir.joinpath(filename) for filename in files]
+        sentinel_files = [sentinel_dir.joinpath(filename) for filename in files]
+        planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
 
         if train_dataset:
             # With psnr_threshold = 20.0 and ssim_threshold = 0.5 we remove 46% of files
@@ -50,23 +49,28 @@ class SRDataset(Dataset):
 
             to_drop = []
 
-            for i, (s2_file, ps_file) in enumerate(zip(self.sentinel_files, self.planetscope_files)):
+            for i, (s2_file, ps_file) in enumerate(zip(sentinel_files, planetscope_files)):
                 s2_data = np.load(s2_file)
                 ps_data = np.load(ps_file)
 
                 if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255 / 8)).astype(np.uint8), (ps_data * (255 / 8)).astype(np.uint8), full=True)[0] < ssim_threshold:
                     to_drop.append(i)
 
-            self.sentinel_files = [file for i, file in enumerate(self.sentinel_files) if i not in to_drop]
-            self.planetscope_files = [file for i, file in enumerate(self.planetscope_files) if i not in to_drop]
+            sentinel_files = [file for i, file in enumerate(sentinel_files) if i not in to_drop]
+            planetscope_files = [file for i, file in enumerate(planetscope_files) if i not in to_drop]
+
+        file_pairs = list(zip(sentinel_files, planetscope_files))
+        self.files = [(x, y, i) for x, y in file_pairs for i in range(4)]
+
 
     def __len__(self):
         return len(self.sentinel_files)
     
     def __getitem__(self, idx):
-        assert self.sentinel_files[idx].name == self.planetscope_files[idx].name, self.sentinel_files[idx].name + "_" + self.planetscope_files[idx].name
-        sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx]))
-        planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
+        sentinel_filename, planetscope_filename, rotate = self.files[idx]
+        sentinel_file = torch.from_numpy(np.load(sentinel_filename)).rot90(rotate)
+        planetscope_file = torch.from_numpy(np.load(planetscope_filename)).rot90(rotate)
+
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
@@ -93,7 +97,7 @@ class SRDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         # if stage == 'fit':
-            self.train_dataset = SRDataset(self.params, self.train_set, True)
+            self.train_dataset = SRDataset(self.params, self.files, True)
             self.val_dataset = SRDataset(self.params, self.val_set, False)
         # elif stage == 'predict':
             files_in_situ = [file.name for file in self.predict_files.iterdir()]
