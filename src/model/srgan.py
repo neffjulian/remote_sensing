@@ -178,9 +178,9 @@ class SRGAN(pl.LightningModule):
     def _generator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
         fake, fake_pred = self._fake_pred(lr_image)
 
-        perceptual_loss = self._perceptual_loss(hr_image, fake)
+        perceptual_loss = self._perceptual_loss(fake, hr_image)
         adv_loss = self._adv_loss(fake_pred, ones=True)
-        content_loss = F.mse_loss(hr_image, fake)
+        content_loss = F.mse_loss(fake, hr_image)
 
         return 0.006 * perceptual_loss + 0.001 * adv_loss + content_loss
 
@@ -193,4 +193,4 @@ class SRGAN(pl.LightningModule):
         with torch.no_grad():
             real_features = self.feature_extractor(hr_image)
             fake_features = self.feature_extractor(fake)
-            return F.mse_loss(real_features, fake_features)
+            return F.mse_loss(fake_features, real_features)
