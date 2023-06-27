@@ -121,26 +121,26 @@ class SRGAN(pl.LightningModule):
         opt_gen = torch.optim.Adam(self.generator.parameters(), lr = self.lr)
         opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr = self.lr)
 
-        sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
-        sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
+        # sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
+        # sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
 
-        return [opt_gen, opt_disc], [sched_gen, sched_disc]
-    
+        return opt_gen, opt_disc
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.generator(x)
     
     def _shared_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str) -> None:
         lr_image, hr_image = batch
         opt_gen, opt_disc = self.optimizers()
-        sched_gen, sched_disc = self.lr_schedulers()
+        # sched_gen, sched_disc = self.lr_schedulers()
 
         opt_gen.zero_grad()
         loss = self._generator_loss(lr_image, hr_image)
         self.manual_backward(loss)
         opt_gen.step()
         self.log(f"{stage}_loss_gen", loss, on_step=True, on_epoch=True)
-        if self.trainer.is_last_batch:
-            sched_gen.step()
+        # if self.trainer.is_last_batch:
+            # sched_gen.step()
 
         if (batch_idx + 1) % 5 == 0:
             opt_disc.zero_grad()
@@ -149,8 +149,8 @@ class SRGAN(pl.LightningModule):
             opt_disc.step()
             self.log(f"{stage}_loss_disc", loss, on_step=True, on_epoch=True)
 
-            if self.trainer.is_last_batch:
-                sched_disc.step()
+            # if self.trainer.is_last_batch:
+                # sched_disc.step()
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         self._shared_step(batch, batch_idx, "train")
