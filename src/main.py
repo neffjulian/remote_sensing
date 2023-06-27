@@ -57,7 +57,6 @@ def main(hparams: dict) -> None:
             log_every_n_steps = hparams["trainer"]["log_every_n_steps"],
             callbacks = [DeviceStatsMonitor()],
             logger = wandb_logger,
-            detect_anomaly = True,
             default_root_dir=LOG_DIR,
             accelerator="gpu",
             devices=4
