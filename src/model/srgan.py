@@ -11,14 +11,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
+from pl_bolts.models.gans import SRGAN
 
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
         super().__init__()
-        self.automatic_optimization = False
         
         vgg = vgg19(weights=VGG19_Weights.IMAGENET1K_V1)
         self.vgg = nn.Sequential(*list(vgg.features)[:-1]).eval()
+        for p in self.vgg.parameters():
+            p.requires_grad = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.vgg(x.repeat(1, 3, 1, 1))
@@ -105,7 +107,6 @@ class Discriminator(nn.Module):
 class SRGAN(pl.LightningModule):
     def __init__(self, hparams: dict) -> None:
         super().__init__()
-        self.automatic_optimization = False
 
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
@@ -119,43 +120,34 @@ class SRGAN(pl.LightningModule):
         opt_gen = torch.optim.Adam(self.generator.parameters(), lr = self.lr)
         opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr = self.lr)
 
-        # sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
-        # sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
+        sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
+        sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
 
-        return opt_gen, opt_disc
+        return [opt_gen, opt_disc], [sched_gen, sched_disc]
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.generator(x)
-    
-    def _shared_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str) -> None:
+
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, optimizer_idx: int) -> None:
         lr_image, hr_image = batch
-        opt_gen, opt_disc = self.optimizers()
-        # sched_gen, sched_disc = self.lr_schedulers()
 
-        opt_gen.zero_grad()
-        loss = self._generator_loss(lr_image, hr_image)
-        print("loss requires grad", loss.requires_grad)
-        self.manual_backward(loss)
-        opt_gen.step()
-        self.log(f"{stage}_loss_gen", loss, on_step=True, on_epoch=True)
-        # if self.trainer.is_last_batch:
-            # sched_gen.step()
-
-        if (batch_idx + 1) % 5 == 0:
-            opt_disc.zero_grad()
+        loss = None
+        if optimizer_idx == 0:
+            loss = self._generator_loss(lr_image, hr_image)
+            self.log("train_loss_gen", loss, on_step=True, on_epoch=True)
+        
+        if optimizer_idx == 1:
             loss = self._discriminator_step(lr_image, hr_image)
             self.manual_backward(loss)
-            opt_disc.step()
-            self.log(f"{stage}_loss_disc", loss, on_step=True, on_epoch=True)
-
-            # if self.trainer.is_last_batch:
-                # sched_disc.step()
-
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        self._shared_step(batch, batch_idx, "train")
+            self.log("train_loss_disc", loss, on_step=True, on_epoch=True)
+        return loss
     
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        self._shared_step(batch, batch_idx, "val")
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, optimizer_idx: int) -> None:
+        lr_image, hr_image = batch
+
+        loss = self._generator_loss(lr_image, hr_image)
+        self.log("val_loss_gen", loss, on_step=True, on_epoch=True)
+        return loss
 
     def predict_step(self, batch, batch_idx):
         x, y, names = batch
