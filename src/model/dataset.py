@@ -44,6 +44,8 @@ class SRDataset(Dataset):
         planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
 
             # With psnr_threshold = 20.0 and ssim_threshold = 0.5 we remove 46% of files
+            # With psnr_threshold = 20.0 and ssim_threshold = 0.6 we remove 87% of files
+            
         psnr_threshold = 20.0
         ssim_threshold = 0.6
 
@@ -53,7 +55,7 @@ class SRDataset(Dataset):
             s2_data = cv2.resize(np.load(s2_file), (160, 160), interpolation=cv2.INTER_CUBIC)
             ps_data = np.load(ps_file)
 
-            if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255 / 8)).astype(np.uint8), (ps_data * (255 / 8)).astype(np.uint8), full=True)[0] < ssim_threshold:
+            if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * 255).astype(np.uint8), (ps_data * 255).astype(np.uint8), full=True)[0] < ssim_threshold:
                 to_drop.append(i)
 
         sentinel_files = [file for i, file in enumerate(sentinel_files) if i not in to_drop]
