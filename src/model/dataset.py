@@ -85,7 +85,6 @@ class SRDataModule(pl.LightningDataModule):
         self.batch_size = hparams["datamodule"]["batch_size"]
         self.sentinel_resolution = hparams["sentinel_resolution"]
         self.planetscope_bands = hparams["planetscope_bands"]
-        self.persis
 
         self.files = [file.name for file in DATA_DIR.joinpath(self.planetscope_bands).iterdir()]
         
