@@ -53,7 +53,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
 
     # Plot for S2 image
     ax1 = axes[0]
-    im1 = ax1.imshow(sentinel_2 * 8, cmap='viridis', vmin=0., vmax=8.)
+    im1 = ax1.imshow(sentinel_2, cmap='viridis', vmin=0., vmax=8.)
     ax1.set_title('Sentinel-2 Image')
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
@@ -62,7 +62,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
 
     # Plot for SR image
     ax2 = axes[1]
-    im2 = ax2.imshow(super_resolved * 8, cmap='viridis', vmin=0., vmax=8.)
+    im2 = ax2.imshow(super_resolved, cmap='viridis', vmin=0., vmax=8.)
     ax2.set_title('Super-Resolved Image')
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
@@ -71,7 +71,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
 
     # Plot for PlanetScope image
     ax3 = axes[2]
-    im3 = ax3.imshow(planet_scope * 8, cmap='viridis', vmin=0., vmax=8.)
+    im3 = ax3.imshow(planet_scope, cmap='viridis', vmin=0., vmax=8.)
     ax3.set_title('PlanetScope Image')
     ax3.set_xlabel('X')
     ax3.set_ylabel('Y')

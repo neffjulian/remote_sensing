@@ -55,7 +55,7 @@ class SRDataset(Dataset):
             s2_data = cv2.resize(np.load(s2_file), (160, 160), interpolation=cv2.INTER_CUBIC)
             ps_data = np.load(ps_file)
 
-            if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * 255).astype(np.uint8), (ps_data * 255).astype(np.uint8), full=True)[0] < ssim_threshold:
+            if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255.0 / 8.0)).astype(np.uint8), (ps_data * (255.0 / 8.0)).astype(np.uint8), full=True)[0] < ssim_threshold:
                 to_drop.append(i)
 
         sentinel_files = [file for i, file in enumerate(sentinel_files) if i not in to_drop]

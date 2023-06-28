@@ -117,7 +117,7 @@ def create_tiles(data: np.ndarray, in_situ: bool, tiles: int = 4):
             if np.isnan(tile).sum() / tile.size > 0.01 and not in_situ:
                 sub_data.append(None)
             else:
-                sub_data.append(np.clip(np.nan_to_num(tile), 0., 8.) / 8.)
+                sub_data.append(np.clip(np.nan_to_num(tile), 0., 8.))
     return sub_data
 
 def preprocess_folder(folder: Path, band: str, in_situ: bool) -> None:
@@ -231,8 +231,8 @@ def plot_histogram(s2_bands: str, ps_bands: str):
         ps_file = np.load(ps_folder.joinpath(filename))
         hist_file = np.load(hist_folder.joinpath(filename))
 
-        ssim_normal, _ = ssim((s2_file * 255).astype(np.uint8), (ps_file * 255).astype(np.uint8), full=True)
-        ssim_hist, _ = ssim((s2_file * 255).astype(np.uint8), (hist_file * 255).astype(np.uint8), full=True)
+        ssim_normal, _ = ssim((s2_file * (255.0 / 8.0)).astype(np.uint8), (ps_file * (255.0 / 8.0)).astype(np.uint8), full=True)
+        ssim_hist, _ = ssim((s2_file * (255.0 / 8.0)).astype(np.uint8), (hist_file * (255.0 / 8.0)).astype(np.uint8), full=True)
 
         psnr_normal = psnr(s2_file, ps_file)
         psnr_hist = psnr(s2_file, hist_file)
@@ -284,7 +284,7 @@ def show_max_min(s2_bands: str, ps_bands: str, hist: bool):
         s2_file = np.load(s2_folder.joinpath(filename)) 
         ps_file = np.load(ps_folder.joinpath(filename))
 
-        ssim_score, _ = ssim((s2_file * 255).astype(np.uint8), (ps_file * 255).astype(np.uint8), full=True)
+        ssim_score, _ = ssim((s2_file * (255.0 / 8.0)).astype(np.uint8), (ps_file * (255.0 / 8.0)).astype(np.uint8), full=True)
         psnr_score = psnr(s2_file, ps_file)
 
         scores.append((psnr_score, ssim_score, filename))
