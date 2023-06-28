@@ -56,9 +56,9 @@ def preprocess_file(src_data: Path, tar_dir: Path, in_situ: bool, rotate: bool =
     satellite = src_data.parent.parent.parent.parent.name
 
     raster = RasterCollection.from_multi_band_raster(src_data)
-    if satellite == "planetscope":
+    if satellite.startswith("planetscope"):
         OUT_DIM = (640, 640)
-    elif satellite == "sentinel":
+    elif satellite.startswith("sentinel"):
         OUT_DIM = (160, 160)
     else:
         raise Exception(f"Invalid Satellite encountered: ", satellite)
