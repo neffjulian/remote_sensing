@@ -1,7 +1,7 @@
 import os
 import gc
 from pathlib import Path
-from math import sqrt
+from math import sqrt, log10
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,8 +12,8 @@ from torchmetrics import StructuralSimilarityIndexMeasure
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 RESULT_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'results')
 
-def psnr(mse):
-    return 20 * torch.log10(8. / torch.sqrt(mse))
+def psnr(x, y):
+    return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
 
 def transform_model_output(model_output: list) -> list[np.ndarray]:
     img_s2 = []
