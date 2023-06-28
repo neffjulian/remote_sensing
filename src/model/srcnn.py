@@ -15,6 +15,7 @@ if torch.cuda.is_available():
 
 from model.losses import psnr
 
+
 class SRCNN(LightningModule):
     def __init__(self, hparams: dict):
         super().__init__()
