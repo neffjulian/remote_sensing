@@ -57,7 +57,7 @@ class SRCNN(LightningModule):
                 'scheduler': MultiStepLR(
                     optimizer=optimizer,
                     milestones=[self.scheduler_step],
-                    gamma=0.1,
+                    gamma=0.5,
                     verbose=True
                 ),
                 'monitor': 'val_psnr'
