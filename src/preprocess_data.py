@@ -117,7 +117,7 @@ def create_tiles(data: np.ndarray, in_situ: bool, tiles: int = 4):
             if np.isnan(tile).sum() / tile.size > 0.01 and not in_situ:
                 sub_data.append(None)
             else:
-                sub_data.append(np.clip(np.nan_to_num(tile), 0., 8.))
+                sub_data.append(np.clip(np.nan_to_num(tile), 0., 8.) / 8.)
     return sub_data
 
 def preprocess_folder(folder: Path, band: str, in_situ: bool) -> None:
