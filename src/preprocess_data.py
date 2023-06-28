@@ -355,7 +355,7 @@ def remove_lowest_10_percentile(s2_bands: str, ps_bands: str, hist: bool) -> Non
         s2_file = np.load(s2_folder.joinpath(filename)) 
         ps_file = np.load(ps_folder.joinpath(filename))
 
-        ssim_normal, _ = ssim((s2_file * (255 / 8)).astype(np.uint8), (ps_file * (255 / 8)).astype(np.uint8), full=True)
+        ssim_normal, _ = ssim((s2_file * (255. / 8.)).astype(np.uint8), (ps_file * (255. / 8.)).astype(np.uint8), full=True)
         psnr_normal = psnr(s2_file, ps_file)
 
         scores_ssim.append((ssim_normal, filename))

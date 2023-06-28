@@ -6,6 +6,7 @@ Paper: https://arxiv.org/abs/1501.00092
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim.lr_scheduler import MultiStepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
@@ -37,8 +38,13 @@ class SRCNN(LightningModule):
             nn.Conv2d(second_channel_size, 1, kernel_size=5, padding=2, padding_mode="replicate")
         )
 
-        self.mse = nn.MSELoss()
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
+
+        for module in self.model.modules():
+            if isinstance(module, nn.Conv2d):
+                torch.nn.init.uniform_(module.weight, a=0, b=0.01)
+                if module.bias is not None:
+                    module.bias.data.zero_()
 
     def forward(self, x):
         return self.model(x)
@@ -51,16 +57,17 @@ class SRCNN(LightningModule):
                 'scheduler': MultiStepLR(
                     optimizer=optimizer,
                     milestones=[self.scheduler_step],
-                    gamma=0.1
+                    gamma=0.1,
+                    verbose=True
                 ),
-                'monitor': 'val_ssim'
+                'monitor': 'val_psnr'
             }
         }
 
     def shared_step(self, batch, stage):
         lr_image, hr_image = batch
         sr_image = self.forward(lr_image)
-        mse_loss = self.mse(sr_image, hr_image)
+        mse_loss = F.mse_loss(sr_image, hr_image)
         self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
