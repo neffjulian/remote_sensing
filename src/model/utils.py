@@ -95,8 +95,8 @@ def visualize_output(name: str, output: list) -> None:
         out_file = results.joinpath(f"{i:04d}")
         lr_hr_psnr = psnr(out[0], out[2])
         sr_hr_psnr = psnr(out[1], out[2])
-        lr_hr_ssim = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
-        lr_sr_ssim = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
+        lr_hr_ssim, _ = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
+        lr_sr_ssim, _ = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
         print(out_file, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr, "  LR-HR SSIM:", lr_hr_ssim, "  LR-SR SSIM:", lr_sr_ssim)
         save_output_visualization(out[0], out[1], out[2], out_file)
 
