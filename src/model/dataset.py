@@ -51,7 +51,7 @@ class SRDataset(Dataset):
             to_drop = []
 
             for i, (s2_file, ps_file) in enumerate(zip(sentinel_files, planetscope_files)):
-                s2_data = cv2.resize(np.load(s2_file), (640, 640), interpolation=cv2.INTER_CUBIC)
+                s2_data = cv2.resize(np.load(s2_file), (160, 160), interpolation=cv2.INTER_CUBIC)
                 ps_data = np.load(ps_file)
 
                 if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255 / 8)).astype(np.uint8), (ps_data * (255 / 8)).astype(np.uint8), full=True)[0] < ssim_threshold:
