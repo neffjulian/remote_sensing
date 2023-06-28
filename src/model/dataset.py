@@ -47,7 +47,7 @@ class SRDataset(Dataset):
             # With psnr_threshold = 20.0 and ssim_threshold = 0.6 we remove 87% of files
             
         psnr_threshold = 20.0
-        ssim_threshold = 0.5
+        ssim_threshold = 0.6
 
         to_drop = []
 

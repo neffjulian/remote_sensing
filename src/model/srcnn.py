@@ -7,7 +7,7 @@ Paper: https://arxiv.org/abs/1501.00092
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim.lr_scheduler import StepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
@@ -54,9 +54,9 @@ class SRCNN(LightningModule):
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
-                'scheduler': MultiStepLR(
+                'scheduler': StepLR(
                     optimizer=optimizer,
-                    milestones=[self.scheduler_step],
+                    step_size=self.scheduler_step,
                     gamma=0.5,
                     verbose=True
                 ),
