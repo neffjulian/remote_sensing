@@ -83,4 +83,11 @@ class SRCNN(LightningModule):
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)
+
+        mse_loss = F.mse_loss(sr_image, hr_image)
+
+        self.log("predict_mse_loss", mse_loss, sync_dist=True)    
+        self.log("predict_psnr", psnr(mse_loss), sync_dist=True)
+        self.log("predict_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
+
         return lr_image, sr_image, hr_image, names
