@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from torchmetrics import StructuralSimilarityIndexMeasure
+
+
+from losses import psnr
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 RESULT_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'results')
@@ -83,12 +87,18 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
+    ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
+
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
     for i, out in enumerate(transformed_output):
         out_file = results.joinpath(f"{i:04d}")
-        print(out_file)
+        lr_hr_psnr = psnr(out[0], out[2])
+        sr_hr_psnr = psnr(out[1], out[2])
+        lr_hr_ssim = ssim(torch.tensor(out[0] * (255. / 8.)), torch.tensor(out[2] * (255. / 8.)))
+        lr_sr_ssim = ssim(torch.tensor(out[1] * (255. / 8.)), torch.tensor(out[2] * (255. / 8.)))
+        print(out_file, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr, "  LR-HR SSIM:", lr_hr_ssim, "  LR-SR SSIM:", lr_sr_ssim")
         save_output_visualization(out[0], out[1], out[2], out_file)
 
 def report_gpu():

@@ -60,11 +60,11 @@ class SRDataset(Dataset):
 
         sentinel_files = [file for i, file in enumerate(sentinel_files) if i not in to_drop]
         planetscope_files = [file for i, file in enumerate(planetscope_files) if i not in to_drop]
-
+        print("Original length: ", len(files))
         file_pairs = list(zip(sentinel_files, planetscope_files))
-
+        print("Filtered files:", len(file_pairs))
         self.files = [(x, y, i) for x, y in file_pairs for i in range(4)]
-
+        print("New length: ", self.files)
 
     def __len__(self):
         return len(self.files)
