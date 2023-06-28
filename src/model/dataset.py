@@ -1,6 +1,7 @@
 from math import log10, sqrt
 from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -45,12 +46,12 @@ class SRDataset(Dataset):
         if train_dataset:
             # With psnr_threshold = 20.0 and ssim_threshold = 0.5 we remove 46% of files
             psnr_threshold = 20.0
-            ssim_threshold = 0.5
+            ssim_threshold = 0.6
 
             to_drop = []
 
             for i, (s2_file, ps_file) in enumerate(zip(sentinel_files, planetscope_files)):
-                s2_data = np.load(s2_file)
+                s2_data = cv2.resize(np.load(s2_file), (640, 640), interpolation=cv2.INTER_CUBIC)
                 ps_data = np.load(ps_file)
 
                 if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255 / 8)).astype(np.uint8), (ps_data * (255 / 8)).astype(np.uint8), full=True)[0] < ssim_threshold:
