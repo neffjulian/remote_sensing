@@ -55,7 +55,7 @@ class EDSR(LightningModule):
         return self.output_layer(x_hat + self.residual_layers(x_hat))
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, betas=[0.9, 0.999], eps=1e-8)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
@@ -72,13 +72,14 @@ class EDSR(LightningModule):
         sr_image = self.forward(lr_image)
 
         mse_loss = F.mse_loss(sr_image, hr_image)
+        l1_loss = F.l1_loss(sr_image, hr_image)
 
         self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)    
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
             self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
             
-        return mse_loss
+        return l1_loss
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")
