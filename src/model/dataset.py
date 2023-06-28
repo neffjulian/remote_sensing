@@ -41,6 +41,7 @@ class SRDataset(Dataset):
         planetscope_dir = DATA_DIR.joinpath(hparams["planetscope_bands"])
 
         sentinel_files = [sentinel_dir.joinpath(filename) for filename in files]
+        print("Original number of files:", len(sentinel_files))
         planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
 
         if train_dataset:
@@ -61,7 +62,10 @@ class SRDataset(Dataset):
             planetscope_files = [file for i, file in enumerate(planetscope_files) if i not in to_drop]
 
         file_pairs = list(zip(sentinel_files, planetscope_files))
+        print("Filtered number of files:", len(sentinel_files))
+
         self.files = [(x, y, i) for x, y in file_pairs for i in range(4)]
+        print("Augmented number of files:", len(sentinel_files))
 
 
     def __len__(self):
@@ -81,6 +85,7 @@ class SRDataModule(pl.LightningDataModule):
         self.batch_size = hparams["datamodule"]["batch_size"]
         self.sentinel_resolution = hparams["sentinel_resolution"]
         self.planetscope_bands = hparams["planetscope_bands"]
+        self.persis
 
         self.files = [file.name for file in DATA_DIR.joinpath(self.planetscope_bands).iterdir()]
         
@@ -105,10 +110,10 @@ class SRDataModule(pl.LightningDataModule):
             self.predict_dataset = SRPredictDataset(self.params, files_in_situ)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=16, pin_memory=True)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=16, pin_memory=True, persistent_workers=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=16, pin_memory=True)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=16, pin_memory=True, persistent_workers=True)
 
     def predict_dataloader(self):
-        return DataLoader(self.predict_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, pin_memory=True)
+        return DataLoader(self.predict_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, pin_memory=True, persistent_workers=True)
