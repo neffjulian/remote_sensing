@@ -10,10 +10,12 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import StepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
-from model.losses import psnr
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
+
+def psnr(mse):
+    return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class EDSR(LightningModule):
     def __init__(self, hparams: dict):

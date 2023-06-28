@@ -11,11 +11,11 @@ from torch.optim.lr_scheduler import MultiStepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-from losses import psnr
-
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
+def psnr(mse):
+    return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class ResidualBlock(nn.Sequential):
     def __init__(self, channels: int):
