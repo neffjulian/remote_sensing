@@ -64,7 +64,7 @@ class SRDataset(Dataset):
         file_pairs = list(zip(sentinel_files, planetscope_files))
         print("Filtered files:", len(file_pairs))
         self.files = [(x, y, i) for x, y in file_pairs for i in range(4)]
-        print("New length: ", self.files)
+        print("New length: ", len(self.files))
 
     def __len__(self):
         return len(self.files)
