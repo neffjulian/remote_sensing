@@ -27,6 +27,9 @@ class EDSR(LightningModule):
         self.nr_blocks = hparams["model"]["blocks"]
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
+        output_size = (160, 160)
+        self.interpolate = nn.Upsample(size=output_size, mode="bicubic")
+        
         self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
         
         residual_layers = [
@@ -41,7 +44,8 @@ class EDSR(LightningModule):
         self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
 
     def forward(self, x):
-        x_hat = self.input_layer(x)
+        x_hat = self.interpolate(x)
+        x_hat = self.input_layer(x_hat)
         return self.output_layer(x_hat + self.residual_layers(x_hat))
     
     def configure_optimizers(self):

@@ -23,22 +23,28 @@ class SRCNN(LightningModule):
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         self.scheduler = hparams["scheduler"]
         first_channel_size = hparams["model"]["channels"]
+
         second_channel_size = int(first_channel_size/2)
+        output_size = (160, 160)
 
         self.l1 = nn.Conv2d(1, first_channel_size, kernel_size=9, padding=4, padding_mode="replicate")
         self.l2 = nn.Conv2d(first_channel_size, second_channel_size, kernel_size=3, padding=1, padding_mode="replicate")
         self.l3 = nn.Conv2d(second_channel_size, 1, kernel_size=5, padding=2, padding_mode="replicate")
 
-        self.relu = nn.ReLU(inplace=True)
-        self.mse = nn.MSELoss()
+        self.model = nn.Sequential(
+            nn.Upsample(size=output_size, mode="bicubic"),
+            nn.Conv2d(1, first_channel_size, kernel_size=9, padding=4, padding_mode="replicate"),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(first_channel_size, second_channel_size, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(second_channel_size, 1, kernel_size=5, padding=2, padding_mode="replicate")
+        )
 
+        self.mse = nn.MSELoss()
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
     def forward(self, x):
-        x = self.relu(self.l1(x))
-        x = self.relu(self.l2(x))
-        x = self.l3(x)
-        return x
+        return self.model(x)
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)

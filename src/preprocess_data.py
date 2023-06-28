@@ -12,7 +12,6 @@ from skimage.metrics import structural_similarity as ssim
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data")
 FOLDERS = {"4b": 3, "8b": 3, "10m": 10, "20m": 20}
-OUT_DIM = (640, 640)
 
 def get_filenames(foldername: str, in_situ: bool) -> list[str]:
     """Get a list of filenames in the specified folder."""
@@ -54,8 +53,15 @@ def preprocess_file(src_data: Path, tar_dir: Path, in_situ: bool, rotate: bool =
     file_index = src_data.name[:4]
     month = src_data.parent.parent.name[:2]
     year = src_data.parent.parent.parent.name
+    satellite = src_data.parent.parent.parent.parent.name
 
     raster = RasterCollection.from_multi_band_raster(src_data)
+    if satellite == "planetscope":
+        OUT_DIM = (640, 640)
+    elif satellite == "sentinel":
+        OUT_DIM = (160, 160)
+    else:
+        raise Exception(f"Invalid Satellite encountered: ", satellite)
     lai = cv2.resize(raster["lai"].values, OUT_DIM, interpolation=cv2.INTER_CUBIC)
 
     if np.isnan(lai).sum() / lai.size > 0.1:
@@ -375,10 +381,10 @@ def main():
     remove_unused_images(in_situ=True)
     rename_in_situ_data()
 
-    do_histogram_matching("10m", "4b")
-    do_histogram_matching("10m", "8b")
+    # do_histogram_matching("10m", "4b")
+    # do_histogram_matching("10m", "8b")
     do_histogram_matching("20m", "4b")
-    do_histogram_matching("20m", "8b")
+    # do_histogram_matching("20m", "8b")
 
     # plot_histogram("20m", "4b")
     # plot_histogram("20m", "8b")

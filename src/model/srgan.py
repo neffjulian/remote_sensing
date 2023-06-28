@@ -38,7 +38,7 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x + self.block(x)
-    
+
 class Generator(nn.Module):
     def __init__(self, feature_maps: int = 64, num_res_blocks: int = 16) -> None:
         super().__init__()
@@ -54,6 +54,13 @@ class Generator(nn.Module):
             nn.BatchNorm2d(feature_maps)
         ]
         self.residual_blocks = nn.Sequential(*residual_blocks)
+
+        upscale_blocks = [
+            nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.PixelShuffle(2),
+            nn.PReLU()
+        ] * 2
+        self.upscale_blocks = nn.Sequential(*upscale_blocks)
 
         self.output_block = nn.Sequential(
             nn.Conv2d(feature_maps, 1, kernel_size=9, padding=4, padding_mode="replicate"),
@@ -122,20 +129,11 @@ class SRGAN(pl.LightningModule):
         sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
         sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
 
-        # return [opt_gen, opt_disc], [sched_gen, sched_disc]
-        return (
-            {
-                "optimizer": opt_gen,
-                "lr_scheduler": {
-                    "scheduler": sched_gen,
-                    "frequency": 5
-                }
-            },
-            {"optimizer": opt_disc, "lr_scheduler": sched_disc}
-        )
+        return [opt_gen, opt_disc], [sched_gen, sched_disc]
+
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.generator(x)
+    def forward(self, lr_image: torch.Tensor) -> torch.Tensor:
+        return self.generator(lr_image)
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, optimizer_idx: int) -> None:
         lr_image, hr_image = batch
@@ -178,7 +176,7 @@ class SRGAN(pl.LightningModule):
     def _generator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
         fake, fake_pred = self._fake_pred(lr_image)
 
-        perceptual_loss = self._perceptual_loss(fake, hr_image)
+        perceptual_loss = self._perceptual_loss(hr_image, fake)
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
 
@@ -190,7 +188,6 @@ class SRGAN(pl.LightningModule):
         return F.binary_cross_entropy_with_logits(pred, target)
     
     def _perceptual_loss(self, hr_image: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
-        with torch.no_grad():
-            real_features = self.feature_extractor(hr_image)
-            fake_features = self.feature_extractor(fake)
-            return F.mse_loss(fake_features, real_features)
+        real_features = self.feature_extractor(hr_image)
+        fake_features = self.feature_extractor(fake)
+        return F.mse_loss(fake_features, real_features)
