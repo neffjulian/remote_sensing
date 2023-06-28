@@ -51,7 +51,8 @@ class SRCNN(LightningModule):
                     optimizer=optimizer,
                     milestones=[self.scheduler_step],
                     gamma=0.1
-                )
+                ),
+                'monitor': 'val_ssim'
             }
         }
 

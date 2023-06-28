@@ -63,6 +63,7 @@ def main(hparams: dict) -> None:
         )
 
         trainer.fit(model=model, datamodule=datamodule)
+
     if hparams["predict"] is True:
         trainer = pl.Trainer(devices=1, accelerator="gpu", default_root_dir=LOG_DIR)
         model.eval()
