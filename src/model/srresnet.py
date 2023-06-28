@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-from model.losses import psnr
+from losses import psnr
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
