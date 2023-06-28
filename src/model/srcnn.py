@@ -27,10 +27,6 @@ class SRCNN(LightningModule):
         second_channel_size = int(first_channel_size/2)
         output_size = (160, 160)
 
-        self.l1 = nn.Conv2d(1, first_channel_size, kernel_size=9, padding=4, padding_mode="replicate")
-        self.l2 = nn.Conv2d(first_channel_size, second_channel_size, kernel_size=3, padding=1, padding_mode="replicate")
-        self.l3 = nn.Conv2d(second_channel_size, 1, kernel_size=5, padding=2, padding_mode="replicate")
-
         self.model = nn.Sequential(
             nn.Upsample(size=output_size, mode="bicubic"),
             nn.Conv2d(1, first_channel_size, kernel_size=9, padding=4, padding_mode="replicate"),
