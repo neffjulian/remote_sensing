@@ -43,6 +43,12 @@ class EDSR(LightningModule):
 
         self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
 
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                if module.bias is not None:
+                    module.bias.data.zero_()
+
     def forward(self, x):
         x_hat = self.interpolate(x)
         x_hat = self.input_layer(x_hat)
