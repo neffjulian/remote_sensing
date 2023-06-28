@@ -7,7 +7,7 @@ Paper: https://arxiv.org/abs/1707.02921
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim.lr_scheduler import StepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 from model.losses import psnr
@@ -53,9 +53,9 @@ class EDSR(LightningModule):
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
-                'scheduler': MultiStepLR(
+                'scheduler': StepLR(
                     optimizer=optimizer,
-                    milestones=[self.scheduler_step],
+                    step_size=self.scheduler_step,
                     gamma=0.1
                 )
             }
