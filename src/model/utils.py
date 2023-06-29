@@ -23,7 +23,6 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     for out in model_output:
         s2, y, ps, name = out
 
-        print(s2.shape, y.shape, ps.shape, name)
         img_s2.append(s2)
         img_sr.append(y)
         img_ps.append(ps)

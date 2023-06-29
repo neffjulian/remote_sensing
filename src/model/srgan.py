@@ -63,7 +63,7 @@ class Generator(nn.Module):
             nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PixelShuffle(2),
             nn.PReLU()
-        ] * 2
+        ]
         self.upscale_blocks = nn.Sequential(*upscale_blocks)
 
         self.output_block = nn.Sequential(
