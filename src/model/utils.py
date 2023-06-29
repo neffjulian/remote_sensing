@@ -40,6 +40,7 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
 
     reconstructed_images = []
     for i in range(0, len(sorted_names), tiles):
+        print("Filename: ", sorted_names[i][1])
         image_s2 = np.zeros((640, 640))
         image_sr = np.zeros((640, 640))
         image_ps = np.zeros((640, 640))
