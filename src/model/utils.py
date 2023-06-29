@@ -22,6 +22,8 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     names = []
     for out in model_output:
         s2, y, ps, name = out
+
+        print(s2.shape, y.shape, ps.shape, name)
         img_s2.append(s2)
         img_sr.append(y)
         img_ps.append(ps)
@@ -40,7 +42,6 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
 
     reconstructed_images = []
     for i in range(0, len(sorted_names), tiles):
-        print("Filename: ", sorted_names[i][1])
         image_s2 = np.zeros((640, 640))
         image_sr = np.zeros((640, 640))
         image_ps = np.zeros((640, 640))
@@ -50,7 +51,7 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
                 image_sr[(j*160):((j+1)*160), (k*160):((k+1)*160)] = result_sr[sorted_names[i + j*4 + k][0]]
                 image_ps[(j*160):((j+1)*160), (k*160):((k+1)*160)] = result_ps[sorted_names[i + j*4 + k][0]]
 
-        reconstructed_images.append((image_s2, image_sr, image_ps))
+        reconstructed_images.append((image_s2, image_sr, image_ps, sorted_names[i][1]))
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
@@ -93,7 +94,7 @@ def visualize_output(name: str, output: list) -> None:
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
     for i, out in enumerate(transformed_output):
-        out_file = results.joinpath(f"{i:04d}")
+        out_file = results.joinpath(out[3] + '.png')
         lr_hr_psnr = psnr(out[0], out[2])
         sr_hr_psnr = psnr(out[1], out[2])
         lr_hr_ssim, _ = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
