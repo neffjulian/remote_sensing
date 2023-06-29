@@ -73,7 +73,7 @@ class Generator(nn.Module):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.01)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
@@ -105,7 +105,7 @@ class Discriminator(nn.Module):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.01)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
@@ -141,11 +141,11 @@ class SRGAN(pl.LightningModule):
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
     def configure_optimizers(self) -> Tuple:
-        opt_gen = torch.optim.Adam(self.generator.parameters(), lr = self.lr)
-        opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr = self.lr)
+        opt_gen = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
+        opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr=self.lr)
 
-        sched_gen = torch.optim.lr_scheduler.MultiStepLR(opt_gen, milestones=[self.scheduler_step], gamma=0.1)
-        sched_disc = torch.optim.lr_scheduler.MultiStepLR(opt_disc, milestones=[self.scheduler_step], gamma=0.1)
+        sched_gen = torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5)
+        sched_disc = torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5)
 
         return [opt_gen, opt_disc], [sched_gen, sched_disc]
 
@@ -157,7 +157,7 @@ class SRGAN(pl.LightningModule):
         lr_image, hr_image = batch
 
         loss = None
-        if optimizer_idx == 0:
+        if optimizer_idx == 0 and (batch_idx + 1) % 5 == 0:
             loss = self._generator_loss(lr_image, hr_image)
         if optimizer_idx == 1:
             loss = self._discriminator_loss(lr_image, hr_image)
