@@ -93,7 +93,7 @@ def visualize_output(name: str, output: list) -> None:
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
     for i, out in enumerate(transformed_output):
-        out_file = results.joinpath(out[3] + '.png')
+        out_file = results.joinpath(out[3][:-4] + '.png')
         lr_hr_psnr = psnr(out[0], out[2])
         sr_hr_psnr = psnr(out[1], out[2])
         lr_hr_ssim, _ = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)

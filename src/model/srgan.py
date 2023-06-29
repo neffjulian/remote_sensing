@@ -71,6 +71,12 @@ class Generator(nn.Module):
             # nn.Tanh(),
         )
 
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                if module.bias is not None:
+                    module.bias.data.zero_()
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_input = self.input_block(x)
         x = x_input + self.residual_blocks(x_input)
@@ -96,6 +102,12 @@ class Discriminator(nn.Module):
             nn.Conv2d(feature_maps * 16, 1, kernel_size=1),
             nn.Flatten()
         )
+
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                if module.bias is not None:
+                    module.bias.data.zero_()
 
     def _make_double_conv_block(self, in_channels: int, out_channels: int, first_batch_norm: bool = True) -> nn.Sequential:
         return nn.Sequential(
