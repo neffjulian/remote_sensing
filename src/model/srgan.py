@@ -12,6 +12,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
 
+from torchmetrics import StructuralSimilarityIndexMeasure
+
+def psnr(mse):
+    return 20 * torch.log10(8. / torch.sqrt(mse))
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -122,6 +126,7 @@ class SRGAN(pl.LightningModule):
         self.discriminator = Discriminator(hparams["model"]["feature_maps_disc"])
 
         self.feature_extractor = VGG19FeatureExtractor()
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
     def configure_optimizers(self) -> Tuple:
         opt_gen = torch.optim.Adam(self.generator.parameters(), lr = self.lr)
@@ -148,12 +153,17 @@ class SRGAN(pl.LightningModule):
     
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         lr_image, hr_image = batch
+        sr_image = self(lr_image)
 
         loss_gen = self._generator_loss(lr_image, hr_image)
         loss_disc = self._discriminator_loss(lr_image, hr_image)
 
         self.log("val_loss_gen", loss_gen, on_step=True, on_epoch=True, sync_dist=True)
         self.log("val_loss_disc", loss_disc, on_step=True, on_epoch=True, sync_dist=True)
+
+        mse_loss = F.mse_loss(sr_image, hr_image)
+        self.log("val_psnr", psnr(mse_loss), sync_dist=True)
+        self.log("val_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
 
     def predict_step(self, batch, batch_idx):
         x, y, names = batch
