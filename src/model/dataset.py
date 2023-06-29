@@ -46,20 +46,20 @@ class SRDataset(Dataset):
             # With psnr_threshold = 20.0 and ssim_threshold = 0.5 we remove 46% of files
             # With psnr_threshold = 20.0 and ssim_threshold = 0.6 we remove 87% of files
             
-        # psnr_threshold = 20.0
-        # ssim_threshold = 0.5
+        psnr_threshold = 20.0
+        ssim_threshold = 0.5
 
-        # to_drop = []
+        to_drop = []
 
-        # for i, (s2_file, ps_file) in enumerate(zip(sentinel_files, planetscope_files)):
-        #     s2_data = cv2.resize(np.load(s2_file), (160, 160), interpolation=cv2.INTER_CUBIC)
-        #     ps_data = np.load(ps_file)
+        for i, (s2_file, ps_file) in enumerate(zip(sentinel_files, planetscope_files)):
+            s2_data = cv2.resize(np.load(s2_file), (160, 160), interpolation=cv2.INTER_CUBIC)
+            ps_data = np.load(ps_file)
 
-        #     if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255.0 / 8.0)).astype(np.uint8), (ps_data * (255.0 / 8.0)).astype(np.uint8), full=True)[0] < ssim_threshold:
-        #         to_drop.append(i)
+            if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255.0 / 8.0)).astype(np.uint8), (ps_data * (255.0 / 8.0)).astype(np.uint8), full=True)[0] < ssim_threshold:
+                to_drop.append(i)
 
-        # sentinel_files = [file for i, file in enumerate(sentinel_files) if i not in to_drop]
-        # planetscope_files = [file for i, file in enumerate(planetscope_files) if i not in to_drop]
+        sentinel_files = [file for i, file in enumerate(sentinel_files) if i not in to_drop]
+        planetscope_files = [file for i, file in enumerate(planetscope_files) if i not in to_drop]
         # print("Original length: ", len(files))
         file_pairs = list(zip(sentinel_files, planetscope_files))
         # print("Filtered files:", len(file_pairs))
