@@ -63,7 +63,7 @@ class Generator(nn.Module):
             nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PixelShuffle(2),
             nn.PReLU()
-        ]
+        ] * 2
         self.upscale_blocks = nn.Sequential(*upscale_blocks)
 
         self.output_block = nn.Sequential(
@@ -166,9 +166,10 @@ class SRGAN(pl.LightningModule):
         self.log("val_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
 
     def predict_step(self, batch, batch_idx):
-        x, y, names = batch
-        y_hat = self.forward(x)
-        return x, y_hat, y, names
+        lr_image, hr_image, names = batch
+        sr_image = self(lr_image)
+        print(lr_image.shape, sr_image.shape, hr_image.shape)
+        return lr_image, sr_image, hr_image, names
     
     def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         fake = self(lr_image)
