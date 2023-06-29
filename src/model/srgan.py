@@ -162,7 +162,6 @@ class SRGAN(pl.LightningModule):
     
     def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         fake = self(lr_image)
-        print(lr_image.shape, fake.shape)
         fake_pred = self.discriminator(fake)
         return fake, fake_pred
 
