@@ -161,6 +161,7 @@ class SRGAN(pl.LightningModule):
     
     def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         fake = self(lr_image)
+        print(lr_image.shape, fake.shape)
         fake_pred = self.discriminator(fake)
         return fake, fake_pred
 
@@ -190,6 +191,4 @@ class SRGAN(pl.LightningModule):
     def _perceptual_loss(self, hr_image: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
         real_features = self.feature_extractor(hr_image)
         fake_features = self.feature_extractor(fake)
-        print(fake.shape, hr_image.shape)
-        raise Exception
         return F.mse_loss(fake_features, real_features)
