@@ -70,6 +70,7 @@ class Generator(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_input = self.input_block(x)
         x = x_input + self.residual_blocks(x_input)
+        x = self.upscale_blocks(x)
         x = self.output_block(x)
         return x
 
