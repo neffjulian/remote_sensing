@@ -92,5 +92,6 @@ class EDSR(LightningModule):
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)
+        lr_image = F.interpolate(lr_image, size=(160, 160), mode='bicubic')
 
         return lr_image, sr_image, hr_image, names
