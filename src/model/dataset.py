@@ -43,7 +43,7 @@ class SRDataset(Dataset):
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
 
     def __len__(self):
-        return len(self.files)
+        return len(self.planetscope_files)
     
     def __getitem__(self, idx):
         planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
