@@ -19,8 +19,8 @@ class SRPredictDataset(Dataset):
     def __init__(self, hparams: dict, files: list[str]) -> None:
         super().__init__()
 
-        self.sentinel_dir = DATA_DIR.joinpath("in_situ", hparams["sentinel_resolution"])
-        self.planetscope_dir = DATA_DIR.joinpath("in_situ", hparams["planetscope_bands"][-2:])
+        self.sentinel_dir = DATA_DIR.joinpath(f"{hparams['sentinel_resolution']}_in_situ")
+        self.planetscope_dir = DATA_DIR.joinpath(f"{hparams['planetscope_bands'][-2:]}_in_situ")
  
         self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [self.planetscope_dir.joinpath(filename) for filename in files]
@@ -37,44 +37,19 @@ class SRDataset(Dataset):
     def __init__(self, hparams: dict, files: list[str]) -> None:
         super().__init__()
         
-        sentinel_dir = DATA_DIR.joinpath(hparams["sentinel_resolution"])
         planetscope_dir = DATA_DIR.joinpath(hparams["planetscope_bands"])
-
-        sentinel_files = [sentinel_dir.joinpath(filename) for filename in files]
-        planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
-
-            # With psnr_threshold = 20.0 and ssim_threshold = 0.5 we remove 46% of files
-            # With psnr_threshold = 20.0 and ssim_threshold = 0.6 we remove 87% of files
-            
-        psnr_threshold = 20.0
-        ssim_threshold = 0.5
-
-        to_drop = []
-
-        for i, (s2_file, ps_file) in enumerate(zip(sentinel_files, planetscope_files)):
-            s2_data = cv2.resize(np.load(s2_file), (160, 160), interpolation=cv2.INTER_CUBIC)
-            ps_data = np.load(ps_file)
-
-            if psnr(s2_data, ps_data) < psnr_threshold or ssim((s2_data * (255.0 / 8.0)).astype(np.uint8), (ps_data * (255.0 / 8.0)).astype(np.uint8), full=True)[0] < ssim_threshold:
-                to_drop.append(i)
-
-        sentinel_files = [file for i, file in enumerate(sentinel_files) if i not in to_drop]
-        planetscope_files = [file for i, file in enumerate(planetscope_files) if i not in to_drop]
-        # print("Original length: ", len(files))
-        file_pairs = list(zip(sentinel_files, planetscope_files))
-        # print("Filtered files:", len(file_pairs))
-        self.files = [(x, y, i) for x, y in file_pairs for i in range(4)]
-        # print("New length: ", len(self.files))
+        planetscope_lr_dir = DATA_DIR.joinpath(f"{hparams['planetscope_bands']}_lr")
+        self.planetscope_lr_files = [planetscope_lr_dir.joinpath(filename) for filename in files]
+        self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
 
     def __len__(self):
         return len(self.files)
     
     def __getitem__(self, idx):
-        sentinel_filename, planetscope_filename, rotate = self.files[idx]
-        sentinel_file = torch.from_numpy(np.load(sentinel_filename)).rot90(rotate)
-        planetscope_file = torch.from_numpy(np.load(planetscope_filename)).rot90(rotate)
-
-        return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0)
+        planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
+        planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
+        
+        return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
     def __init__(self, hparams: dict):
