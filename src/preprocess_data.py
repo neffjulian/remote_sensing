@@ -176,9 +176,9 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
         s2_psnr = psnr(downsampled_file, s2_file)
         s2_ssim, _ = ssim((downsampled_file * (255. / 8.)).astype(np.uint8), (s2_file * (255. / 8.)).astype(np.uint8), full=True)
 
-        if ps_psnr < 0.1 or s2_psnr < 0.01:
+        if ps_psnr < 0.1 or s2_psnr < 0.05:
             continue
-        elif ps_ssim < 0.1 or s2_ssim < 0.01:
+        elif ps_ssim < 0.1 or s2_ssim < 0.05:
             continue
 
         files_to_keep.append(ps_filename.name)
