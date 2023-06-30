@@ -23,10 +23,9 @@ class SRCNN(LightningModule):
 
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
-        self.scheduler = hparams["scheduler"]
         first_channel_size = hparams["model"]["channels"]
 
-        second_channel_size = int(first_channel_size/2)
+        second_channel_size = first_channel_size // 2
         output_size = (150, 150)
 
         self.model = nn.Sequential(
@@ -42,7 +41,7 @@ class SRCNN(LightningModule):
 
         for module in self.model.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0.001, std=0.0001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
@@ -60,7 +59,7 @@ class SRCNN(LightningModule):
                     gamma=0.5,
                     verbose=True
                 ),
-                'monitor': 'val_ssim'
+                'monitor': 'vall_mse_loss'
             }
         }
 

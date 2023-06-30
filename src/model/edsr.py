@@ -12,7 +12,7 @@ from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
 if torch.cuda.is_available():
-    torch.set_float32_matmul_precision("medium")
+    torch.set_float32_matmul_precision("high")
 
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
