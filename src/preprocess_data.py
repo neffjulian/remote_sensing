@@ -235,10 +235,10 @@ def create_lr_dataset(ps_band: str):
 
     for file in source_dir.iterdir():
         data = np.load(file)
-        data = cv2.resize(data, (25, 25), interpolation=cv2.INTER_AREA)
-        np.save(target_dir.joinpath(file.name), data)
+        downsampled_data = cv2.resize(data, (25, 25), interpolation=cv2.INTER_AREA)
+        np.save(target_dir.joinpath(file.name), downsampled_data)
 
-        upsampled_data = cv2.resize(data, (150, 150), interpolation=cv2.INTER_CUBIC)
+        upsampled_data = cv2.resize(downsampled_data, (150, 150), interpolation=cv2.INTER_CUBIC)
 
         psnr_scores.append(psnr(upsampled_data, data))
         ssim_score, _ = ssim((upsampled_data * (255. / 8.)).astype(np.uint8), (data * (255. / 8.)).astype(np.uint8), full=True)
