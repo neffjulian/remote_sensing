@@ -50,7 +50,6 @@ class SRCNN(LightningModule):
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        return optimizer
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
@@ -60,7 +59,7 @@ class SRCNN(LightningModule):
                     gamma=0.5,
                     verbose=True
                 ),
-                'monitor': 'val_mse_loss'
+                'monitor': 'val_ssim'
             }
         }
 
