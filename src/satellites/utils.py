@@ -51,6 +51,7 @@ def point_to_square(point: dict, length: float = 2) -> dict:
     """
     # Extract the longitude and latitude coordinates from the point
     coordinate = point['geometry']['coordinates']
+    properties = point['properties']
     longitude, latitude = coordinate[0], coordinate[1]
 
     # Calculate the change in longitude and latitude to create the square
@@ -60,7 +61,7 @@ def point_to_square(point: dict, length: float = 2) -> dict:
     # Create the square polygon feature
     square = {
         "type": "Feature",
-        "properties": {},
+        "properties": properties,
         "geometry": {
             "type": "Polygon",
             "coordinates": [

@@ -1,8 +1,0 @@
-{
-"type": "FeatureCollection",
-"name": "bounding_box_strickhof",
-"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32632" } },
-"features": [
-{ "type": "Feature", "properties": { "fid": 1, "MINX": 475494.75, "MINY": 5253991.0, "MAXX": 477485.59375, "MAXY": 5256703.5, "CNTX": 476490.171875, "CNTY": 5255347.25, "AREA": 5400163.671875, "PERIM": 9406.6875, "HEIGHT": 2712.5, "WIDTH": 1990.84375 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 475494.75, 5253991.0 ], [ 477485.59375, 5253991.0 ], [ 477485.59375, 5256703.5 ], [ 475494.75, 5256703.5 ], [ 475494.75, 5253991.0 ] ] ] } }
-]
-}
