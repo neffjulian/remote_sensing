@@ -245,6 +245,7 @@ def main():
     rename_in_situ_data("4b")
 
     remove_unused_images(in_situ=False)
+    remove_unused_images(in_situ=True)
     remove_outliers("4b", "20m")
     create_lr_dataset("4b")
 
