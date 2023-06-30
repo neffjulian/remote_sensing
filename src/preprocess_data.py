@@ -230,10 +230,22 @@ def create_lr_dataset(ps_band: str):
     target_dir = DATA_DIR.joinpath("processed", ps_band + "_lr")
     target_dir.mkdir(parents=True, exist_ok=True)
 
+    psnr_scores = []
+    ssim_scores = []
+
     for file in source_dir.iterdir():
         data = np.load(file)
         data = cv2.resize(data, (25, 25), interpolation=cv2.INTER_AREA)
         np.save(target_dir.joinpath(file.name), data)
+
+        upsampled_data = cv2.resize(data, (150, 150), interpolation=cv2.INTER_CUBIC)
+
+        psnr_scores.append(psnr(upsampled_data, data))
+        ssim_score, _ = ssim((upsampled_data * (255. / 8.)).astype(np.uint8), (data * (255. / 8.)).astype(np.uint8), full=True)
+        ssim_scores.append(ssim_score)
+
+    print(f"PSNR: {np.mean(psnr_scores)}")
+    print(f"SSIM: {np.mean(ssim_scores)}")
 
 def main():
     process_satellite_data("sentinel", "20m", False)

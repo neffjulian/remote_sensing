@@ -59,6 +59,24 @@ class SRDataModule(pl.LightningDataModule):
         self.planetscope_bands = hparams["planetscope_bands"]
 
         self.files = [file.name for file in DATA_DIR.joinpath(self.planetscope_bands).iterdir()]
+
+        # planetscope_folder = DATA_DIR.joinpath(self.planetscope_bands)
+        # planetscope_lr_folder = DATA_DIR.joinpath(f"{self.planetscope_bands}_lr")
+
+        # psnr_score = []
+        # ssim_score = []
+
+        # for file in self.files:
+        #     ps_file = np.load(planetscope_folder.joinpath(file))
+        #     ps_lr_file = np.load(planetscope_lr_folder.joinpath(file))
+
+        #     upsampled_file = cv2.resize(ps_lr_file, (150, 150), interpolation=cv2.INTER_CUBIC)
+        #     ps_psnr = psnr(upsampled_file, ps_file)
+        #     ps_ssim, _ = ssim((upsampled_file * (255. / 8.)).astype(np.uint8), (ps_file * (255. / 8.)).astype(np.uint8), full=True)
+
+
+        #     psnr_score.append(ps_psnr)
+        #     ssim_score.append(ps_ssim)
         
         total_size = len(self.files)
         train_size = int(0.8 * total_size)
