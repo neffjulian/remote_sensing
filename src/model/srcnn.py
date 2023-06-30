@@ -39,11 +39,11 @@ class SRCNN(LightningModule):
 
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
-        for module in self.model.modules():
-            if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
-                if module.bias is not None:
-                    module.bias.data.zero_()
+        # for module in self.model.modules():
+        #     if isinstance(module, nn.Conv2d):
+        #         torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+        #         if module.bias is not None:
+        #             module.bias.data.zero_()
 
     def forward(self, x):
         return self.model(x)
