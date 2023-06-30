@@ -180,7 +180,7 @@ class SRGAN(pl.LightningModule):
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
         sr_image = self(lr_image)
-        lr_image = F.interpolate(lr_image, size=(160, 160), mode='bicubic')
+        lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
         return lr_image, sr_image, hr_image, names
     
     def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:

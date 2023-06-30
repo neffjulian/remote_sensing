@@ -27,7 +27,7 @@ class SRCNN(LightningModule):
         first_channel_size = hparams["model"]["channels"]
 
         second_channel_size = int(first_channel_size/2)
-        output_size = (160, 160)
+        output_size = (150, 150)
 
         self.model = nn.Sequential(
             nn.Upsample(size=output_size, mode="bicubic"),
@@ -83,5 +83,5 @@ class SRCNN(LightningModule):
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)
-        lr_image = F.interpolate(lr_image, size=(160, 160), mode='bicubic')
+        lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
         return lr_image, sr_image, hr_image, names

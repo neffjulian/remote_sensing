@@ -29,7 +29,7 @@ class EDSR(LightningModule):
         self.nr_blocks = hparams["model"]["blocks"]
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
-        output_size = (160, 160)
+        output_size = (150, 150)
         self.interpolate = nn.Upsample(size=output_size, mode="bicubic")
         
         self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
@@ -92,6 +92,6 @@ class EDSR(LightningModule):
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)
-        lr_image = F.interpolate(lr_image, size=(160, 160), mode='bicubic')
+        lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
 
         return lr_image, sr_image, hr_image, names
