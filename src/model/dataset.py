@@ -31,6 +31,7 @@ class SRPredictDataset(Dataset):
     def __getitem__(self, idx):
         sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx]))
         planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
+        assert self.sentinel_files[idx].name == self.planetscope_files[idx].name
         return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0), self.sentinel_files[idx].name
 
 class SRDataset(Dataset):
@@ -48,7 +49,7 @@ class SRDataset(Dataset):
     def __getitem__(self, idx):
         planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
         planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
-
+        assert self.planetscope_lr_files[idx].name == self.planetscope_files[idx].name
         return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
@@ -71,7 +72,7 @@ class SRDataModule(pl.LightningDataModule):
             generator =torch.Generator().manual_seed(hparams["random_seed"])
         )
 
-        self.predict_files = DATA_DIR.joinpath(self.planetscope_bands[-2:] + "_in_situ")
+        self.predict_files = DATA_DIR.joinpath(self.sentinel_resolution + "_in_situ")
 
     def setup(self, stage=None):
         # if stage == 'fit':

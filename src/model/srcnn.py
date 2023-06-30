@@ -60,7 +60,7 @@ class SRCNN(LightningModule):
                     gamma=0.5,
                     verbose=True
                 ),
-                'monitor': 'val_psnr'
+                'monitor': 'val_ssim'
             }
         }
 
