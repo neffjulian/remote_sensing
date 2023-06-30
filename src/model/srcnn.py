@@ -59,7 +59,7 @@ class SRCNN(LightningModule):
                     gamma=0.5,
                     verbose=True
                 ),
-                'monitor': 'vall_mse_loss'
+                'monitor': 'val_mse_loss'
             }
         }
 
