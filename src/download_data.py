@@ -4,18 +4,27 @@ import wget
 import py7zr
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data")
+SENTINEL_IN_SITU = DATA_DIR.joinpath("filtered")
 
 def download_zip_files():
     url = "https://polybox.ethz.ch/index.php/s/e5yrmHcejuCo0WO/download"
-    wget.download(url,out=str(DATA_DIR))
+    sentinel_in_situ_url = "https://polybox.ethz.ch/index.php/s/CDnO6BCOPFvefHq/download"
+    # wget.download(url,out=str(DATA_DIR))
+    wget.download(sentinel_in_situ_url,out=str(SENTINEL_IN_SITU))
 
 def unzip_and_delete():
     data_zip = DATA_DIR.joinpath("filtered.7z")
+    sentinel_in_situ_zip = SENTINEL_IN_SITU.joinpath("filtered.7z")
 
-    with py7zr.SevenZipFile(data_zip) as z:
-        z.extractall(DATA_DIR)
+    # with py7zr.SevenZipFile(data_zip) as z:
+    #     z.extractall(DATA_DIR)
 
-    data_zip.unlink()
+    with py7zr.SevenZipFile(sentinel_in_situ_zip) as z:
+        z.extractall(SENTINEL_IN_SITU)
+
+    sentinel_in_situ_zip.unlink()
+
+    # data_zip.unlink()
 
 if __name__ == "__main__":
     download_zip_files()
