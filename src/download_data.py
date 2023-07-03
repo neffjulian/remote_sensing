@@ -27,7 +27,7 @@ def unzip_and_delete():
     with py7zr.SevenZipFile(planetscope_in_situ_zip) as z:
         z.extractall(SENTINEL_IN_SITU)
 
-    sentinel_in_situ_zip.unlink()
+    # sentinel_in_situ_zip.unlink()
     planetscope_in_situ_zip.unlink()
     # data_zip.unlink()
 
