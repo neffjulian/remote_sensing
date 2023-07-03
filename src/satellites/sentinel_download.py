@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List
 import argparse
 import urllib
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import json
 import pandas as pd
@@ -325,27 +325,116 @@ def download_eschikon() -> None:
 
     print(f"In total {len(errors)} occured for Eschikon downloads. Namely {errors}")
 
-   
+def download_in_situ() -> None:
+    folder = DATA_DIR.parent.joinpath("in_situ", "sentinel")
+    data_dir, metadata_dir, plot_dir = create_dirs(folder, "2022", "mar")
+    
+    coordinates = DATA_DIR.parent.parent.joinpath("coordinates", "field_parcels.geojson")
+    with open(coordinates, 'r') as source_file:
+        squares = json.load(source_file)
 
-def main(year: str, month: str, test: bool = False) -> None:
+    orders = []
+
+    metadata_filters: List[Filter] = [
+        Filter('cloudy_pixel_percentage', '<=', 25),
+        Filter('processing_level', '==', 'Level-2A')
+    ]
+    
+    print("Start placing orders for in situ data.")
+    for i, feature in enumerate(squares["features"]):
+        added_hours = 6
+        index = f"{i:04d}"
+        date = datetime.strptime(feature["properties"]["date"], "%Y-%m-%d %H:%M:%S")
+        lai = feature["properties"]["lai"]
+        gdf = {"type": "FeatureCollection", "features": [feature]}
+        feature = Feature("geometry", gpd.GeoDataFrame.from_features(gdf)['geometry'].iloc[0], 4326, {})
+        while( added_hours < 48):
+            try:
+                start_date = date - timedelta(hours=added_hours)
+                end_date = date + timedelta(hours=added_hours)
+
+                mapper_configs = MapperConfigs(
+                    collection=COLLECTION,
+                    time_start=start_date,
+                    time_end=end_date,
+                    feature=feature,
+                    metadata_filters=metadata_filters)
+                
+                mapper_configs.to_yaml(metadata_dir.joinpath('sample_mapper_call.yaml'))
+
+                mapper = Mapper(mapper_configs)
+                mapper.query_scenes()
+                mapper.metadata
+
+                # get the least cloudy scene
+                mapper.metadata = mapper.metadata[
+                    mapper.metadata.cloudy_pixel_percentage ==
+                    mapper.metadata.cloudy_pixel_percentage.min()].copy()
+                
+                
+                # load the least cloudy scene available from STAC
+                scene_kwargs = {
+                    'scene_constructor': Sentinel2.from_safe,
+                    'scene_constructor_kwargs': {
+                        'band_selection': ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11", "B12"]}}
+
+                mapper.load_scenes(scene_kwargs=scene_kwargs)
+                # the data loaded into `mapper.data` as a EOdal SceneCollection
+                # it should now contain only a single scene
+                scene = mapper.data[mapper.data.timestamps[0]]
+
+                # save the scene to disk
+                # we distinguish the 10 and 20m bands by the suffixes _10m and _20m
+                scene_10m = RasterCollection()
+                for band in ['blue', 'green', 'red', 'nir_1']:
+                    scene_10m.add_band(scene[band])
+                scene_10m.to_rasterio(data_dir.joinpath(f'{i:04d}_scene_10m.tif'))
+
+                scene_20m = RasterCollection()
+                for band in ['red_edge_1', 'red_edge_2', 'red_edge_3', 'nir_2', 'swir_1', 'swir_2']:
+                    scene_20m.add_band(scene[band])
+                scene_20m.to_rasterio(data_dir.joinpath(f'{i:04d}_scene_20m.tif'))
+
+                scene_60m = RasterCollection()
+                for band in ['ultra_blue', 'nir_3']:
+                    scene_60m.add_band(scene[band])
+                scene_60m.to_rasterio(data_dir.joinpath(f'{i:04d}_scene_60m.tif'))
+
+                # save metadata xml to disk
+                href_xml = mapper.metadata.assets.iloc[0]['granule-metadata']['href']
+                response = urllib.request.urlopen(
+                    planetary_computer.sign_url(href_xml)).read()
+                fpath_xml = metadata_dir.joinpath(f'{i:04d}_' + href_xml.split('/')[-1])
+                with open(fpath_xml, 'wb') as dst:
+                    dst.write(response)
+
+                # plot scene
+                fig = scene_10m.plot_multiple_bands(band_selection=['blue', 'green', 'red'])
+                fig.savefig(plot_dir.joinpath(f'{i:04d}_scene_10m.png'), dpi=300)
+                
+                date = mapper.data.timestamps[0]
+                write_date_to_csv(metadata_dir, i, date)
+            except:
+                added_hours += 6
+
+def main(year: str, month: str, in_situ: bool = False) -> None:
     if not (2017 <= int(year) <= 2022):
         raise ValueError(f"Year invalid ('{year}'). Use a value between '2017'  and '2022'.")
     
     if month not in MONTHS:
         raise ValueError(f"Month invalid ('{month}'). Use one out of {list(MONTHS)}.")
     
-    if test is True:
-        coordinate_file = 'point_ai.geojson'
-    else:
-        coordinate_file = 'points_ch.geojson'
+    if in_situ is True:
+        download_in_situ()
+        return
 
-    download_sentinel_data(coordinate_file, year, month)
+    download_sentinel_data('points_ch.geojson', year, month)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", required=True, type=str)
     parser.add_argument("--month", required=True, type=str)
-    parser.add_argument("--test", type=bool)
+    parser.add_argument("--in_situ", type=bool)
 
     args = parser.parse_args()
     main(**vars(args))
