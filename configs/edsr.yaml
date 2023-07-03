@@ -5,7 +5,7 @@ experiment_name: EDSR
 # resume_from_checkpoint: ...
 
 sentinel_resolution: "20m"
-planetscope_bands: "hist_20m_4b"
+planetscope_bands: "4b"
 
 train: true
 predict: true

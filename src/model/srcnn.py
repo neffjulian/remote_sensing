@@ -30,20 +30,20 @@ class SRCNN(LightningModule):
 
         self.model = nn.Sequential(
             nn.Upsample(size=output_size, mode="bicubic"),
-            nn.Conv2d(1, first_channel_size, kernel_size=9, padding=4, padding_mode="replicate"),
+            nn.Conv2d(1, first_channel_size, kernel_size=15, padding=7, padding_mode="replicate"),
             nn.ReLU(inplace=True),
-            nn.Conv2d(first_channel_size, second_channel_size, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.Conv2d(first_channel_size, second_channel_size, kernel_size=9, padding=4, padding_mode="replicate"),
             nn.ReLU(inplace=True),
-            nn.Conv2d(second_channel_size, 1, kernel_size=5, padding=2, padding_mode="replicate")
+            nn.Conv2d(second_channel_size, 1, kernel_size=11, padding=5, padding_mode="replicate")
         )
 
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
-        # for module in self.model.modules():
-        #     if isinstance(module, nn.Conv2d):
-        #         torch.nn.init.normal_(module.weight, mean=0, std=0.001)
-        #         if module.bias is not None:
-        #             module.bias.data.zero_()
+        for module in self.model.modules():
+            if isinstance(module, nn.Conv2d):
+                torch.nn.init.normal_(module.weight, mean=0, std=0.01)
+                if module.bias is not None:
+                    module.bias.data.zero_()
 
     def forward(self, x):
         return self.model(x)
