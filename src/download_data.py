@@ -8,7 +8,7 @@ SENTINEL_IN_SITU = DATA_DIR.joinpath("filtered", "in_situ")
 
 def download_zip_files():
     url = "https://polybox.ethz.ch/index.php/s/e5yrmHcejuCo0WO/download"
-    sentinel_in_situ_url = "https://polybox.ethz.ch/index.php/s/CDnO6BCOPFvefHq/download"
+    sentinel_in_situ_url = "https://polybox.ethz.ch/index.php/s/Wq2qZ4ZOw9K9Qyy/download"
     # wget.download(url,out=str(DATA_DIR))
     wget.download(sentinel_in_situ_url,out=str(SENTINEL_IN_SITU))
 
