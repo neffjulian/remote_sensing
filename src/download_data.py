@@ -4,7 +4,7 @@ import wget
 import py7zr
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data")
-SENTINEL_IN_SITU = DATA_DIR.joinpath("filtered")
+SENTINEL_IN_SITU = DATA_DIR.joinpath("filtered", "in_situ")
 
 def download_zip_files():
     url = "https://polybox.ethz.ch/index.php/s/e5yrmHcejuCo0WO/download"
