@@ -28,8 +28,8 @@ class SRPredictDataset(Dataset):
         added_files_lr = DATA_DIR.joinpath(hparams['sentinel_resolution'])
         added_files_hr = DATA_DIR.joinpath(hparams['planetscope_bands'][-2:])
 
-        added_files_lr = [added_file for added_file in added_files_lr.iterdir() if added_file.name.startswith("03_0000") or added_file.name.startswith("03_0001")]
-        added_files_hr = [added_file for added_file in added_files_hr.iterdir() if added_file.name.startswith("03_0000") or added_file.name.startswith("03_0001")]
+        added_files_lr = sorted([added_file for added_file in added_files_lr.iterdir() if added_file.name.startswith("03_0000") or added_file.name.startswith("03_0001")])
+        added_files_hr = sorted([added_file for added_file in added_files_hr.iterdir() if added_file.name.startswith("03_0000") or added_file.name.startswith("03_0001")])
 
         self.sentinel_files = added_files_lr + self.sentinel_files
         self.planetscope_files = added_files_hr + self.planetscope_files

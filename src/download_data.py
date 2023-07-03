@@ -14,7 +14,7 @@ def download_zip_files():
 
 def unzip_and_delete():
     data_zip = DATA_DIR.joinpath("filtered.7z")
-    sentinel_in_situ_zip = SENTINEL_IN_SITU.joinpath("filtered.7z")
+    sentinel_in_situ_zip = SENTINEL_IN_SITU.joinpath("sentinel_in_situ.7z")
 
     # with py7zr.SevenZipFile(data_zip) as z:
     #     z.extractall(DATA_DIR)
