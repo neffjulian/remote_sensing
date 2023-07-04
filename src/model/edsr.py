@@ -57,7 +57,7 @@ class EDSR(LightningModule):
         return self.output_layer(x_hat + self.residual_layers(x_hat))
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr_scheduler_step)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         # optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, betas=[0.9, 0.999], eps=1e-8)
         return {
             'optimizer': optimizer,
