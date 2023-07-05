@@ -51,7 +51,6 @@ class SRDataset(Dataset):
         self.planetscope_lr_files = [planetscope_lr_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
         self.augment = hparams["datamodule"]["augment"]
-        print("Augment: ", self.augment)
 
     def __len__(self):
         if not self.augment:
@@ -65,8 +64,8 @@ class SRDataset(Dataset):
             flip = idx % 8 >= 4
             rotate = idx % 4
 
-        planetscope_lr_file = torch.rot(torch.from_numpy(np.load(self.planetscope_lr_files[index])), rotate)
-        planetscope_file = torch.rot(torch.from_numpy(np.load(self.planetscope_files[index])), rotate)
+        planetscope_lr_file = torch.rot90(torch.from_numpy(np.load(self.planetscope_lr_files[index])), rotate)
+        planetscope_file = torch.rot90(torch.from_numpy(np.load(self.planetscope_files[index])), rotate)
 
         if self.augment and flip:
             planetscope_lr_file = torch.flip(planetscope_lr_file, [1])
