@@ -52,6 +52,8 @@ class SRDataset(Dataset):
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
         self.augment = hparams["datamodule"]["augment"]
 
+        print(f"Dataset size: {len(self.planetscope_files) * 8 if self.augment else len(self.planetscope_files)}")
+
     def __len__(self):
         if not self.augment:
             return len(self.planetscope_files)
