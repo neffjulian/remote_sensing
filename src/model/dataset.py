@@ -50,7 +50,7 @@ class SRDataset(Dataset):
         planetscope_lr_dir = DATA_DIR.joinpath(f"{hparams['planetscope_bands']}_lr")
         self.planetscope_lr_files = [planetscope_lr_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
-        self.augment = hparams["augment"]
+        self.augment = hparams["datamodule"]["augment"]
         print("Augment: ", self.augment)
 
     def __len__(self):
