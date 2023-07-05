@@ -50,19 +50,25 @@ class SRDataset(Dataset):
         planetscope_lr_dir = DATA_DIR.joinpath(f"{hparams['planetscope_bands']}_lr")
         self.planetscope_lr_files = [planetscope_lr_dir.joinpath(filename) for filename in files]
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
+        self.augment = hparams["augment"]
+        print("Augment: ", self.augment)
 
     def __len__(self):
-        return len(self.planetscope_files) * 8
+        if not self.augment:
+            return len(self.planetscope_files)
+        else:
+            return len(self.planetscope_files) * 8
     
     def __getitem__(self, idx):
-        index = idx // 8
-        flip = idx % 8 >= 4
-        rotate = idx % 4
+        if self.augment:
+            index = idx // 8
+            flip = idx % 8 >= 4
+            rotate = idx % 4
 
         planetscope_lr_file = torch.rot(torch.from_numpy(np.load(self.planetscope_lr_files[index])), rotate)
         planetscope_file = torch.rot(torch.from_numpy(np.load(self.planetscope_files[index])), rotate)
 
-        if flip:
+        if self.augment and flip:
             planetscope_lr_file = torch.flip(planetscope_lr_file, [1])
             planetscope_file = torch.flip(planetscope_file, [1])
 
