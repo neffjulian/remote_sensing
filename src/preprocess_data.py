@@ -51,7 +51,7 @@ def remove_unused_images(in_situ: bool = False) -> None:
         files = [[file.name for file in DATA_DIR.joinpath("processed", folder).iterdir()] for folder in folders]
     assert all(files[0] == files[i] for i in range(1, len(files))), "Error in original Sentinel-2 Files"
 
-def create_tiles(data: np.ndarray, in_situ: bool = False, tiles: int = 4):
+def create_tiles(data: np.ndarray, tiles: int = 4):
     """Create tiles from the given data."""
     sub_data = []
     arr_x, arr_y = data.shape
@@ -61,23 +61,22 @@ def create_tiles(data: np.ndarray, in_situ: bool = False, tiles: int = 4):
             x_start, x_end = i * x, (i + 1) * x
             y_start, y_end = j * y, (j + 1) * y
 
-            if not in_situ:
-                margin = 40
-                if i == 0:
-                    x_start += margin
-                    x_end += margin
-                if i == tiles - 1:
-                    x_start -= margin
-                    x_end -= margin
-                if j == 0:
-                    y_start += margin
-                    y_end += margin
-                if j == tiles - 1:
-                    y_start -= margin
-                    y_end -= margin
+            margin = 40
+            if i == 0:
+                x_start += margin
+                x_end += margin
+            if i == tiles - 1:
+                x_start -= margin
+                x_end -= margin
+            if j == 0:
+                y_start += margin
+                y_end += margin
+            if j == tiles - 1:
+                y_start -= margin
+                y_end -= margin
 
             tile = data[x_start:x_end, y_start:y_end]
-            if np.isnan(tile).sum() / tile.size > 0.01 and not in_situ:
+            if np.isnan(tile).sum() / tile.size > 0.01:
                 sub_data.append(None)
             else:
                 sub_data.append(np.clip(np.nan_to_num(tile), 0., 8.))
@@ -98,21 +97,28 @@ def psnr(x, y):
     return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
 
 def process_file(satellite: str, target_dir: Path, target_name: str, data: np.ndarray, in_situ: bool, augment: bool = False) -> None:
-    out_dim = (100, 100) if satellite == "sentinel" else (600, 600)
+    if in_situ is True:
+        out_dim = (25, 25) if satellite == "sentinel" else (150, 150)
+    else:
+        out_dim = (100, 100) if satellite == "sentinel" else (600, 600)
 
     resized_data = cv2.resize(data, out_dim, interpolation=cv2.INTER_AREA)
-    tiles = create_tiles(resized_data, in_situ=in_situ)
-    for i, tile in enumerate(tiles):
-        if tile is None:
-            continue
 
-        if augment is True:
-            for j in range(4):
-                tile_rot = np.rot90(tile, j)
-                np.save(target_dir.joinpath(f"{target_name}_{i:02d}_{j:02}_00.npy"), tile_rot)
-                np.save(target_dir.joinpath(f"{target_name}_{i:02d}_{j:02}_01.npy"), np.flip(tile_rot, axis=1))
-        else:
-            np.save(target_dir.joinpath(f"{target_name}_{i:02d}.npy"), tile)
+    if in_situ is False:
+        tiles = create_tiles(resized_data)
+        for i, tile in enumerate(tiles):
+            if tile is None:
+                continue
+
+            if augment is True:
+                for j in range(4):
+                    tile_rot = np.rot90(tile, j)
+                    np.save(target_dir.joinpath(f"{target_name}_{i:02d}_{j:02}_00.npy"), tile_rot)
+                    np.save(target_dir.joinpath(f"{target_name}_{i:02d}_{j:02}_01.npy"), np.flip(tile_rot, axis=1))
+            else:
+                np.save(target_dir.joinpath(f"{target_name}_{i:02d}.npy"), tile)
+    else:
+        np.save(target_dir.joinpath(f"{target_name[3:]}.npy"), resized_data)
 
 def process_satellite_data(satellite: str, band: str, in_situ: bool) -> None:
     months = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
@@ -121,11 +127,12 @@ def process_satellite_data(satellite: str, band: str, in_situ: bool) -> None:
 
     if in_situ is True:
         folder = DATA_DIR.joinpath("filtered", "in_situ", f"{satellite}_in_situ")
+        min_shape = 25 if satellite == "sentinel" else 150
     else:
         folder = DATA_DIR.joinpath("filtered", satellite)
+        min_shape = 100 if satellite == "sentinel" else 660
 
-    min_shape = 100 if satellite == "sentinel" else 660
-
+    
     for year in folder.iterdir():
         for month in year.iterdir():
             if not month.name[-3:] in months:
@@ -146,7 +153,6 @@ def process_satellite_data(satellite: str, band: str, in_situ: bool) -> None:
                     data = RasterCollection.from_multi_band_raster(file)["lai"].values
                     if min(data.shape) < min_shape:
                         continue
-
                     target_name = month.name[0:2] + "_" + file.name[0:4]
                     process_file(satellite, target_dir, target_name, data, in_situ)
 
@@ -250,17 +256,14 @@ def create_lr_dataset(ps_band: str):
 def main():
     process_satellite_data("sentinel", "20m", False)
     process_satellite_data("sentinel", "20m", True)
-    rename_in_situ_data("20m")
     
     process_satellite_data("planetscope", "4b", False)
     process_satellite_data("planetscope", "4b", True)
-    rename_in_situ_data("4b")
 
     remove_unused_images(in_situ=False)
     remove_unused_images(in_situ=True)
     remove_outliers("4b", "20m")
     create_lr_dataset("4b")
 
-       
 if __name__ == "__main__":
     main()

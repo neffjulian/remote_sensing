@@ -52,11 +52,20 @@ class SRDataset(Dataset):
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
 
     def __len__(self):
-        return len(self.planetscope_files)
+        return len(self.planetscope_files) * 8
     
     def __getitem__(self, idx):
-        planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
-        planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
+        index = idx // 8
+        flip = idx % 8 >= 4
+        rotate = idx % 4
+
+        planetscope_lr_file = torch.rot(torch.from_numpy(np.load(self.planetscope_lr_files[index])), rotate)
+        planetscope_file = torch.rot(torch.from_numpy(np.load(self.planetscope_files[index])), rotate)
+
+        if flip:
+            planetscope_lr_file = torch.flip(planetscope_lr_file, [1])
+            planetscope_file = torch.flip(planetscope_file, [1])
+
         return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):

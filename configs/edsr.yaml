@@ -14,7 +14,7 @@ model:
   name: edsr
   batch_size: 16
   channels: 128
-  blocks: 16
+  blocks: 24
 
 datamodule:
   batch_size: 16
