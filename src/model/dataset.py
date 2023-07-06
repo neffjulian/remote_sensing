@@ -131,3 +131,13 @@ class SRDataModule(pl.LightningDataModule):
 
     def predict_dataloader(self):
         return DataLoader(self.predict_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, pin_memory=True, persistent_workers=True)
+    
+def print_mean():
+    lr_dir = DATA_DIR.joinpath("4b_lr")
+    sum = np.zeros((25, 25))
+    for file in lr_dir.iterdir():
+        sum += np.load(file)
+    mean = sum / len(list(lr_dir.iterdir()))
+    print(np.mean(mean))
+
+print_mean()

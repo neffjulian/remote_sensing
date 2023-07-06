@@ -43,6 +43,8 @@ class EDSR(LightningModule):
 
         self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
 
+        self.mean = 2.3883540838022848
+
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
                 torch.nn.init.normal_(module.weight, mean=0, std=0.002)
@@ -50,9 +52,10 @@ class EDSR(LightningModule):
                     module.bias.data.zero_()
 
     def forward(self, x):
+        x_hat = x - self.mean
         x_hat = self.interpolate(x)
         x_hat = self.input_layer(x_hat)
-        return self.output_layer(x_hat + self.residual_layers(x_hat))
+        return self.output_layer(x_hat + self.residual_layers(x_hat)) + self.mean
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)

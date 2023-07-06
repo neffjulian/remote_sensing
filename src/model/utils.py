@@ -88,7 +88,6 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
-
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
@@ -100,6 +99,7 @@ def visualize_output(name: str, output: list) -> None:
         lr_sr_ssim, _ = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
         print(out_file.name, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr, "  LR-HR SSIM:", lr_hr_ssim, "  LR-SR SSIM:", lr_sr_ssim)
         save_output_visualization(out[0], out[1], out[2], out_file)
+        np.save(out[2], results.joinpath(out[3][:-4] + '.npy'))
 
 def report_gpu():
    print(torch.cuda.list_gpu_processes())
