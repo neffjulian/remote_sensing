@@ -14,11 +14,11 @@ model:
   name: edsr
   batch_size: 16
   channels: 64
-  blocks: 16
+  blocks: 32
 
 datamodule:
   batch_size: 16
-  augment: False
+  augment: True
 
 trainer:
   max_epochs: 50
