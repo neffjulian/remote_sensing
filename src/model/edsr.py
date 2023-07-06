@@ -60,7 +60,7 @@ class EDSR(LightningModule):
 
     def forward(self, x):
         # x_hat = self.interpolate(x)
-        x_hat = self.input_layer(x_hat)
+        x_hat = self.input_layer(x)
         x_hat = self.upscale(x_hat + self.residual_layers(x_hat))
     
     def configure_optimizers(self):
