@@ -59,9 +59,11 @@ class EDSR(LightningModule):
                     module.bias.data.zero_()
 
     def forward(self, x):
+        # x_hat = x - self.mean
         # x_hat = self.interpolate(x)
         x_hat = self.input_layer(x)
         x_hat = self.upscale(x_hat + self.residual_layers(x_hat))
+        return self.output_layer(x_hat)
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
