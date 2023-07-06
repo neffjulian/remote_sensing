@@ -18,6 +18,7 @@ model:
 
 datamodule:
   batch_size: 16
+  augment: False
 
 trainer:
   max_epochs: 50
