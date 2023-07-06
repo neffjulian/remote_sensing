@@ -6,8 +6,7 @@ import py7zr
 DATA_DIR = Path(__file__).parent.parent.joinpath("data")
 
 if __name__ == "__main__":
-    # TODO: Update URL
-    url = "https://polybox.ethz.ch/index.php/s/e5yrmHcejuCo0WO/download"
+    url = "https://polybox.ethz.ch/index.php/s/7xiwwzdKwvy1Ks0/download"
     wget.download(url,out=str(DATA_DIR))
 
     data_zip = DATA_DIR.joinpath("filtered.7z")
