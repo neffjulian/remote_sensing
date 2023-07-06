@@ -28,7 +28,7 @@ class EDSR(LightningModule):
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
         output_size = (150, 150)
-        self.interpolate = nn.Upsample(size=output_size, mode="bicubic")
+        # self.interpolate = nn.Upsample(size=output_size, mode="bicubic")
         
         self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
         
@@ -40,6 +40,13 @@ class EDSR(LightningModule):
             )
         ] * self.nr_blocks
         self.residual_layers = nn.Sequential(*residual_layers)
+
+
+        self.upscale = nn.Sequential(
+            nn.Conv2d(self.channels, 108, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.PixelShuffle(6),
+            nn.Conv2d(3, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
+        )
 
         self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
 
@@ -53,9 +60,10 @@ class EDSR(LightningModule):
 
     def forward(self, x):
         x_hat = x - self.mean
-        x_hat = self.interpolate(x)
+        # x_hat = self.interpolate(x)
         x_hat = self.input_layer(x_hat)
-        return self.output_layer(x_hat + self.residual_layers(x_hat)) + self.mean
+        x_hat = self.upscale(x_hat + self.residual_layers(x_hat))
+        return self.output_layer(x_hat) + self.mean
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
