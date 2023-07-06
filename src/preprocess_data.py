@@ -250,6 +250,7 @@ def create_lr_dataset(ps_band: str):
         ssim_score, _ = ssim((upsampled_data * (255. / 8.)).astype(np.uint8), (data * (255. / 8.)).astype(np.uint8), full=True)
         ssim_scores.append(ssim_score)
 
+    print("Scores when downsampling PS to 25x25 and upsampling back to 150x150:")
     print(f"PSNR: {np.mean(psnr_scores)}")
     print(f"SSIM: {np.mean(ssim_scores)}")
 

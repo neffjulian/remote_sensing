@@ -10,7 +10,6 @@ from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
 from pytorch_lightning.utilities.memory import garbage_collection_cuda
-from pytorch_lightning.plugins import DDPPlugin
 
 from model.dataset import SRDataModule
 from model.utils import visualize_output
@@ -61,7 +60,6 @@ def main(hparams: dict) -> None:
             default_root_dir=LOG_DIR,
             accelerator="gpu",
             devices=4,
-            plugins=DDPPlugin(find_unused_parameters=False)
         )
 
         trainer.fit(model=model, datamodule=datamodule)
