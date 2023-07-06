@@ -13,7 +13,7 @@ predict: true
 model:
   name: edsr
   batch_size: 16
-  channels: 64
+  channels: 128
   blocks: 32
 
 datamodule:
