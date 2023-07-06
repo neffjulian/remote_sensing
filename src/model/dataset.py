@@ -139,5 +139,3 @@ def print_mean():
         sum += np.load(file)
     mean = sum / len(list(lr_dir.iterdir()))
     print(np.mean(mean))
-
-print_mean()
