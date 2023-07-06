@@ -99,7 +99,7 @@ def visualize_output(name: str, output: list) -> None:
         sr_hr_ssim, _ = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
         print(out_file.name, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr," |  LR-HR SSIM:", lr_hr_ssim, " SR-HR SSIM:", sr_hr_ssim)
         save_output_visualization(out[0], out[1], out[2], out_file)
-        np.save(out[2], results.joinpath(out[3][:-4] + '.npy'))
+        np.save(results.joinpath(out[3][:-4] + '.npy'), out[2])
 
 def report_gpu():
    print(torch.cuda.list_gpu_processes())
