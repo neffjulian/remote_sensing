@@ -21,10 +21,8 @@ class EDSR(LightningModule):
     def __init__(self, hparams: dict):
         super().__init__()
 
-        self.batch_size = hparams["model"]["batch_size"]
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
-        self.scheduler = hparams["scheduler"]
         self.channels = hparams["model"]["channels"]
         self.nr_blocks = hparams["model"]["blocks"]
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
@@ -47,7 +45,7 @@ class EDSR(LightningModule):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.002)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
@@ -66,22 +64,20 @@ class EDSR(LightningModule):
                     optimizer=optimizer,
                     step_size=self.scheduler_step,
                     gamma=0.5
-                )
+                ),
+                "monitor": "val_ssim"
             }
         }
 
     def shared_step(self, batch, stage):
         lr_image, hr_image = batch
         sr_image = self.forward(lr_image)
-
         l1_loss = F.l1_loss(sr_image, hr_image)
-
         if stage == "val":
             mse_loss = F.mse_loss(sr_image, hr_image)
             self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)    
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
             self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
-            
         return l1_loss
 
     def training_step(self, batch, batch_idx):
@@ -94,5 +90,4 @@ class EDSR(LightningModule):
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)
         lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
-
         return lr_image, sr_image, hr_image, names

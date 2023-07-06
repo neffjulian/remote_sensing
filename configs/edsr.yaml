@@ -13,19 +13,19 @@ predict: true
 model:
   name: edsr
   batch_size: 16
-  channels: 128
-  blocks: 24
+  channels: 64
+  blocks: 16
 
 datamodule:
   batch_size: 16
 
 trainer:
-  max_epochs: 250
+  max_epochs: 50
   profiler: "simple"
   log_every_n_steps: 5
 
 optimizer:
-  lr: 0.0001
+  lr: 0.0002
   scheduler_step: 10
 
 
