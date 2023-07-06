@@ -65,14 +65,14 @@ class SRDataset(Dataset):
             index = idx // 8
             flip = idx % 8 >= 4
             rotate = idx % 4
-
-        planetscope_lr_file = torch.rot90(torch.from_numpy(np.load(self.planetscope_lr_files[index])), rotate)
-        planetscope_file = torch.rot90(torch.from_numpy(np.load(self.planetscope_files[index])), rotate)
-
-        if self.augment and flip:
-            planetscope_lr_file = torch.flip(planetscope_lr_file, [1])
-            planetscope_file = torch.flip(planetscope_file, [1])
-
+            planetscope_lr_file = torch.rot90(torch.from_numpy(np.load(self.planetscope_lr_files[index])), rotate)
+            planetscope_file = torch.rot90(torch.from_numpy(np.load(self.planetscope_files[index])), rotate)
+            if flip:
+                planetscope_lr_file = torch.flip(planetscope_lr_file, [1])
+                planetscope_file = torch.flip(planetscope_file, [1])
+        else:
+            planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
+            planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
         return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
