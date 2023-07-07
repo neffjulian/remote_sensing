@@ -23,17 +23,32 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
 
     reconstructed_images = []
 
+    normal_s2 = []
+    normal_sr = []
+    normal_ps = []
+    normal_names = []
     for out in model_output:
         s2, y, ps, name = out
         print(name)
 
-        if name.contains("03_"):
+        if name[0].contains("03_"):
             img_s2.append(s2)
             img_sr.append(y)
             img_ps.append(ps)
             names.append(name)
         else:
-            reconstructed_images.append((s2, y, ps, name))
+            normal_s2.append(s2)
+            normal_sr.append(y)
+            normal_ps.append(ps)
+            normal_names.append(name)
+
+    normal_result_s2 = torch.cat(normal_s2, dim=0).squeeze().numpy()
+    normal_result_sr = torch.cat(normal_sr, dim=0).squeeze().numpy()
+    normal_result_ps = torch.cat(normal_ps, dim=0).squeeze().numpy()
+
+    for i in range(0, len(normal_names)):
+        reconstructed_images.append((normal_result_s2[i], normal_result_sr[i], normal_result_ps[i], normal_names[i]))
+            
 
     result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
     result_sr = torch.cat(img_sr, dim=0).squeeze().numpy()
