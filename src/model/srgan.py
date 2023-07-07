@@ -61,7 +61,7 @@ class Generator(nn.Module):
 
         upscale_blocks = [
             nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3, padding=1, padding_mode="replicate"),
-            nn.PixelShuffle(2),
+            nn.PixelShuffle(3),
             nn.PReLU()
         ] * 2
         self.upscale_blocks = nn.Sequential(*upscale_blocks)
@@ -185,7 +185,6 @@ class SRGAN(pl.LightningModule):
     
     def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         fake = self(lr_image)
-        raise Exception(f"{fake.shape} {lr_image.shape}")
         fake_pred = self.discriminator(fake)
         return fake, fake_pred
 
