@@ -59,12 +59,14 @@ class Generator(nn.Module):
         ]
         self.residual_blocks = nn.Sequential(*residual_blocks)
 
-        upscale_blocks = [
+        self.upscale_block = nn.Sequential(
             nn.Conv2d(feature_maps, feature_maps * 9, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PixelShuffle(3),
-            nn.PReLU()
-        ] * 2
-        self.upscale_blocks = nn.Sequential(*upscale_blocks)
+            nn.PReLU(),
+            nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.PixelShuffle(2),
+            nn.PReLU(),
+        )
 
         self.output_block = nn.Sequential(
             nn.Conv2d(feature_maps, 1, kernel_size=9, padding=4, padding_mode="replicate"),
