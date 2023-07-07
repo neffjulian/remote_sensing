@@ -47,6 +47,7 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
 
     for i in range(0, len(normal_names)):
         reconstructed_images.append((normal_result_s2[i], normal_result_sr[i], normal_result_ps[i], normal_names[i]))
+        print(f"({normal_names[i].shape}, {normal_result_s2[i].shape}, {normal_result_sr[i].shape}, {normal_result_ps[i].shape})")
             
 
     result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
@@ -56,6 +57,7 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     image_names = [string for tup in names for string in tup]
     enumerated_names = [(i, str) for i, str in enumerate(image_names)]
     sorted_names = sorted(enumerated_names, key=lambda x: x[1])
+    print("Add reconstructed images")
 
     for i in range(0, len(sorted_names), 16):
         image_s2 = np.zeros((600, 600))
@@ -68,6 +70,7 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
                 image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_ps[sorted_names[i + j*4 + k][0]]
 
         reconstructed_images.append((image_s2, image_sr, image_ps, sorted_names[i][1]))
+        print(f"({sorted_names[i][1].shape}, {image_s2.shape}, {image_sr.shape}, {image_ps.shape})")
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
