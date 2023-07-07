@@ -216,4 +216,5 @@ class SRGAN(pl.LightningModule):
         fake_features = self.feature_extractor(fake)
         print(hr_image.shape, fake.shape)
         print(real_features.shape, fake_features.shape)
+        raise Exception(f"{real_features.shape} {fake_features.shape} {hr_image.shape} {fake.shape}")
         return F.mse_loss(fake_features, real_features)
