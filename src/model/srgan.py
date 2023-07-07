@@ -60,7 +60,7 @@ class Generator(nn.Module):
         self.residual_blocks = nn.Sequential(*residual_blocks)
 
         upscale_blocks = [
-            nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.Conv2d(feature_maps, feature_maps * 9, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PixelShuffle(3),
             nn.PReLU()
         ] * 2
@@ -73,7 +73,7 @@ class Generator(nn.Module):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.01)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
@@ -105,7 +105,7 @@ class Discriminator(nn.Module):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.01)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
