@@ -57,15 +57,12 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     enumerated_names = [(i, str) for i, str in enumerate(image_names)]
     sorted_names = sorted(enumerated_names, key=lambda x: x[1])
 
-    tiles = int(len(sorted_names) / 48)
-    sqrt_tiles = int(sqrt(tiles))
-
-    for i in range(0, len(sorted_names), tiles):
+    for i in range(0, len(sorted_names), 16):
         image_s2 = np.zeros((600, 600))
         image_sr = np.zeros((600, 600))
         image_ps = np.zeros((600, 600))
-        for j in range(sqrt_tiles):
-            for k in range(sqrt_tiles):
+        for j in range(4):
+            for k in range(4):
                 image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_s2[sorted_names[i + j*4 + k][0]]
                 image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_sr[sorted_names[i + j*4 + k][0]]
                 image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_ps[sorted_names[i + j*4 + k][0]]
