@@ -74,7 +74,7 @@ class EDSR(LightningModule):
                 'scheduler': StepLR(
                     optimizer=optimizer,
                     step_size=self.scheduler_step,
-                    gamma=0.5
+                    gamma=0.9
                 ),
                 "monitor": "val_ssim"
             }
