@@ -21,14 +21,19 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     img_ps = []
     names = []
 
+    reconstructed_images = []
+
     for out in model_output:
         s2, y, ps, name = out
         print(name)
 
-        img_s2.append(s2)
-        img_sr.append(y)
-        img_ps.append(ps)
-        names.append(name)
+        if name.contains("03_"):
+            img_s2.append(s2)
+            img_sr.append(y)
+            img_ps.append(ps)
+            names.append(name)
+        else:
+            reconstructed_images.append((s2, y, ps, name))
 
     result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
     result_sr = torch.cat(img_sr, dim=0).squeeze().numpy()
@@ -41,7 +46,6 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     tiles = int(len(sorted_names) / 48)
     sqrt_tiles = int(sqrt(tiles))
 
-    reconstructed_images = []
     for i in range(0, len(sorted_names), tiles):
         image_s2 = np.zeros((600, 600))
         image_sr = np.zeros((600, 600))
