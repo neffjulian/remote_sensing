@@ -146,8 +146,8 @@ class SRGAN(pl.LightningModule):
         opt_gen = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
         opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr=self.lr)
 
-        sched_gen = torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5)
-        sched_disc = torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5)
+        sched_gen = torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5, verbose=True)
+        sched_disc = torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5, verbose=True)
 
         return [opt_gen, opt_disc], [sched_gen, sched_disc]
 
