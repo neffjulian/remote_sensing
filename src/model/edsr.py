@@ -74,7 +74,9 @@ class EDSR(LightningModule):
                 'scheduler': StepLR(
                     optimizer=optimizer,
                     step_size=self.scheduler_step,
-                    gamma=0.9
+                    gamma=0.9,
+                    verbose=True
+
                 ),
                 "monitor": "val_ssim"
             }
@@ -89,7 +91,6 @@ class EDSR(LightningModule):
             self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)    
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
             self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
-            self.log("lr", self.lr, sync_dist=True)
         return l1_loss
 
     def training_step(self, batch, batch_idx):

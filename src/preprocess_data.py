@@ -118,7 +118,7 @@ def process_file(satellite: str, target_dir: Path, target_name: str, data: np.nd
             else:
                 np.save(target_dir.joinpath(f"{target_name}_{i:02d}.npy"), tile)
     else:
-        np.save(target_dir.joinpath(f"{target_name[3:]}.npy"), resized_data)
+        np.save(target_dir.joinpath(f"{target_name[3:]}.npy"), np.nan_to_num(resized_data))
 
 def process_satellite_data(satellite: str, band: str, in_situ: bool) -> None:
     months = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
