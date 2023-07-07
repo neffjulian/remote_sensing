@@ -47,7 +47,7 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
 
     for i in range(0, len(normal_names)):
         reconstructed_images.append((normal_result_s2[i], normal_result_sr[i], normal_result_ps[i], normal_names[i]))
-        print(f"({normal_names[i].shape}, {normal_result_s2[i].shape}, {normal_result_sr[i].shape}, {normal_result_ps[i].shape})")
+        print(f"({normal_names[i]}, {normal_result_s2[i].shape}, {normal_result_sr[i].shape}, {normal_result_ps[i].shape})")
             
 
     result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
