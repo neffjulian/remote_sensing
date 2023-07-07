@@ -29,9 +29,8 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     normal_names = []
     for out in model_output:
         s2, y, ps, name = out
-        print(name)
 
-        if name[0].contains("03_"):
+        if name[0].startswith("03_"):
             img_s2.append(s2)
             img_sr.append(y)
             img_ps.append(ps)
