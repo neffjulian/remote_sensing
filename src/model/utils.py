@@ -2,7 +2,7 @@ import os
 import gc
 from pathlib import Path
 from math import sqrt, log10
-
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -55,6 +55,12 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
     f, axes = plt.subplots(1, 3, figsize=(30, 10))
+
+    ps_shape = np.shape(planet_scope)
+    if sentinel_2.shape != ps_shape:
+        sentinel_2 = cv2.resize(sentinel_2, ps_shape, interpolation=cv2.INTER_CUBIC)
+    if super_resolved.shape != ps_shape:
+        super_resolved = cv2.resize(super_resolved, ps_shape, interpolation=cv2.INTER_CUBIC)
 
     # Plot for S2 image
     ax1 = axes[0]
