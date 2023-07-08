@@ -146,8 +146,8 @@ class SRGAN(pl.LightningModule):
         opt_gen = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
         opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr=self.lr)
 
-        sched_gen = torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5, verbose=True)
-        sched_disc = torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5, verbose=True)
+        sched_gen = torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5)
+        sched_disc = torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5)
 
         return [opt_gen, opt_disc], [sched_gen, sched_disc]
 
@@ -206,7 +206,7 @@ class SRGAN(pl.LightningModule):
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
 
-        return 0.006 * perceptual_loss + 0.001 * adv_loss + content_loss
+        return 0.06 * perceptual_loss + 0.01 * adv_loss + content_loss
 
     @staticmethod
     def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:
