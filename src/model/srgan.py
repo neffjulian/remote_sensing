@@ -159,7 +159,7 @@ class SRGAN(pl.LightningModule):
         lr_image, hr_image = batch
 
         loss = None
-        if optimizer_idx == 0 and (batch_idx + 1) % 5 == 0:
+        if optimizer_idx == 0 and (batch_idx + 1) % 10 == 0:
             loss = self._generator_loss(lr_image, hr_image)
         if optimizer_idx == 1:
             loss = self._discriminator_loss(lr_image, hr_image)
@@ -206,7 +206,7 @@ class SRGAN(pl.LightningModule):
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
 
-        return 0.06 * perceptual_loss + 0.01 * adv_loss + content_loss
+        return 0.006 * perceptual_loss + 0.001 * adv_loss + content_loss
 
     @staticmethod
     def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:
