@@ -114,16 +114,13 @@ def visualize_output(name: str, output: list) -> None:
         names += out[3]
     outputs = []
     for i in range(len(names)):
+        print(lr[i].shape, sr[i].shape, hr[i].shape, names[i])
         outputs.append((lr[i], sr[i], hr[i], names[i]))
     in_situ = sorted(outputs[:-64], key=lambda x: x[3])
     ps_sr = sorted(outputs[-64:-32], key=lambda x: x[3])
     s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
 
-    print([x[3] for x in in_situ])
-    print([x[3] for x in ps_sr])
-    print([x[3] for x in s2_sr])
-    print(len(in_situ), len(ps_sr), len(s2_sr))
-    
+
     
     raise Exception
     transformed_output = transform_model_output(output)
