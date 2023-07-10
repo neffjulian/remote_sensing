@@ -43,7 +43,7 @@ class ResidualBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x + self.block(x)
 
-class Generator(nn.Module):
+class Generator(nn.Module): # I.e. SRResNet
     def __init__(self, feature_maps: int = 64, num_res_blocks: int = 16) -> None:
         super().__init__()
 

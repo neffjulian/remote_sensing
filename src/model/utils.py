@@ -133,7 +133,7 @@ def visualize_output(name: str, output: list) -> None:
             " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100,2),")")
     print("-------------------- MEDIAN -----------------------")
     print("LR-HR PSNR:", np.median(lr_hr_psnrs), "  SR-HR PSNR:", np.median(sr_hr_psnrs), " (", \
-          round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims), 2),") |  LR-HR SSIM:", np.median(lr_hr_ssims), \
+          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs), 2),") |  LR-HR SSIM:", np.median(lr_hr_ssims), \
             " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100,2),")")
 
 def report_gpu():
