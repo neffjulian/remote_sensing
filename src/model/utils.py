@@ -113,9 +113,9 @@ def visualize_output(name: str, output: list) -> None:
              torch.squeeze(sr[i]).numpy(), 
              torch.squeeze(hr[i]).numpy(), 
              names[i][:-4]))
-    in_situ = sorted(outputs[:-64], key=lambda x: x[3])
-    ps_sr = sorted(outputs[-64:-32], key=lambda x: x[3])
-    s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
+    in_situ = sorted(outputs[:-32], key=lambda x: x[3])
+    ps_sr = sorted(outputs[-32:-16], key=lambda x: x[3])
+    s2_sr = sorted(outputs[-16:], key=lambda x: x[3])
 
     transformer_ps_sr = transform_model_output(ps_sr, False)
     transformer_s2_sr = transform_model_output(s2_sr, True)
