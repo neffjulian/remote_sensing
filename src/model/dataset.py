@@ -27,7 +27,7 @@ class SRPredictDataset(Dataset):
 
         self.files = []
         for file in s2_20m_dir.iterdir():
-            self.files.append(s2_20m_in_situ_dir.joinpath(file.name), ps_4b_in_situ_dir.joinpath(file.name), file.name)
+            self.files.append((s2_20m_in_situ_dir.joinpath(file.name), ps_4b_in_situ_dir.joinpath(file.name), file.name))
 
         ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("03_0000") or file.name.startswith("03_0001")]
         ps_4b_lr_files = [file.name for file in ps_4b_lr_dir.iterdir() if file.name.startswith("03_0000") or file.name.startswith("03_0001")]
@@ -35,10 +35,10 @@ class SRPredictDataset(Dataset):
         assert ps_4b_files == ps_4b_lr_files == s2_20m_files
 
         for file in ps_4b_files:
-            self.files.append(ps_4b_lr_dir.joinpath(file), ps_4b_dir.joinpath(file), file)
+            self.files.append((ps_4b_lr_dir.joinpath(file), ps_4b_dir.joinpath(file), file))
 
         for file in s2_20m_files:
-            self.files.append(s2_20m_dir.joinpath(file), ps_4b_dir.joinpath(file), file)
+            self.files.append((s2_20m_dir.joinpath(file), ps_4b_dir.joinpath(file), file))
 
 
     def __len__(self):
