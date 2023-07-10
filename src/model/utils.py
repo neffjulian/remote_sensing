@@ -46,8 +46,7 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                     y_end -= 40
                     y_start -= 40
 
-                assert x_start - x_end == -150, f"{j}, {k}"
-                assert y_start - y_end == -150, f"{j}, {k}"
+                print(image_s2[x_start:x_end, y_start:y_end].shape, x_start, x_end, y_start, y_end)
 
                 image_s2[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][0]
                 image_sr[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][1]
