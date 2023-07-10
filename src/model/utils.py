@@ -89,8 +89,8 @@ def visualize_output(name: str, output: list) -> None:
     s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
 
 
-    transformer_ps_sr = transform_model_output(ps_sr)
-    transformer_s2_sr = transform_model_output(s2_sr)
+    transformer_ps_sr = transform_model_output(ps_sr, False)
+    transformer_s2_sr = transform_model_output(s2_sr, True)
 
     print(transformer_ps_sr[0][3], transformer_ps_sr[1][3])
     print(transformer_s2_sr[0][3], transformer_s2_sr[1][3])
