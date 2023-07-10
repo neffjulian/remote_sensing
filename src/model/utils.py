@@ -106,9 +106,25 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
-    lr, sr, hr, names = zip(*output)
-    outputs = [(lr[i], sr[i], hr[i], names[i]) for i in range(len(names))]
-    print(len(outputs))
+    lr, sr, hr, names = [], [], [], []
+    for out in output:
+        lr += out[0]
+        sr += out[1]
+        hr += out[2]
+        names += out[3]
+    outputs = []
+    for i in range(len(names)):
+        outputs.append((lr[i], sr[i], hr[i], names[i]))
+    in_situ = outputs[:-64]
+    ps_sr = outputs[-64:-32]
+    s2_sr = outputs[-32:]
+
+    print([x[3] for x in in_situ])
+    print([x[3] for x in ps_sr])
+    print([x[3] for x in s2_sr])
+    print(len(in_situ), len(ps_sr), len(s2_sr))
+    
+    
     raise Exception
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
