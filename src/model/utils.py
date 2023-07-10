@@ -55,17 +55,18 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                     y_start = 370
                     y_end = 520
 
-                print(i + j*4 + k)
-
                 image_s2[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][0]
                 image_sr[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][1]
                 image_ps[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][2]
         
+        reconstructed_images.append((image_s2, np.abs(image_ps - image_sr), image_ps, name + "_error"))
         reconstructed_images.append((image_s2, image_sr, image_ps, name))
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
     f, axes = plt.subplots(1, 3, figsize=(30, 10))
+
+    print(dir.name)
 
     # Plot for S2 image
     ax1 = axes[0]
@@ -116,15 +117,8 @@ def visualize_output(name: str, output: list) -> None:
     ps_sr = sorted(outputs[-64:-32], key=lambda x: x[3])
     s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
 
-    print([x[3] for x in in_situ])
-    print([x[3] for x in ps_sr])
-    print([x[3] for x in s2_sr])
-
     transformer_ps_sr = transform_model_output(ps_sr, False)
     transformer_s2_sr = transform_model_output(s2_sr, True)
-
-    print(transformer_ps_sr[0][3], transformer_ps_sr[1][3])
-    print(transformer_s2_sr[0][3], transformer_s2_sr[1][3])
 
     # transformed_output = in_situ + transformer_ps_sr + transformer_s2_sr
     transformed_output = transformer_ps_sr + transformer_s2_sr

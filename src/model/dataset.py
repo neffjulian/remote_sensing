@@ -29,9 +29,9 @@ class SRPredictDataset(Dataset):
         for file in s2_20m_in_situ_dir.iterdir():
             self.files.append((s2_20m_in_situ_dir.joinpath(file.name), ps_4b_in_situ_dir.joinpath(file.name), file.name))
 
-        ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("07_0000") or file.name.startswith("07_0001")]
-        ps_4b_lr_files = [file.name for file in ps_4b_lr_dir.iterdir() if file.name.startswith("07_0000") or file.name.startswith("07_0001")]
-        s2_20m_files = [file.name for file in s2_20m_dir.iterdir() if file.name.startswith("07_0000") or file.name.startswith("07_0001")]
+        ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("07_0000")]
+        ps_4b_lr_files = [file.name for file in ps_4b_lr_dir.iterdir() if file.name.startswith("07_0000")]
+        s2_20m_files = [file.name for file in s2_20m_dir.iterdir() if file.name.startswith("07_0000")]
         assert ps_4b_files == ps_4b_lr_files == s2_20m_files
 
         for file in ps_4b_files:
