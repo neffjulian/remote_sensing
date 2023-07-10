@@ -23,11 +23,11 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
         image_ps = np.zeros((600, 600))
         for j in range(4):
             for k in range(4):
-                image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[0][i + j*4 + k]
-                image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[1][i + j*4 + k]
-                image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[2][i + j*4 + k]
+                image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[i + j*4 + k][0]
+                image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[i + j*4 + k][1]
+                image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[i + j*4 + k][2]
 
-        reconstructed_images.append((image_s2, image_sr, image_ps, model_output[3][i + 16][:-4]))
+        reconstructed_images.append((image_s2, image_sr, image_ps, model_output[i + 16][3][:-4]))
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
