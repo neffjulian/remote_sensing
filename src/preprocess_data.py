@@ -58,7 +58,7 @@ def create_tiles(data: np.ndarray, satellite: str, tiles: int = 4):
     x, y = arr_x // tiles, arr_y // tiles
     
     if satellite == "sentinel":
-        margin = 10
+        margin = 7
     else: 
         margin = 40
 
