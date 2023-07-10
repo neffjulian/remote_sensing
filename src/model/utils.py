@@ -18,7 +18,7 @@ def psnr(x, y):
 def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
     reconstructed_images = []
     for i in range(0, 2):
-        name = model_output[i + 16][3][:-2]
+        name = model_output[i * 16][3][:-2]
         if s2:
             name += "s2"
         else:
@@ -120,7 +120,6 @@ def visualize_output(name: str, output: list) -> None:
     print([x[3] for x in ps_sr])
     print([x[3] for x in s2_sr])
 
-
     transformer_ps_sr = transform_model_output(ps_sr, False)
     transformer_s2_sr = transform_model_output(s2_sr, True)
 
@@ -153,12 +152,12 @@ def visualize_output(name: str, output: list) -> None:
 
     print("--------------------- MEAN ------------------------")
     print("LR-HR PSNR:", np.mean(lr_hr_psnrs), "  SR-HR PSNR:", np.mean(sr_hr_psnrs), " (", \
-          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),") | LR-HR SSIM:", np.mean(lr_hr_ssims), \
-            " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100 - 100,2),")")
+          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),"%) | LR-HR SSIM:", np.mean(lr_hr_ssims), \
+            " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100 - 100,2),"%)")
     print("-------------------- MEDIAN -----------------------")
     print("LR-HR PSNR:", np.median(lr_hr_psnrs), "  SR-HR PSNR:", np.median(sr_hr_psnrs), " (", \
-          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),") |  LR-HR SSIM:", np.median(lr_hr_ssims), \
-            " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100 - 100,2),")")
+          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),"%) |  LR-HR SSIM:", np.median(lr_hr_ssims), \
+            " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100 - 100,2),"%)")
 
 def report_gpu():
    print(torch.cuda.list_gpu_processes())
