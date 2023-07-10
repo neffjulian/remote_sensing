@@ -17,50 +17,49 @@ def psnr(x, y):
 
 def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
     reconstructed_images = []
-    for i in range(0, 2):
-        name = model_output[i * 16][3][:-2]
-        if s2:
-            name += "s2"
-        else:
-            name += "ps"
+    name = model_output[0][3][:-2]
+    if s2:
+        name += "s2"
+    else:
+        name += "ps"
 
-        image_s2 = np.zeros((520, 520))
-        image_sr = np.zeros((520, 520))
-        image_ps = np.zeros((520, 520))
-        for j in range(4):
-            for k in range(4):
-                if j == 0:
-                    x_start = 0
-                    x_end = 150
-                elif j == 1:
-                    x_start = 110
-                    x_end = 260
-                elif j == 2:
-                    x_start = 260
-                    x_end = 410
-                elif j == 3:
-                    x_start = 370
-                    x_end = 520
+    image_s2 = np.zeros((520, 520))
+    image_sr = np.zeros((520, 520))
+    image_ps = np.zeros((520, 520))
+    for j in range(4):
+        for k in range(4):
+            if j == 0:
+                x_start = 0
+                x_end = 150
+            elif j == 1:
+                x_start = 110
+                x_end = 260
+            elif j == 2:
+                x_start = 260
+                x_end = 410
+            elif j == 3:
+                x_start = 370
+                x_end = 520
 
-                if k == 0:
-                    y_start = 0
-                    y_end = 150
-                elif k == 1:
-                    y_start = 110
-                    y_end = 260
-                elif k == 2:
-                    y_start = 260
-                    y_end = 410
-                elif k == 3:
-                    y_start = 370
-                    y_end = 520
+            if k == 0:
+                y_start = 0
+                y_end = 150
+            elif k == 1:
+                y_start = 110
+                y_end = 260
+            elif k == 2:
+                y_start = 260
+                y_end = 410
+            elif k == 3:
+                y_start = 370
+                y_end = 520
 
-                image_s2[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][0]
-                image_sr[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][1]
-                image_ps[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][2]
-        
-        reconstructed_images.append((image_s2, np.abs(image_ps - image_sr), image_ps, name + "_error"))
-        reconstructed_images.append((image_s2, image_sr, image_ps, name))
+            image_s2[x_start:x_end, y_start:y_end] = model_output[j*4 + k][0]
+            image_sr[x_start:x_end, y_start:y_end] = model_output[j*4 + k][1]
+            image_ps[x_start:x_end, y_start:y_end] = model_output[j*4 + k][2]
+    
+    reconstructed_images.append((image_s2, np.abs(image_ps - image_sr), image_ps, name + "_error"))
+    reconstructed_images.append((image_s2, image_sr, image_ps, name))
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
