@@ -7,8 +7,8 @@ experiment_name: SRGAN
 sentinel_resolution: "20m"
 planetscope_bands: "4b"
 
-train: true
-predict: true
+train: False
+predict: True
 
 model:
   name: srgan

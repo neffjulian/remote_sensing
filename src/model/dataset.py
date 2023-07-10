@@ -26,7 +26,7 @@ class SRPredictDataset(Dataset):
         s2_20m_in_situ_dir = DATA_DIR.joinpath("20m_in_situ")
 
         self.files = []
-        for file in self.s2_20m_dir.iterdir():
+        for file in s2_20m_dir.iterdir():
             self.files.append(s2_20m_in_situ_dir.joinpath(file.name), ps_4b_in_situ_dir.joinpath(file.name), file.name)
 
         ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("03_0000") or file.name.startswith("03_0001")]
@@ -46,7 +46,6 @@ class SRPredictDataset(Dataset):
     
     def __getitem__(self, idx):
         lr_filename, hr_filename, filename = self.files[idx]
-
         lr_file = torch.from_numpy(np.load(lr_filename))
         hr_file = torch.from_numpy(np.load(hr_filename))
         return lr_file.unsqueeze(0), hr_file.unsqueeze(0), filename
