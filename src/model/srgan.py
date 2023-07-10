@@ -145,7 +145,7 @@ class SRGAN(pl.LightningModule):
 
     def configure_optimizers(self) -> Tuple:
         opt_gen = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
-        opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr=self.lr)
+        opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr=self.lr * 0.1)
 
         sched_gen = torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5)
         sched_disc = torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5)
@@ -160,7 +160,7 @@ class SRGAN(pl.LightningModule):
         lr_image, hr_image = batch
 
         loss = None
-        if optimizer_idx == 0 and (batch_idx + 1) % 10 == 0:
+        if optimizer_idx == 0:
             loss = self._generator_loss(lr_image, hr_image)
         if optimizer_idx == 1:
             loss = self._discriminator_loss(lr_image, hr_image)
