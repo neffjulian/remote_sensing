@@ -106,7 +106,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
-
+    print(len(output))
     for out in output:
         lr, hr, name = out
         print(name)
