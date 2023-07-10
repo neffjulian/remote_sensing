@@ -118,15 +118,10 @@ def visualize_output(name: str, output: list) -> None:
     ps_sr = sorted(outputs[-32:-16], key=lambda x: x[3])
     s2_sr = sorted(outputs[-16:], key=lambda x: x[3])
 
-    print([x[3] for x in in_situ])
-    print([x[3] for x in ps_sr])
-    print([x[3] for x in s2_sr])
-
     transformer_ps_sr = transform_model_output(ps_sr, False)
     transformer_s2_sr = transform_model_output(s2_sr, True)
 
-    # transformed_output = in_situ + transformer_ps_sr + transformer_s2_sr
-    transformed_output = transformer_ps_sr + transformer_s2_sr
+    transformed_output = in_situ + transformer_ps_sr + transformer_s2_sr
 
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
@@ -136,7 +131,6 @@ def visualize_output(name: str, output: list) -> None:
     sr_hr_ssims = []
     for i, out in enumerate(transformed_output):
         out_file = results.joinpath(out[3] + '.png')
-        print(out_file, out[0].shape, out[1].shape, out[2].shape)
         lr_hr_psnr = psnr(out[0], out[2])
         sr_hr_psnr = psnr(out[1], out[2])
         lr_hr_ssim, _ = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
