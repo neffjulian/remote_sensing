@@ -16,59 +16,18 @@ def psnr(x, y):
     return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
 
 def transform_model_output(model_output: list) -> list[np.ndarray]:
-    img_s2 = []
-    img_sr = []
-    img_ps = []
-    names = []
-
     reconstructed_images = []
-
-    normal_s2 = []
-    normal_sr = []
-    normal_ps = []
-    normal_names = []
-    for out in model_output:
-        s2, y, ps, name = out
-
-        if name[0].startswith("03_"):
-            img_s2.append(s2)
-            img_sr.append(y)
-            img_ps.append(ps)
-            names.append(name)
-        else:
-            normal_s2.append(s2)
-            normal_sr.append(y)
-            normal_ps.append(ps)
-            normal_names.append(name)
-
-    normal_result_s2 = torch.cat(normal_s2, dim=0).squeeze().numpy()
-    normal_result_sr = torch.cat(normal_sr, dim=0).squeeze().numpy()
-    normal_result_ps = torch.cat(normal_ps, dim=0).squeeze().numpy()
-    normal_names = [string for tup in normal_names for string in tup]
-
-    for i in range(0, len(normal_names)):
-        reconstructed_images.append((normal_result_s2[i], normal_result_sr[i], normal_result_ps[i], normal_names[i]))
-            
-    result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
-    result_sr = torch.cat(img_sr, dim=0).squeeze().numpy()
-    result_ps = torch.cat(img_ps, dim=0).squeeze().numpy()
-
-    image_names = [string for tup in names for string in tup]
-    enumerated_names = [(i, str) for i, str in enumerate(image_names)]
-    sorted_names = sorted(enumerated_names, key=lambda x: x[1])
-    print("Add reconstructed images")
-
-    for i in range(0, len(sorted_names), 16):
+    for i in range(0, 2):
         image_s2 = np.zeros((600, 600))
         image_sr = np.zeros((600, 600))
         image_ps = np.zeros((600, 600))
         for j in range(4):
             for k in range(4):
-                image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_s2[sorted_names[i + j*4 + k][0]]
-                image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_sr[sorted_names[i + j*4 + k][0]]
-                image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_ps[sorted_names[i + j*4 + k][0]]
+                image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[0][i + j*4 + k]
+                image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[1][i + j*4 + k]
+                image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[2][i + j*4 + k]
 
-        reconstructed_images.append((image_s2, image_sr, image_ps, sorted_names[i][1]))
+        reconstructed_images.append((image_s2, image_sr, image_ps, model_output[3][i + 16][:-4]))
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
@@ -114,16 +73,24 @@ def visualize_output(name: str, output: list) -> None:
         names += out[3]
     outputs = []
     for i in range(len(names)):
-        print(lr[i].shape, sr[i].shape, hr[i].shape, names[i])
-        outputs.append((lr[i], sr[i], hr[i], names[i]))
+        outputs.append(
+            (torch.squeeze(lr[i]).numpy(), 
+             torch.squeeze(sr[i]).numpy(), 
+             torch.squeeze(hr[i]).numpy(), 
+             names[i]))
     in_situ = sorted(outputs[:-64], key=lambda x: x[3])
     ps_sr = sorted(outputs[-64:-32], key=lambda x: x[3])
     s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
 
 
-    
+    transformer_ps_sr = transform_model_output(ps_sr)
+    transformer_s2_sr = transform_model_output(s2_sr)
+
+    print(transformer_ps_sr[0][3], transformer_ps_sr[1][3])
+    print(transformer_s2_sr[0][3], transformer_s2_sr[1][3])
+
     raise Exception
-    transformed_output = transform_model_output(output)
+
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
     lr_hr_psnrs = []
