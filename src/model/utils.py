@@ -114,6 +114,10 @@ def visualize_output(name: str, output: list) -> None:
     ps_sr = sorted(outputs[-64:-32], key=lambda x: x[3])
     s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
 
+    print([x[3] for x in in_situ])
+    print([x[3] for x in ps_sr])
+    print([x[3] for x in s2_sr])
+
 
     transformer_ps_sr = transform_model_output(ps_sr, False)
     transformer_s2_sr = transform_model_output(s2_sr, True)
