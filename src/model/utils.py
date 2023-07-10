@@ -78,9 +78,10 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     ax2 = axes[1]
     if dir.name.endswith("error.png"):
         im2 = ax2.imshow(super_resolved, cmap='Reds', vmin=0., vmax=8.)
+        ax2.set_title('Error: Super-Resolved Image')
     else:
         im2 = ax2.imshow(super_resolved, cmap='viridis', vmin=0., vmax=8.)
-    ax2.set_title('Super-Resolved Image')
+        ax2.set_title('Super-Resolved Image')
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
     ax2.set_aspect('equal')
