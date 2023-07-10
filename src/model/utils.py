@@ -29,24 +29,31 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
         image_ps = np.zeros((520, 520))
         for j in range(4):
             for k in range(4):
-                x_start = j*150
-                x_end = (j+1)*150
-                y_start = k*150
-                y_end = (k+1)*150
                 if j == 0:
-                    x_start += 40
-                    x_end += 40
-                if j == 3:
-                    x_start -= 40
-                    x_end -= 40
-                if k == 0:
-                    y_start += 40
-                    y_end += 40
-                if k == 3:
-                    y_end -= 40
-                    y_start -= 40
+                    x_start = 0
+                    x_end = 150
+                elif j == 1:
+                    x_start = 110
+                    x_end = 260
+                elif j == 2:
+                    x_start = 260
+                    x_end = 310
+                elif j == 3:
+                    x_start = 370
+                    x_end = 520
 
-                print(image_s2.shape, image_s2[x_start:x_end, y_start:y_end].shape, x_start, x_end, y_start, y_end, model_output[i + j*4 + k][0].shape)
+                if k == 0:
+                    y_start = 0
+                    y_end = 150
+                elif k == 1:
+                    y_start = 110
+                    y_end = 260
+                elif k == 2:
+                    y_start = 260
+                    y_end = 310
+                elif k == 3:
+                    y_start = 370
+                    y_end = 520
 
                 image_s2[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][0]
                 image_sr[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][1]
