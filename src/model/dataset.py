@@ -40,7 +40,7 @@ class SRPredictDataset(Dataset):
         for file in s2_20m_files:
             self.files.append((s2_20m_dir.joinpath(file), ps_4b_dir.joinpath(file), file))
 
-
+        print("Size Predict Dataset:", len(self.files))
     def __len__(self):
         return len(self.files)
     
