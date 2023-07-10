@@ -35,12 +35,16 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                 y_end = ((k+1)*150)
                 if j == 0:
                     x_start += 40
+                    x_end += 40
                 if j == 3:
+                    x_start -= 40
                     x_end -= 40
                 if k == 0:
                     y_start += 40
+                    y_end += 40
                 if k == 3:
                     y_end -= 40
+                    y_start -= 40
 
                 image_s2[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][0]
                 image_sr[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][1]
