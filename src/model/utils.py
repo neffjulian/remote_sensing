@@ -55,6 +55,8 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                     y_start = 370
                     y_end = 520
 
+                print(i + j*4 + k)
+
                 image_s2[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][0]
                 image_sr[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][1]
                 image_ps[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][2]
@@ -151,12 +153,12 @@ def visualize_output(name: str, output: list) -> None:
 
     print("--------------------- MEAN ------------------------")
     print("LR-HR PSNR:", np.mean(lr_hr_psnrs), "  SR-HR PSNR:", np.mean(sr_hr_psnrs), " (", \
-          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs), 2),") | LR-HR SSIM:", np.mean(lr_hr_ssims), \
-            " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100,2),")")
+          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),") | LR-HR SSIM:", np.mean(lr_hr_ssims), \
+            " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100 - 100,2),")")
     print("-------------------- MEDIAN -----------------------")
     print("LR-HR PSNR:", np.median(lr_hr_psnrs), "  SR-HR PSNR:", np.median(sr_hr_psnrs), " (", \
-          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs), 2),") |  LR-HR SSIM:", np.median(lr_hr_ssims), \
-            " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100,2),")")
+          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),") |  LR-HR SSIM:", np.median(lr_hr_ssims), \
+            " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100 - 100,2),")")
 
 def report_gpu():
    print(torch.cuda.list_gpu_processes())
