@@ -106,8 +106,10 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
-    x = [y[2] for y in output]
-    print(x)
+
+    for out in output:
+        lr, hr, name = out
+        print(name)
     raise Exception
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
