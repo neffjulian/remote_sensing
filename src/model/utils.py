@@ -49,27 +49,26 @@ def transform_model_output(model_output: list) -> list[np.ndarray]:
     for i in range(0, len(normal_names)):
         reconstructed_images.append((normal_result_s2[i], normal_result_sr[i], normal_result_ps[i], normal_names[i]))
             
+    result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
+    result_sr = torch.cat(img_sr, dim=0).squeeze().numpy()
+    result_ps = torch.cat(img_ps, dim=0).squeeze().numpy()
 
-    # result_s2 = torch.cat(img_s2, dim=0).squeeze().numpy()
-    # result_sr = torch.cat(img_sr, dim=0).squeeze().numpy()
-    # result_ps = torch.cat(img_ps, dim=0).squeeze().numpy()
+    image_names = [string for tup in names for string in tup]
+    enumerated_names = [(i, str) for i, str in enumerate(image_names)]
+    sorted_names = sorted(enumerated_names, key=lambda x: x[1])
+    print("Add reconstructed images")
 
-    # image_names = [string for tup in names for string in tup]
-    # enumerated_names = [(i, str) for i, str in enumerate(image_names)]
-    # sorted_names = sorted(enumerated_names, key=lambda x: x[1])
-    # print("Add reconstructed images")
+    for i in range(0, len(sorted_names), 16):
+        image_s2 = np.zeros((600, 600))
+        image_sr = np.zeros((600, 600))
+        image_ps = np.zeros((600, 600))
+        for j in range(4):
+            for k in range(4):
+                image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_s2[sorted_names[i + j*4 + k][0]]
+                image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_sr[sorted_names[i + j*4 + k][0]]
+                image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_ps[sorted_names[i + j*4 + k][0]]
 
-    # for i in range(0, len(sorted_names), 16):
-    #     image_s2 = np.zeros((600, 600))
-    #     image_sr = np.zeros((600, 600))
-    #     image_ps = np.zeros((600, 600))
-    #     for j in range(4):
-    #         for k in range(4):
-    #             image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_s2[sorted_names[i + j*4 + k][0]]
-    #             image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_sr[sorted_names[i + j*4 + k][0]]
-    #             image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = result_ps[sorted_names[i + j*4 + k][0]]
-
-    #     reconstructed_images.append((image_s2, image_sr, image_ps, sorted_names[i][1]))
+        reconstructed_images.append((image_s2, image_sr, image_ps, sorted_names[i][1]))
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
@@ -110,6 +109,10 @@ def visualize_output(name: str, output: list) -> None:
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
+    lr_hr_psnrs = []
+    sr_hr_psnrs = []
+    lr_hr_ssims = []
+    sr_hr_ssims = []
     for i, out in enumerate(transformed_output):
         out_file = results.joinpath(out[3][:-4] + '.png')
         lr_hr_psnr = psnr(out[0], out[2])
@@ -119,6 +122,15 @@ def visualize_output(name: str, output: list) -> None:
         print(out_file.name, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr," |  LR-HR SSIM:", lr_hr_ssim, " SR-HR SSIM:", sr_hr_ssim)
         save_output_visualization(out[0], out[1], out[2], out_file)
         np.save(results.joinpath(out[3][:-4] + '.npy'), out[2])
+        lr_hr_psnrs.append(lr_hr_psnr)
+        sr_hr_psnrs.append(sr_hr_psnr)
+        lr_hr_ssims.append(lr_hr_ssim)
+        sr_hr_ssims.append(sr_hr_ssim)
+        
+    print("--------------------- MEAN ------------------------")
+    print("LR-HR PSNR:", np.mean(lr_hr_psnrs), "  SR-HR PSNR:", np.mean(sr_hr_psnrs)," |  LR-HR SSIM:", np.mean(lr_hr_ssims), " SR-HR SSIM:", np.mean(sr_hr_ssims))
+    print("-------------------- MEDIAN -----------------------")
+    print("LR-HR PSNR:", np.median(lr_hr_psnrs), "  SR-HR PSNR:", np.median(sr_hr_psnrs)," |  LR-HR SSIM:", np.median(lr_hr_ssims), " SR-HR SSIM:", np.median(sr_hr_ssims))
 
 def report_gpu():
    print(torch.cuda.list_gpu_processes())

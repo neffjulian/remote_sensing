@@ -132,6 +132,7 @@ class Discriminator(nn.Module):
 class SRGAN(pl.LightningModule):
     def __init__(self, hparams: dict) -> None:
         super().__init__()
+        self.log(hparams)
 
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]

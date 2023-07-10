@@ -35,7 +35,6 @@ MODELS = {
 
 def main(hparams: dict) -> None:
     garbage_collection_cuda()
-    print(hparams)
 
     date_string = datetime.now().strftime("%Y_%m_%d_%H_%M")
     experiment_name = hparams["experiment_name"] + "_" + date_string
