@@ -19,28 +19,37 @@ class SRPredictDataset(Dataset):
     def __init__(self, hparams: dict, files: list[str]) -> None:
         super().__init__()
 
-        self.sentinel_dir = DATA_DIR.joinpath(f"{hparams['sentinel_resolution']}_in_situ")
-        self.planetscope_dir = DATA_DIR.joinpath(f"{hparams['planetscope_bands'][-2:]}_in_situ")
- 
-        self.sentinel_files = [self.sentinel_dir.joinpath(filename) for filename in files]
-        self.planetscope_files = [self.planetscope_dir.joinpath(filename) for filename in files]
+        ps_4b_dir = DATA_DIR.joinpath("4b")
+        ps_4b_in_situ_dir = DATA_DIR.joinpath("4b_in_situ")
+        ps_4b_lr_dir = DATA_DIR.joinpath("4b_lr")
+        s2_20m_dir = DATA_DIR.joinpath("20m")
+        s2_20m_in_situ_dir = DATA_DIR.joinpath("20m_in_situ")
 
-        added_files_lr = DATA_DIR.joinpath(hparams['sentinel_resolution'])
-        added_files_hr = DATA_DIR.joinpath(hparams['planetscope_bands'][-2:])
+        self.files = []
+        for file in self.s2_20m_dir.iterdir():
+            self.files.append(s2_20m_in_situ_dir.joinpath(file.name), ps_4b_in_situ_dir.joinpath(file.name), file.name)
 
-        added_files_lr = sorted([added_file for added_file in added_files_lr.iterdir() if added_file.name.startswith("03_0000") or added_file.name.startswith("03_0001")])
-        added_files_hr = sorted([added_file for added_file in added_files_hr.iterdir() if added_file.name.startswith("03_0000") or added_file.name.startswith("03_0001")])
+        ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("03_0000") or file.name.startswith("03_0001")]
+        ps_4b_lr_files = [file.name for file in ps_4b_lr_dir.iterdir() if file.name.startswith("03_0000") or file.name.startswith("03_0001")]
+        s2_20m_files = [file.name for file in s2_20m_dir.iterdir() if file.name.startswith("03_0000") or file.name.startswith("03_0001")]
+        assert ps_4b_files == ps_4b_lr_files == s2_20m_files
 
-        self.sentinel_files = added_files_lr + self.sentinel_files
-        self.planetscope_files = added_files_hr + self.planetscope_files
+        for file in ps_4b_files:
+            self.files.append(ps_4b_lr_dir.joinpath(file), ps_4b_dir.joinpath(file), file)
+
+        for file in s2_20m_files:
+            self.files.append(s2_20m_dir.joinpath(file), ps_4b_dir.joinpath(file), file)
+
 
     def __len__(self):
-        return len(self.sentinel_files)
+        return len(self.files)
     
     def __getitem__(self, idx):
-        sentinel_file = torch.from_numpy(np.load(self.sentinel_files[idx]))
-        planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
-        return sentinel_file.unsqueeze(0), planetscope_file.unsqueeze(0), self.sentinel_files[idx].name
+        lr_filename, hr_filename, filename = self.files[idx]
+
+        lr_file = torch.from_numpy(np.load(lr_filename))
+        hr_file = torch.from_numpy(np.load(hr_filename))
+        return lr_file.unsqueeze(0), hr_file.unsqueeze(0), filename
 
 class SRDataset(Dataset):
     def __init__(self, hparams: dict, files: list[str]) -> None:
