@@ -115,9 +115,9 @@ def visualize_output(name: str, output: list) -> None:
     outputs = []
     for i in range(len(names)):
         outputs.append((lr[i], sr[i], hr[i], names[i]))
-    in_situ = outputs[:-64]
-    ps_sr = outputs[-64:-32]
-    s2_sr = outputs[-32:]
+    in_situ = sorted(outputs[:-64], key=lambda x: x[3])
+    ps_sr = sorted(outputs[-64:-32], key=lambda x: x[3])
+    s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
 
     print([x[3] for x in in_situ])
     print([x[3] for x in ps_sr])
