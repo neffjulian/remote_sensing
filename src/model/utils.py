@@ -18,11 +18,11 @@ def psnr(x, y):
 def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
     reconstructed_images = []
     for i in range(0, 2):
-        name = model_output[i + 16][3][:-7]
+        name = model_output[i + 16][3][:-2]
         if s2:
-            name += "_s2"
+            name += "s2"
         else:
-            name += "_ps"
+            name += "ps"
 
         image_s2 = np.zeros((600, 600))
         image_sr = np.zeros((600, 600))
@@ -83,7 +83,7 @@ def visualize_output(name: str, output: list) -> None:
             (torch.squeeze(lr[i]).numpy(), 
              torch.squeeze(sr[i]).numpy(), 
              torch.squeeze(hr[i]).numpy(), 
-             names[i]))
+             names[i][:,-4]))
     in_situ = sorted(outputs[:-64], key=lambda x: x[3])
     ps_sr = sorted(outputs[-64:-32], key=lambda x: x[3])
     s2_sr = sorted(outputs[-32:], key=lambda x: x[3])
