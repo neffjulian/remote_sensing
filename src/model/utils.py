@@ -24,14 +24,27 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
         else:
             name += "ps"
 
-        image_s2 = np.zeros((600, 600))
-        image_sr = np.zeros((600, 600))
-        image_ps = np.zeros((600, 600))
+        image_s2 = np.zeros((520, 520))
+        image_sr = np.zeros((520, 520))
+        image_ps = np.zeros((520, 520))
         for j in range(4):
             for k in range(4):
-                image_s2[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[i + j*4 + k][0]
-                image_sr[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[i + j*4 + k][1]
-                image_ps[(j*150):((j+1)*150), (k*150):((k+1)*150)] = model_output[i + j*4 + k][2]
+                x_start = (j*150)
+                x_end = ((j+1)*150)
+                y_start = (k*150)
+                y_end = ((k+1)*150)
+                if j == 0:
+                    x_start += 40
+                if j == 3:
+                    x_end -= 40
+                if k == 0:
+                    y_start += 40
+                if k == 3:
+                    y_end -= 40
+
+                image_s2[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][0]
+                image_sr[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][1]
+                image_ps[x_start:x_end, y_start:y_end] = model_output[i + j*4 + k][2]
         
         reconstructed_images.append((image_s2, image_sr, image_ps, name))
     return reconstructed_images
@@ -95,7 +108,8 @@ def visualize_output(name: str, output: list) -> None:
     print(transformer_ps_sr[0][3], transformer_ps_sr[1][3])
     print(transformer_s2_sr[0][3], transformer_s2_sr[1][3])
 
-    transformed_output = in_situ + transformer_ps_sr + transformer_s2_sr
+    # transformed_output = in_situ + transformer_ps_sr + transformer_s2_sr
+    transformed_output = transformer_ps_sr + transformer_s2_sr
 
     results = RESULT_DIR.joinpath(name)
     results.mkdir(parents=True, exist_ok=True)
@@ -112,7 +126,7 @@ def visualize_output(name: str, output: list) -> None:
         sr_hr_ssim, _ = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
         print(out_file.name, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr," |  LR-HR SSIM:", lr_hr_ssim, " SR-HR SSIM:", sr_hr_ssim)
         save_output_visualization(out[0], out[1], out[2], out_file)
-        np.save(results.joinpath(out[3][:-4] + '.npy'), out[2])
+        np.save(results.joinpath(out[3] + '.npy'), out[2])
         lr_hr_psnrs.append(lr_hr_psnr)
         sr_hr_psnrs.append(sr_hr_psnr)
         lr_hr_ssims.append(lr_hr_ssim)
