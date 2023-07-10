@@ -51,17 +51,22 @@ def remove_unused_images(in_situ: bool = False) -> None:
         files = [[file.name for file in DATA_DIR.joinpath("processed", folder).iterdir()] for folder in folders]
     assert all(files[0] == files[i] for i in range(1, len(files))), "Error in original Sentinel-2 Files"
 
-def create_tiles(data: np.ndarray, tiles: int = 4):
+def create_tiles(data: np.ndarray, satellite: str, tiles: int = 4):
     """Create tiles from the given data."""
     sub_data = []
     arr_x, arr_y = data.shape
     x, y = arr_x // tiles, arr_y // tiles
+    
+    if satellite == "sentinel":
+        margin = 10
+    else: 
+        margin = 40
+
     for i in range(tiles):
         for j in range(tiles):
             x_start, x_end = i * x, (i + 1) * x
             y_start, y_end = j * y, (j + 1) * y
 
-            margin = 40
             if i == 0:
                 x_start += margin
                 x_end += margin
@@ -105,7 +110,7 @@ def process_file(satellite: str, target_dir: Path, target_name: str, data: np.nd
     resized_data = cv2.resize(data, out_dim, interpolation=cv2.INTER_AREA)
 
     if in_situ is False:
-        tiles = create_tiles(resized_data)
+        tiles = create_tiles(resized_data, satellite)
         for i, tile in enumerate(tiles):
             if tile is None:
                 continue
