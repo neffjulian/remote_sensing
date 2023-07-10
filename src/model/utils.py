@@ -37,7 +37,7 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                     x_end = 260
                 elif j == 2:
                     x_start = 260
-                    x_end = 310
+                    x_end = 410
                 elif j == 3:
                     x_start = 370
                     x_end = 520
@@ -50,7 +50,7 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                     y_end = 260
                 elif k == 2:
                     y_start = 260
-                    y_end = 310
+                    y_end = 410
                 elif k == 3:
                     y_start = 370
                     y_end = 520
