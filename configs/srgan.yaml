@@ -13,9 +13,9 @@ predict: true
 model:
   name: srgan
   batch_size: 16
-  feature_maps_gen: 64
-  feature_maps_disc: 64
-  num_res_blocks: 16
+  feature_maps_gen: 128 # 64
+  feature_maps_disc: 64 # 64
+  num_res_blocks: 16 # 16
 
 datamodule:
   batch_size: 16
