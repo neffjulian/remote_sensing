@@ -109,7 +109,9 @@ def visualize_output(name: str, output: list) -> None:
     print(output[0])
     print(type(output), len(output))
     for out in output:
-        print(len(out), type(out))
+        x, y, z, a = out
+        print(type(x), type(y), type(z), type(a))
+        print(len(x), len(y), len(z), len(a))
     raise Exception
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
