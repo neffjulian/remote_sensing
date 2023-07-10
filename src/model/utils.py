@@ -113,7 +113,7 @@ def visualize_output(name: str, output: list) -> None:
         hr += out[2]
         names += out[3]
 
-    print(len(names), names)
+    print(len(names), names, len(lr), len(sr), len(hr))
     raise Exception
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
