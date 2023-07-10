@@ -98,7 +98,7 @@ def visualize_output(name: str, output: list) -> None:
     transformed_output = in_situ + transformer_ps_sr + transformer_s2_sr
 
     results = RESULT_DIR.joinpath(name)
-    # results.mkdir(parents=True, exist_ok=True)
+    results.mkdir(parents=True, exist_ok=True)
     lr_hr_psnrs = []
     sr_hr_psnrs = []
     lr_hr_ssims = []
@@ -106,26 +106,26 @@ def visualize_output(name: str, output: list) -> None:
     for i, out in enumerate(transformed_output):
         out_file = results.joinpath(out[3] + '.png')
         print(out_file, out[0].shape, out[1].shape, out[2].shape)
-    #     lr_hr_psnr = psnr(out[0], out[2])
-    #     sr_hr_psnr = psnr(out[1], out[2])
-    #     lr_hr_ssim, _ = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
-    #     sr_hr_ssim, _ = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
-    #     print(out_file.name, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr," |  LR-HR SSIM:", lr_hr_ssim, " SR-HR SSIM:", sr_hr_ssim)
-    #     save_output_visualization(out[0], out[1], out[2], out_file)
-    #     np.save(results.joinpath(out[3][:-4] + '.npy'), out[2])
-    #     lr_hr_psnrs.append(lr_hr_psnr)
-    #     sr_hr_psnrs.append(sr_hr_psnr)
-    #     lr_hr_ssims.append(lr_hr_ssim)
-    #     sr_hr_ssims.append(sr_hr_ssim)
+        lr_hr_psnr = psnr(out[0], out[2])
+        sr_hr_psnr = psnr(out[1], out[2])
+        lr_hr_ssim, _ = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
+        sr_hr_ssim, _ = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
+        print(out_file.name, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr," |  LR-HR SSIM:", lr_hr_ssim, " SR-HR SSIM:", sr_hr_ssim)
+        save_output_visualization(out[0], out[1], out[2], out_file)
+        np.save(results.joinpath(out[3][:-4] + '.npy'), out[2])
+        lr_hr_psnrs.append(lr_hr_psnr)
+        sr_hr_psnrs.append(sr_hr_psnr)
+        lr_hr_ssims.append(lr_hr_ssim)
+        sr_hr_ssims.append(sr_hr_ssim)
 
-    # print("--------------------- MEAN ------------------------")
-    # print("LR-HR PSNR:", np.mean(lr_hr_psnrs), "  SR-HR PSNR:", np.mean(sr_hr_psnrs), " (", \
-    #       round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs), 2),") | LR-HR SSIM:", np.mean(lr_hr_ssims), \
-    #         " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100,2),")")
-    # print("-------------------- MEDIAN -----------------------")
-    # print("LR-HR PSNR:", np.median(lr_hr_psnrs), "  SR-HR PSNR:", np.median(sr_hr_psnrs), " (", \
-    #       round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs), 2),") |  LR-HR SSIM:", np.median(lr_hr_ssims), \
-    #         " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100,2),")")
+    print("--------------------- MEAN ------------------------")
+    print("LR-HR PSNR:", np.mean(lr_hr_psnrs), "  SR-HR PSNR:", np.mean(sr_hr_psnrs), " (", \
+          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs), 2),") | LR-HR SSIM:", np.mean(lr_hr_ssims), \
+            " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100,2),")")
+    print("-------------------- MEDIAN -----------------------")
+    print("LR-HR PSNR:", np.median(lr_hr_psnrs), "  SR-HR PSNR:", np.median(sr_hr_psnrs), " (", \
+          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs), 2),") |  LR-HR SSIM:", np.median(lr_hr_ssims), \
+            " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100,2),")")
 
 def report_gpu():
    print(torch.cuda.list_gpu_processes())
