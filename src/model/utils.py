@@ -65,8 +65,6 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path):
     f, axes = plt.subplots(1, 3, figsize=(30, 10))
 
-    print(dir.name)
-
     # Plot for S2 image
     ax1 = axes[0]
     im1 = ax1.imshow(sentinel_2, cmap='viridis', vmin=0., vmax=8.)
@@ -78,7 +76,10 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
 
     # Plot for SR image
     ax2 = axes[1]
-    im2 = ax2.imshow(super_resolved, cmap='viridis', vmin=0., vmax=8.)
+    if dir.name.endswith("error.png"):
+        im2 = ax2.imshow(super_resolved, cmap='Reds', vmin=0., vmax=8.)
+    else:
+        im2 = ax2.imshow(super_resolved, cmap='viridis', vmin=0., vmax=8.)
     ax2.set_title('Super-Resolved Image')
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
@@ -148,13 +149,23 @@ def visualize_output(name: str, output: list) -> None:
         sr_hr_ssims.append(sr_hr_ssim)
 
     print("--------------------- MEAN ------------------------")
-    print("LR-HR PSNR:", np.mean(lr_hr_psnrs), "  SR-HR PSNR:", np.mean(sr_hr_psnrs), " (", \
-          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),"%) | LR-HR SSIM:", np.mean(lr_hr_ssims), \
-            " SR-HR SSIM:", np.mean(sr_hr_ssims), " (",round(np.mean(sr_hr_ssims) / np.mean(lr_hr_ssims) * 100 - 100,2),"%)")
+    lh_psnr = np.mean(lr_hr_psnrs)
+    sh_psnr = np.mean(sr_hr_psnrs)
+    lh_ssim = np.mean(lr_hr_ssims)
+    sh_ssim = np.mean(sr_hr_ssims)
+    change_psnr = round(sh_psnr / lh_psnr * 100 - 100, 2)
+    change_ssim = round(sh_ssim / lh_ssim * 100 - 100, 2)
+    print("LR-HR PSNR:", lh_psnr, " SR-HR PSNR:", sh_psnr, " (", change_psnr,"%) |", \
+          "LR-HR SSIM:", lh_ssim, " SR-HR SSIM:", sh_ssim, " (", change_ssim,"%)")
     print("-------------------- MEDIAN -----------------------")
-    print("LR-HR PSNR:", np.median(lr_hr_psnrs), "  SR-HR PSNR:", np.median(sr_hr_psnrs), " (", \
-          round(np.mean(sr_hr_psnrs) / np.mean(lr_hr_psnrs) * 100 - 100, 2),"%) |  LR-HR SSIM:", np.median(lr_hr_ssims), \
-            " SR-HR SSIM:", np.median(sr_hr_ssims), " (",round(np.median(sr_hr_ssims) / np.median(lr_hr_ssims) * 100 - 100,2),"%)")
+    lh_psnr = np.mean(lr_hr_psnrs)
+    sh_psnr = np.mean(sr_hr_psnrs)
+    lh_ssim = np.mean(lr_hr_ssims)
+    sh_ssim = np.mean(sr_hr_ssims)
+    change_psnr = round(sh_psnr / lh_psnr * 100 - 100, 2)
+    change_ssim = round(sh_ssim / lh_ssim * 100 - 100, 2)
+    print("LR-HR PSNR:", lh_psnr, " SR-HR PSNR:", sh_psnr, " (", change_psnr,"%) |", \
+            "LR-HR SSIM:", lh_ssim, " SR-HR SSIM:", sh_ssim, " (", change_ssim,"%)")
 
 def report_gpu():
    print(torch.cuda.list_gpu_processes())
