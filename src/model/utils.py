@@ -106,8 +106,14 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
-    concatenated_tuple = tuple([*t] for t in zip(*output))
-    print(len(concatenated_tuple), len(concatenated_tuple[0]))
+    lr, sr, hr, names = [], [], [], []
+    for out in output:
+        lr += out[0]
+        sr += out[1]
+        hr += out[2]
+        names += out[3]
+
+    print(len(names), names)
     raise Exception
     transformed_output = transform_model_output(output)
     results = RESULT_DIR.joinpath(name)
