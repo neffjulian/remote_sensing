@@ -61,6 +61,9 @@ class SRDataset(Dataset):
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
         self.augment = hparams["datamodule"]["augment"]
 
+        # to_remove = []
+        # for file in self.planetscope_files:
+
         print(f"Dataset size: {len(self.planetscope_files) * 8 if self.augment else len(self.planetscope_files)}")
 
     def __len__(self):
@@ -83,7 +86,7 @@ class SRDataset(Dataset):
             planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
             planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
 
-        if psnr(planetscope_lr_file, planetscope_file) < 10:
+        if psnr(cv2.resize(planetscope_lr_file, (150, 150), interpolation=cv2.INTER_CUBIC), planetscope_file) < 10:
             print(idx)
         return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
