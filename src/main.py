@@ -18,6 +18,7 @@ from model.edsr import EDSR
 from model.srcnn import SRCNN
 from model.srresnet import SRResNet
 from model.srgan import SRGAN
+from model.esrgan import ESRGAN
 
 
 DOTENV_PATH = Path(__file__).parent.parent.joinpath(".env")
@@ -30,7 +31,8 @@ MODELS = {
     "edsr": EDSR,
     "srcnn": SRCNN,
     "srresnet": SRResNet,
-    "srgan": SRGAN
+    "srgan": SRGAN,
+    "esrgan": ESRGAN
 }
 
 def main(hparams: dict) -> None:

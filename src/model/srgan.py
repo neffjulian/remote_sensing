@@ -26,7 +26,6 @@ class VGG19FeatureExtractor(nn.Module):
             p.requires_grad = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print(x.shape, self.vgg(x).shape)
         return self.vgg(x.repeat(1, 3, 1, 1))
 
 class ResidualBlock(nn.Module):
