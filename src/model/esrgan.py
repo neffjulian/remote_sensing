@@ -1,8 +1,8 @@
 """
-Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network (2017) by Ledig et al.
+ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks (2018) by Wang et al.
 
-Paper: https://arxiv.org/abs/1609.04802
-Adpted from: https://github.com/https-deeplearning-ai/GANs-Public/blob/master/C3W2_SRGAN_(Optional).ipynb
+Paper: https://arxiv.org/pdf/1809.00219.pdf
+Adpted from: 
 """
 
 from typing import Tuple
@@ -29,66 +29,58 @@ class VGG19FeatureExtractor(nn.Module):
         return self.vgg(x.repeat(1, 3, 1, 1))
 
 class ResidualBlock(nn.Module):
-    def __init__(self, feature_maps: int = 64) -> None:
+    def __init__(self, feature_maps: int = 64, beta: float = 0.2) -> None:
         super().__init__()
 
         self.block = nn.Sequential(
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps, kernel_size=3),
-            nn.BatchNorm2d(feature_maps),
+            nn.Conv2d(feature_maps, feature_maps, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PReLU(),
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps, kernel_size=3),
-            nn.BatchNorm2d(feature_maps),
+            nn.Conv2d(feature_maps, feature_maps, kernel_size=3, padding=1, padding_mode="replicate"),
         )
+        self.beta = beta
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x + self.block(x)
+        return x * self.beta + self.block(x)
 
 class Generator(nn.Module): # I.e. SRResNet
     def __init__(self, feature_maps: int = 64, num_res_blocks: int = 16) -> None:
         super().__init__()
 
         self.input_block = nn.Sequential(
-            nn.ReplicationPad2d(4),
-            nn.Conv2d(1, feature_maps, kernel_size=9),
+            nn.Conv2d(1, feature_maps, kernel_size=9, padding=4, padding_mode="replicate"),
             nn.PReLU()
         )
 
         residual_blocks = [ResidualBlock(feature_maps)] * num_res_blocks
         residual_blocks += [
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps, kernel_size=3),
+            nn.Conv2d(feature_maps, feature_maps, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.BatchNorm2d(feature_maps)
         ]
         self.residual_blocks = nn.Sequential(*residual_blocks)
 
         self.upscale_block = nn.Sequential(
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps * 9, kernel_size=3),
+            nn.Conv2d(feature_maps, feature_maps * 9, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PixelShuffle(3),
             nn.PReLU(),
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3),
+            nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PixelShuffle(2),
             nn.PReLU(),
         )
 
         self.output_block = nn.Sequential(
-            nn.ReplicationPad2d(4),
-            nn.Conv2d(feature_maps, 1, kernel_size=9),
+            nn.Conv2d(feature_maps, 1, kernel_size=9, padding=4, padding_mode="replicate"),
             # nn.Tanh(),
         )
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.0001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.002)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_input = self.input_block(x)
-        x = x_input + self.residual_blocks(x_input)
+        x = x_input * 0.2 + self.residual_blocks(x_input)
         x = self.upscale_block(x)
         x = self.output_block(x)
         return x
@@ -126,8 +118,7 @@ class Discriminator(nn.Module):
 
     def _make_conv_block(self, in_channels: int, out_channels: int, stride: int = 1, batch_norm: bool = True) -> nn.Sequential:
         return nn.Sequential(
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1),
             nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity(),
             nn.LeakyReLU(0.2, inplace=True)
         )

@@ -30,25 +30,35 @@ class EDSR(LightningModule):
         output_size = (150, 150)
         # self.interpolate = nn.Upsample(size=output_size, mode="bicubic")
         
-        self.input_layer = nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
+        self.input_layer = nn.Sequential(
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(1, self.channels, kernel_size=3)
+        )
         
         residual_layers = [
             nn.Sequential(
-                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
+                nn.ReplicationPad2d(1),
+                nn.Conv2d(self.channels, self.channels, kernel_size=3),
                 nn.ReLU(),
-                nn.Conv2d(self.channels, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
+                nn.ReplicationPad2d(1),
+                nn.Conv2d(self.channels, self.channels, kernel_size=3)
             )
         ] * self.nr_blocks
         self.residual_layers = nn.Sequential(*residual_layers)
 
 
         self.upscale = nn.Sequential(
-            nn.Conv2d(self.channels, 108, kernel_size=3, padding=1, padding_mode="replicate"),
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(self.channels, 108, kernel_size=3),
             nn.PixelShuffle(6),
-            nn.Conv2d(3, self.channels, kernel_size=3, padding=1, padding_mode="replicate")
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(3, self.channels, kernel_size=3)
         )
 
-        self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
+        self.output_layer = nn.Sequential(
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(self.channels, 1, kernel_size=3)
+        )
 
         # self.mean = 2.3883540838022848
 
