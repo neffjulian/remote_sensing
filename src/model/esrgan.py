@@ -44,9 +44,9 @@ class Generator(nn.Module): # I.e. SRResNet
         super().__init__()
 
         self.input_block = nn.Sequential(
-            nn.ReplicationPad2d(4),
-            nn.Conv2d(1, feature_maps, kernel_size=9),
-            nn.PReLU()
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(1, feature_maps, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
         residual_blocks = [RRDB(channels=feature_maps, growth=32)] * num_res_blocks
@@ -60,14 +60,17 @@ class Generator(nn.Module): # I.e. SRResNet
             nn.ReplicationPad2d(1),
             nn.Conv2d(feature_maps, feature_maps * 9, kernel_size=3),
             nn.PixelShuffle(3),
-            nn.PReLU(),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.ReplicationPad2d(1),
             nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3),
             nn.PixelShuffle(2),
-            nn.PReLU(),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
         self.output_block = nn.Sequential(
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(feature_maps, feature_maps, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.ReplicationPad2d(4),
             nn.Conv2d(feature_maps, 1, kernel_size=9),
         )
@@ -80,10 +83,10 @@ class Generator(nn.Module): # I.e. SRResNet
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_input = self.input_block(x)
-        x = x_input * 0.2 + self.residual_blocks(x_input)
-        x = self.upscale_block(x)
-        x = self.output_block(x)
-        return x
+        x_input = (x_input * 0.2) + self.residual_blocks(x_input)
+        x_input = self.upscale_block(x_input)
+        x_input = self.output_block(x_input)
+        return x_input
 
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:

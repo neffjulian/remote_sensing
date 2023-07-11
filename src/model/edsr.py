@@ -61,7 +61,7 @@ class EDSR(LightningModule):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.0001)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
