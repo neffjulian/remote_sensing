@@ -134,7 +134,7 @@ class Discriminator(nn.Module):
     def _make_conv_block(self, in_channels: int, out_channels: int, stride: int = 1, batch_norm: bool = True) -> nn.Sequential:
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1),
-            nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity(),
+            # nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity(),
             nn.LeakyReLU(0.2, inplace=True)
         )
     
