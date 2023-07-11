@@ -115,6 +115,8 @@ class Discriminator(nn.Module):
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(feature_maps * 8, feature_maps * 16, kernel_size=1),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.Conv2d(feature_maps * 16, feature_maps * 16, kernel_size=1),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv2d(feature_maps * 16, 1, kernel_size=1),
             nn.Flatten()
         )
@@ -143,7 +145,7 @@ class Discriminator(nn.Module):
         x = self.mlp(x)
         return x
 
-class SRGAN(pl.LightningModule):
+class ESRGAN(pl.LightningModule):
     def __init__(self, hparams: dict) -> None:
         super().__init__()
 

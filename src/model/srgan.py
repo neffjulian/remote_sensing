@@ -224,4 +224,5 @@ class SRGAN(pl.LightningModule):
     def _perceptual_loss(self, hr_image: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
         real_features = self.feature_extractor(hr_image)
         fake_features = self.feature_extractor(fake)
+        print(real_features.shape, fake_features.shape)
         return F.mse_loss(fake_features, real_features)
