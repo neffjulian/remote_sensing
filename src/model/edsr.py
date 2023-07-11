@@ -69,7 +69,7 @@ class EDSR(LightningModule):
         # x_hat = x - self.mean
         # x_hat = self.interpolate(x)
         x_hat = self.input_layer(x)
-        x_hat = self.upscale(x_hat * 0.2 + self.residual_layers(x_hat))
+        x_hat = self.upscale(x_hat + self.residual_layers(x_hat))
         return self.output_layer(x_hat)
     
     def configure_optimizers(self):
@@ -81,9 +81,7 @@ class EDSR(LightningModule):
                 'scheduler': StepLR(
                     optimizer=optimizer,
                     step_size=self.scheduler_step,
-                    gamma=0.9,
-                    verbose=True
-
+                    gamma=0.5,
                 ),
                 "monitor": "val_ssim"
             }
