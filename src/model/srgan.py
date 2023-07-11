@@ -26,6 +26,7 @@ class VGG19FeatureExtractor(nn.Module):
             p.requires_grad = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        print(x.shape, self.vgg(x).shape)
         return self.vgg(x.repeat(1, 3, 1, 1))
 
 class ResidualBlock(nn.Module):
@@ -223,6 +224,5 @@ class SRGAN(pl.LightningModule):
     
     def _perceptual_loss(self, hr_image: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
         real_features = self.feature_extractor(hr_image)
-        fake_features = self.feature_extractor(fake)
-        print(real_features.shape, fake_features.shape)
+        fake_features = self.feature_extractor(fake) #(16, 512 , 9, 9)
         return F.mse_loss(fake_features, real_features)
