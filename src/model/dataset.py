@@ -82,6 +82,9 @@ class SRDataset(Dataset):
         else:
             planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
             planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
+
+        if psnr(planetscope_lr_file, planetscope_file) < 10:
+            print(idx)
         return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
