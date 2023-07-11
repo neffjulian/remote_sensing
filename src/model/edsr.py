@@ -27,9 +27,6 @@ class EDSR(LightningModule):
         self.nr_blocks = hparams["model"]["blocks"]
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
-        output_size = (150, 150)
-        # self.interpolate = nn.Upsample(size=output_size, mode="bicubic")
-        
         self.input_layer = nn.Sequential(
             nn.ReplicationPad2d(1),
             nn.Conv2d(1, self.channels, kernel_size=3)
@@ -64,7 +61,7 @@ class EDSR(LightningModule):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.002)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
@@ -72,7 +69,7 @@ class EDSR(LightningModule):
         # x_hat = x - self.mean
         # x_hat = self.interpolate(x)
         x_hat = self.input_layer(x)
-        x_hat = self.upscale(x_hat + self.residual_layers(x_hat))
+        x_hat = self.upscale(x_hat * 0.2 + self.residual_layers(x_hat))
         return self.output_layer(x_hat)
     
     def configure_optimizers(self):
