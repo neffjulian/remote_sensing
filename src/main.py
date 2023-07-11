@@ -70,6 +70,9 @@ def main(hparams: dict) -> None:
         output = trainer.predict(model=model, datamodule=datamodule)
         visualize_output(experiment_name, output)
 
+        print("--------------------")
+        print(hparams)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=Path, help="Choose a config file from the 'configs/' folder", required=True)

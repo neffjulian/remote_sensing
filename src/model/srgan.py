@@ -132,7 +132,6 @@ class Discriminator(nn.Module):
 class SRGAN(pl.LightningModule):
     def __init__(self, hparams: dict) -> None:
         super().__init__()
-        print(hparams)
 
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
@@ -207,7 +206,8 @@ class SRGAN(pl.LightningModule):
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
 
-        return 0.006 * perceptual_loss + 0.001 * adv_loss + content_loss
+        # return 0.006 * perceptual_loss + 0.001 * adv_loss + content_loss
+        return 0.01 * perceptual_loss + 0.002 * adv_loss + content_loss
 
     @staticmethod
     def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:
