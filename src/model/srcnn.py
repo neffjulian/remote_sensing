@@ -66,7 +66,8 @@ class SRCNN(LightningModule):
     def shared_step(self, batch, stage):
         lr_image, hr_image = batch
         sr_image = self.forward(lr_image)
-        mse_loss = F.mse_loss(sr_image, hr_image)
+        diff = hr_image - sr_image
+        mse_loss = F.mse_loss(sr_image, diff)
         self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
@@ -81,6 +82,6 @@ class SRCNN(LightningModule):
 
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
-        sr_image = self.forward(lr_image)
+        sr_image = self.forward(lr_image) + lr_image
         lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
         return lr_image, sr_image, hr_image, names

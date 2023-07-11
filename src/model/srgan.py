@@ -75,7 +75,7 @@ class Generator(nn.Module): # I.e. SRResNet
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.002)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
@@ -144,7 +144,7 @@ class SRGAN(pl.LightningModule):
 
     def configure_optimizers(self) -> Tuple:
         opt_gen = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
-        opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr=self.lr * 0.1)
+        opt_disc = torch.optim.Adam(self.discriminator.parameters(), lr=self.lr)
 
         sched_gen = torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5)
         sched_disc = torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5)

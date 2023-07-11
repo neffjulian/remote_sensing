@@ -50,7 +50,7 @@ class EDSR(LightningModule):
 
         self.output_layer = nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate")
 
-        self.mean = 2.3883540838022848
+        # self.mean = 2.3883540838022848
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
