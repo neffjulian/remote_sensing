@@ -1,9 +1,9 @@
 from math import log10, sqrt
 from pathlib import Path
 
-import cv2
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import random_split
 import pytorch_lightning as pl
@@ -86,7 +86,7 @@ class SRDataset(Dataset):
             planetscope_lr_file = torch.from_numpy(np.load(self.planetscope_lr_files[idx]))
             planetscope_file = torch.from_numpy(np.load(self.planetscope_files[idx]))
 
-        if psnr(cv2.resize(planetscope_lr_file, (150, 150), interpolation=cv2.INTER_CUBIC), planetscope_file) < 10:
+        if psnr(F.interpolate(planetscope_lr_file, size=(150, 150), mode='bicubic'), planetscope_file) < 10:
             print(idx)
         return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
