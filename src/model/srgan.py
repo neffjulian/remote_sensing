@@ -135,6 +135,7 @@ class Discriminator(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv_blocks(x)
         x = self.mlp(x)
+        print(x.shape, " output discriminator")
         return x
 
 class SRGAN(pl.LightningModule):

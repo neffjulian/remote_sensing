@@ -139,10 +139,11 @@ def visualize_output(name: str, output: list) -> None:
         if sr_hr_ssim > 0.5 or sr_hr_psnr > 25:
             save_output_visualization(out[0], out[1], out[2], out_file)
             np.save(results.joinpath(out[3] + '.npy'), out[2])
-        lr_hr_psnrs.append(lr_hr_psnr)
-        sr_hr_psnrs.append(sr_hr_psnr)
-        lr_hr_ssims.append(lr_hr_ssim)
-        sr_hr_ssims.append(sr_hr_ssim)
+        if not out[3].endswith("error"):
+            lr_hr_psnrs.append(lr_hr_psnr)
+            sr_hr_psnrs.append(sr_hr_psnr)
+            lr_hr_ssims.append(lr_hr_ssim)
+            sr_hr_ssims.append(sr_hr_ssim)
 
     print("--------------------- MEAN ------------------------")
     lh_psnr = np.mean(lr_hr_psnrs)

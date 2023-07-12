@@ -233,7 +233,7 @@ class ESRGAN(pl.LightningModule):
 
         perceptual_loss = self._perceptual_loss(hr_image, fake)
         adv_loss = self._adv_loss(fake_pred, ones=True)
-        content_loss = F.l1_loss(fake, hr_image)
+        content_loss = F.mse_loss(fake, hr_image)
 
         return perceptual_loss + 0.005 * adv_loss + content_loss * 0.01
 
@@ -245,4 +245,4 @@ class ESRGAN(pl.LightningModule):
     def _perceptual_loss(self, hr_image: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
         real_features = self.feature_extractor(hr_image)
         fake_features = self.feature_extractor(fake)
-        return F.mse_loss(fake_features, real_features)
+        return F.l1_loss(fake_features, real_features)
