@@ -38,7 +38,7 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                 x_start = 240
                 x_end = 390
             elif j == 3:
-                x_start = 390
+                x_start = 330
                 x_end = 480
 
             if k == 0:
@@ -51,7 +51,7 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
                 y_start = 240
                 y_end = 390
             elif k == 3:
-                y_start = 390
+                y_start = 330
                 y_end = 480
 
             image_s2[x_start:x_end, y_start:y_end] = model_output[j*4 + k][0]
