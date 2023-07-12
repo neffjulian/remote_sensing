@@ -31,9 +31,9 @@ class SRPredictDataset(Dataset):
 
         self.files = self.files[:5]
 
-        ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("07_0000")]
-        ps_4b_lr_files = [file.name for file in ps_4b_lr_dir.iterdir() if file.name.startswith("07_0000")]
-        s2_20m_files = [file.name for file in s2_20m_dir.iterdir() if file.name.startswith("07_0000")]
+        ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("06_0000")]
+        ps_4b_lr_files = [file.name for file in ps_4b_lr_dir.iterdir() if file.name.startswith("06_0000")]
+        s2_20m_files = [file.name for file in s2_20m_dir.iterdir() if file.name.startswith("06_0000")]
         assert ps_4b_files == ps_4b_lr_files == s2_20m_files
 
         for file in ps_4b_files:
@@ -61,9 +61,7 @@ class SRDataset(Dataset):
         self.planetscope_files = [planetscope_dir.joinpath(filename) for filename in files]
         self.augment = hparams["datamodule"]["augment"]
 
-        # to_remove = []
-        # for file in self.planetscope_files:
-
+        assert [file.name for file in self.planetscope_lr_files] == [file.name for file in self.planetscope_files]
         print(f"Dataset size: {len(self.planetscope_files) * 8 if self.augment else len(self.planetscope_files)}")
 
     def __len__(self):
@@ -98,24 +96,6 @@ class SRDataModule(pl.LightningDataModule):
 
         self.files = [file.name for file in DATA_DIR.joinpath(self.planetscope_bands).iterdir()]
 
-        # planetscope_folder = DATA_DIR.joinpath(self.planetscope_bands)
-        # planetscope_lr_folder = DATA_DIR.joinpath(f"{self.planetscope_bands}_lr")
-
-        # psnr_score = []
-        # ssim_score = []
-
-        # for file in self.files:
-        #     ps_file = np.load(planetscope_folder.joinpath(file))
-        #     ps_lr_file = np.load(planetscope_lr_folder.joinpath(file))
-
-        #     upsampled_file = cv2.resize(ps_lr_file, (150, 150), interpolation=cv2.INTER_CUBIC)
-        #     ps_psnr = psnr(upsampled_file, ps_file)
-        #     ps_ssim, _ = ssim((upsampled_file * (255. / 8.)).astype(np.uint8), (ps_file * (255. / 8.)).astype(np.uint8), full=True)
-
-
-        #     psnr_score.append(ps_psnr)
-        #     ssim_score.append(ps_ssim)
-        
         total_size = len(self.files)
         train_size = int(0.8 * total_size)
         val_size = total_size - train_size
@@ -130,7 +110,7 @@ class SRDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         # if stage == 'fit':
-            self.train_dataset = SRDataset(self.params, self.files)
+            self.train_dataset = SRDataset(self.params, self.train_set)
             self.val_dataset = SRDataset(self.params, self.val_set)
         # elif stage == 'predict':
             files_in_situ = [file.name for file in self.predict_files.iterdir()]
