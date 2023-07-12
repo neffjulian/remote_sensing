@@ -17,6 +17,21 @@ if torch.cuda.is_available():
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
+class ResidualBlock(nn.Module):
+    def __init__(self, channels: int):
+        super().__init__()
+
+        self.block = nn.Sequential(
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(channels, channels, kernel_size=3),
+            nn.ReLU(),
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(channels, channels, kernel_size=3)
+        )
+
+    def forward(self, x):
+        return x + self.block(x) * 0.1
+
 class EDSR(LightningModule):
     def __init__(self, hparams: dict):
         super().__init__()
@@ -32,15 +47,8 @@ class EDSR(LightningModule):
             nn.Conv2d(1, self.channels, kernel_size=3)
         )
         
-        self.residual_layers = [
-            nn.Sequential(
-                nn.ReplicationPad2d(1),
-                nn.Conv2d(self.channels, self.channels, kernel_size=3),
-                nn.ReLU(),
-                nn.ReplicationPad2d(1),
-                nn.Conv2d(self.channels, self.channels, kernel_size=3)
-            )
-        ] * self.nr_blocks
+        residual_layers = [ResidualBlock(self.channels)] * self.nr_blocks
+        self.residual_layers = nn.Sequential(*residual_layers)
 
         self.upscale = nn.Sequential(
             nn.ReplicationPad2d(1),
@@ -63,8 +71,7 @@ class EDSR(LightningModule):
 
     def forward(self, x):
         x_hat = self.input_layer(x)
-        for residual_layer in self.residual_layers:
-            x_hat = x_hat + residual_layer(x_hat) * 0.1
+        x_hat = x_hat + self.residual_layers(x_hat) * 0.1
         x_hat = self.upscale(x_hat)
         return self.output_layer(x_hat)
     
