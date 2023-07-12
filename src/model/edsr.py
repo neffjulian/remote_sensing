@@ -52,10 +52,10 @@ class EDSR(LightningModule):
 
         self.upscale = nn.Sequential(
             nn.ReplicationPad2d(1),
-            nn.Conv2d(self.channels, 108, kernel_size=3),
+            nn.Conv2d(self.channels, self.channels * 6 * 6, kernel_size=3),
             nn.PixelShuffle(6),
             nn.ReplicationPad2d(1),
-            nn.Conv2d(3, self.channels, kernel_size=3)
+            nn.Conv2d(self.channels, self.channels, kernel_size=3)
         )
 
         self.output_layer = nn.Sequential(
