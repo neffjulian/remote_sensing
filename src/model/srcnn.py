@@ -44,7 +44,7 @@ class SRCNN(LightningModule):
 
         for module in self.model.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.0001)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.002)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
