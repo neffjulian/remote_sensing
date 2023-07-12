@@ -58,9 +58,9 @@ def create_tiles(data: np.ndarray, satellite: str, tiles: int = 4):
     x, y = arr_x // tiles, arr_y // tiles
     
     if satellite == "sentinel":
-        margin = 7
+        margin = 10
     else: 
-        margin = 40
+        margin = 60
 
     for i in range(tiles):
         for j in range(tiles):
@@ -142,12 +142,14 @@ def process_satellite_data(satellite: str, band: str, in_situ: bool) -> None:
         for month in year.iterdir():
             if not month.name[-3:] in months:
                 continue
-            print(f"Preprocess {satellite} data for {year.name} {month.name}")
-
+            
             source_dir = month.joinpath("lai")
             if in_situ is True:
+                print(f"Preprocess in situ data for {satellite}")
                 target_dir = DATA_DIR.joinpath("processed", f"{band}_in_situ")
             else:
+                print(f"Preprocess {satellite} data for {year.name} {month.name}")
+
                 target_dir = DATA_DIR.joinpath("processed", band)
             target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -166,7 +168,9 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
     s2_folder = DATA_DIR.joinpath("processed", s2_bands)
 
     files_to_keep = []
-    nr_files = len(list(ps_folder.iterdir())) 
+
+    print(f"Number of files in {ps_folder.name}: {len(list(ps_folder.iterdir()))}")
+    print(f"Number of files in {s2_folder.name}: {len(list(s2_folder.iterdir()))}")
 
     ps_psnr_ = []
     ps_ssim_ = []
@@ -187,9 +191,9 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
         s2_psnr = psnr(downsampled_file, s2_file)
         s2_ssim, _ = ssim((downsampled_file * (255. / 8.)).astype(np.uint8), (s2_file * (255. / 8.)).astype(np.uint8), full=True)
 
-        if ps_psnr < 0.2 or s2_psnr < 0.1:
+        if ps_psnr <= 0.25 or s2_psnr <= 0.1:
             continue
-        elif ps_ssim < 0.2 or s2_ssim < 0.1:
+        elif ps_ssim <= 0.7 or s2_ssim <= 0.2:
             continue
 
         files_to_keep.append(ps_filename.name)
@@ -199,28 +203,35 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
         s2_psnr_.append(s2_psnr)
         s2_ssim_.append(s2_ssim)
 
-    # remove_files(ps_folder, files_to_keep, False)
-    # remove_files(s2_folder, files_to_keep, False)
+    print(f"Number of files to keep: {len(files_to_keep)}")
 
-    overlap = np.intersect1d(ps_psnr_, s2_psnr_)
-    plt.hist(s2_psnr_, bins=100, range=(0,100), label='S2', color='red', alpha=0.5)
-    plt.hist(ps_psnr_, bins=100, range=(0,100), label='PS', color='blue', alpha=0.5)
-    plt.hist(overlap, bins=100, range=(0,100), label='Overlap', color='purple', )
-    plt.legend()
-    plt.xlabel('PSNR')
-    plt.ylabel('Frequency')
-    plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs S2')
-    plt.show()
+    remove_files(ps_folder, files_to_keep, False)
+    remove_files(s2_folder, files_to_keep, False)
 
-    overlap = np.intersect1d(ps_ssim_, s2_ssim_)
-    plt.hist(s2_ssim_, bins=100, range=(0,1), label='S2', color='red', alpha=0.5)
-    plt.hist(ps_ssim_, bins=100, range=(0,1), label='PS', color='blue', alpha=0.5)
-    plt.hist(overlap, bins=100, range=(0,1), label='Overlap', color='purple', alpha=0.7)    
-    plt.legend()
-    plt.xlabel('SSIM')
-    plt.ylabel('Frequency')
-    plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs S2')
-    plt.show()
+    assert [file.name for file in ps_folder.iterdir()] == [file.name for file in s2_folder.iterdir()]
+
+    print(f"Number of files in {ps_folder.name}: {len(list(ps_folder.iterdir()))}")
+    print(f"Number of files in {s2_folder.name}: {len(list(s2_folder.iterdir()))}")
+
+    # overlap = np.intersect1d(ps_psnr_, s2_psnr_)
+    # plt.hist(s2_psnr_, bins=100, range=(0,100), label='S2', color='red', alpha=0.5)
+    # plt.hist(ps_psnr_, bins=100, range=(0,100), label='PS', color='blue', alpha=0.5)
+    # plt.hist(overlap, bins=100, range=(0,100), label='Overlap', color='purple', )
+    # plt.legend()
+    # plt.xlabel('PSNR')
+    # plt.ylabel('Frequency')
+    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs S2')
+    # plt.show()
+
+    # overlap = np.intersect1d(ps_ssim_, s2_ssim_)
+    # plt.hist(s2_ssim_, bins=100, range=(0,1), label='S2', color='red', alpha=0.5)
+    # plt.hist(ps_ssim_, bins=100, range=(0,1), label='PS', color='blue', alpha=0.5)
+    # plt.hist(overlap, bins=100, range=(0,1), label='Overlap', color='purple', alpha=0.7)    
+    # plt.legend()
+    # plt.xlabel('SSIM')
+    # plt.ylabel('Frequency')
+    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs S2')
+    # plt.show()
 
     # plt.hist(s2_psnr, bins=100, range=(0,100), label='Overlap')
     # plt.legend()
@@ -262,7 +273,6 @@ def create_lr_dataset(ps_band: str):
 def main():
     process_satellite_data("sentinel", "20m", False)
     process_satellite_data("sentinel", "20m", True)
-    
     process_satellite_data("planetscope", "4b", False)
     process_satellite_data("planetscope", "4b", True)
 
