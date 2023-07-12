@@ -129,6 +129,7 @@ def visualize_output(name: str, output: list) -> None:
     sr_hr_psnrs = []
     lr_hr_ssims = []
     sr_hr_ssims = []
+    j = 0
     for i, out in enumerate(transformed_output):
         out_file = results.joinpath(out[3] + '.png')
         lr_hr_psnr = psnr(out[0], out[2])
@@ -136,10 +137,11 @@ def visualize_output(name: str, output: list) -> None:
         lr_hr_ssim, _ = ssim((out[0] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
         sr_hr_ssim, _ = ssim((out[1] * (255.0 / 8.0)).astype(np.uint8), (out[2] * (255.0 / 8.0)).astype(np.uint8), full=True)
         print(out_file.name, "LR-HR PSNR:", lr_hr_psnr, "  SR-HR PSNR:", sr_hr_psnr," |  LR-HR SSIM:", lr_hr_ssim, " SR-HR SSIM:", sr_hr_ssim)
-        if sr_hr_ssim > 0.5 or sr_hr_psnr > 25:
-            save_output_visualization(out[0], out[1], out[2], out_file)
-            np.save(results.joinpath(out[3] + '.npy'), out[2])
+        j += 1
         if not out[3].endswith("error"):
+            if (sr_hr_ssim > 0.5 or sr_hr_psnr > 25) and j < 5:
+                save_output_visualization(out[0], out[1], out[2], out_file)
+                np.save(results.joinpath(out[3] + '.npy'), out[2])
             lr_hr_psnrs.append(lr_hr_psnr)
             sr_hr_psnrs.append(sr_hr_psnr)
             lr_hr_ssims.append(lr_hr_ssim)

@@ -2,11 +2,8 @@ from inspect import isfunction
 from torch import nn
 from torch.nn import init
 
-def exists(x):
-    return x is not None
-
 def default(val, d):
-    if exists(val):
+    if val is not None:
         return val
     return d() if isfunction(d) else d
 

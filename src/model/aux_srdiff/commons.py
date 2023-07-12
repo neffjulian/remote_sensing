@@ -5,7 +5,6 @@ from einops import rearrange
 from torch import nn
 from torch.nn import Parameter
 
-
 class Residual(nn.Module):
     def __init__(self, fn):
         super().__init__()
@@ -29,12 +28,6 @@ class SinusoidalPosEmb(nn.Module):
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
         return emb
 
-
-class Mish(nn.Module):
-    def forward(self, x):
-        return x * torch.tanh(F.softplus(x))
-
-
 class Rezero(nn.Module):
     def __init__(self, fn):
         super().__init__()
@@ -44,9 +37,6 @@ class Rezero(nn.Module):
     def forward(self, x):
         return self.fn(x) * self.g
 
-
-# building block modules
-
 class Block(nn.Module):
     def __init__(self, dim, dim_out, groups=8):
         super().__init__()
@@ -54,26 +44,25 @@ class Block(nn.Module):
             self.block = nn.Sequential(
                 nn.ReflectionPad2d(1),
                 nn.Conv2d(dim, dim_out, 3),
-                Mish()
+                nn.Mish()
             )
         else:
             self.block = nn.Sequential(
                 nn.ReflectionPad2d(1),
                 nn.Conv2d(dim, dim_out, 3),
                 nn.GroupNorm(groups, dim_out),
-                Mish()
+                nn.Mish()
             )
 
     def forward(self, x):
         return self.block(x)
-
 
 class ResnetBlock(nn.Module):
     def __init__(self, dim, dim_out, *, time_emb_dim=0, groups=8):
         super().__init__()
         if time_emb_dim > 0:
             self.mlp = nn.Sequential(
-                Mish(),
+                nn.Mish(),
                 nn.Linear(time_emb_dim, dim_out)
             )
 
@@ -89,7 +78,6 @@ class ResnetBlock(nn.Module):
             h += cond
         h = self.block2(h)
         return h + self.res_conv(x)
-
 
 class Upsample(nn.Module):
     def __init__(self, dim):
