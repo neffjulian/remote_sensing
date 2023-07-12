@@ -17,7 +17,7 @@ from torchmetrics import StructuralSimilarityIndexMeasure
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
-class RRDB(nn.Module):
+class ResidualDenseBlock(nn.Module):
     def __init__(self, channels: int, growth: int, residual_scaling: float = 0.2) -> None:
         super().__init__()
         self.residual_scaling = residual_scaling
@@ -38,9 +38,22 @@ class RRDB(nn.Module):
             out = conv(torch.cat(features, dim=1))
             features.append(out)
         return out * self.residual_scaling + x
+    
+class RRDB(nn.Module):
+    def __init__(self, blocks: int, channels: int, growth: int, residual_scaling: float = 0.2) -> None:
+        super().__init__()
+        self.residual_scaling = residual_scaling
+        self.blocks = [ResidualDenseBlock(channels, growth, residual_scaling)] * blocks
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = x
+        for block in self.blocks:
+            out += self.residual_scaling * block(out)
+        return x + self.residual_scaling * out
+
 
 class Generator(nn.Module): # I.e. SRResNet
-    def __init__(self, feature_maps: int = 64, num_res_blocks: int = 16) -> None:
+    def __init__(self, feature_maps: int = 64, num_res_blocks: int = 23) -> None:
         super().__init__()
 
         self.input_block = nn.Sequential(
@@ -136,7 +149,7 @@ class Discriminator(nn.Module):
     def _make_conv_block(self, in_channels: int, out_channels: int, stride: int = 1, batch_norm: bool = True) -> nn.Sequential:
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1),
-            # nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity(),
+            nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity(),
             nn.LeakyReLU(0.2, inplace=True)
         )
     
@@ -208,12 +221,12 @@ class ESRGAN(pl.LightningModule):
 
     def _discriminator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
         real_pred = self.discriminator(hr_image)
-        real_loss = self._adv_loss(real_pred, ones=True)
-
         _, fake_pred = self._fake_pred(lr_image)
-        fake_loss = self._adv_loss(fake_pred, ones=False)
 
-        return 0.5 * (real_loss + fake_loss)
+        d1_loss = self._adv_loss(real_pred - fake_pred, ones=True)
+        d2_loss = self._adv_loss(fake_pred - real_pred, ones=False)
+
+        return (d1_loss + d2_loss) / 2.0
 
     def _generator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
         fake, fake_pred = self._fake_pred(lr_image)
