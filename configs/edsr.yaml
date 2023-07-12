@@ -12,7 +12,7 @@ predict: true
 
 model:
   name: edsr
-  channels: 128
+  channels: 256
   blocks: 32
 
 datamodule:

@@ -32,7 +32,7 @@ class EDSR(LightningModule):
             nn.Conv2d(1, self.channels, kernel_size=3)
         )
         
-        residual_layers = [
+        self.residual_layers = [
             nn.Sequential(
                 nn.ReplicationPad2d(1),
                 nn.Conv2d(self.channels, self.channels, kernel_size=3),
@@ -41,8 +41,6 @@ class EDSR(LightningModule):
                 nn.Conv2d(self.channels, self.channels, kernel_size=3)
             )
         ] * self.nr_blocks
-        self.residual_layers = nn.Sequential(*residual_layers)
-
 
         self.upscale = nn.Sequential(
             nn.ReplicationPad2d(1),
@@ -57,8 +55,6 @@ class EDSR(LightningModule):
             nn.Conv2d(self.channels, 1, kernel_size=3)
         )
 
-        # self.mean = 2.3883540838022848
-
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
                 torch.nn.init.normal_(module.weight, mean=0, std=0.0001)
@@ -66,10 +62,10 @@ class EDSR(LightningModule):
                     module.bias.data.zero_()
 
     def forward(self, x):
-        # x_hat = x - self.mean
-        # x_hat = self.interpolate(x)
         x_hat = self.input_layer(x)
-        x_hat = self.upscale(x_hat + self.residual_layers(x_hat))
+        for residual_layer in self.residual_layers:
+            x_hat = x_hat + residual_layer(x_hat) * 0.1
+        x_hat = self.upscale(x_hat)
         return self.output_layer(x_hat)
     
     def configure_optimizers(self):

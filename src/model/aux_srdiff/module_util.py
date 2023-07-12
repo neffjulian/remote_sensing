@@ -7,18 +7,6 @@ def default(val, d):
         return val
     return d() if isfunction(d) else d
 
-def cycle(dl):
-    while True:
-        for data in dl:
-            yield data
-
-def num_to_groups(num, divisor):
-    groups = num // divisor
-    remainder = num % divisor
-    arr = [divisor] * groups
-    if remainder > 0:
-        arr.append(remainder)
-    return arr
 
 def initialize_weights(net_l, scale=0.1):
     if not isinstance(net_l, list):
