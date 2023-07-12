@@ -21,8 +21,6 @@ class SRDiff(LightningModule):
     def __init__(self, hparams: dict):
         super().__init__()
 
-        
-
     def forward(self, x):
         pass
     
@@ -34,7 +32,7 @@ class SRDiff(LightningModule):
                 'scheduler': StepLR(
                     optimizer=optimizer,
                     step_size=self.scheduler_step,
-                    gamma=0.5,
+                    gamma=0.1,
                     verbose=True
                 ),
                 'monitor': 'val_ssim'
