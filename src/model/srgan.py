@@ -26,7 +26,7 @@ class VGG19FeatureExtractor(nn.Module):
             p.requires_grad = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.vgg(x.repeat(1, 3, 1, 1))
+        return self.vgg(x.repeat(1, 3, 1, 1)) / 12.75
 
 class ResidualBlock(nn.Module):
     def __init__(self, feature_maps: int = 64) -> None:
