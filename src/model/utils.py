@@ -160,10 +160,10 @@ def visualize_output(name: str, output: list) -> None:
     print("LR-HR PSNR:", lh_psnr, " SR-HR PSNR:", sh_psnr, " (", change_psnr,"%) |", \
           "LR-HR SSIM:", lh_ssim, " SR-HR SSIM:", sh_ssim, " (", change_ssim,"%)")
     print("-------------------- MEDIAN -----------------------")
-    lh_psnr = np.mean(lr_hr_psnrs)
-    sh_psnr = np.mean(sr_hr_psnrs)
-    lh_ssim = np.mean(lr_hr_ssims)
-    sh_ssim = np.mean(sr_hr_ssims)
+    lh_psnr = np.median(lr_hr_psnrs)
+    sh_psnr = np.median(sr_hr_psnrs)
+    lh_ssim = np.median(lr_hr_ssims)
+    sh_ssim = np.median(sr_hr_ssims)
     change_psnr = round(sh_psnr / lh_psnr * 100 - 100, 2)
     change_ssim = round(sh_ssim / lh_ssim * 100 - 100, 2)
     print("LR-HR PSNR:", lh_psnr, " SR-HR PSNR:", sh_psnr, " (", change_psnr,"%) |", \
