@@ -214,7 +214,7 @@ class SRGAN(pl.LightningModule):
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
 
-        return 0.06 * perceptual_loss + 0.01 * adv_loss + content_loss
+        return 0.06 * perceptual_loss + 0.1 * adv_loss + content_loss
 
     @staticmethod
     def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:
