@@ -65,18 +65,14 @@ class Generator(nn.Module): # I.e. SRResNet
 
         self.upscale_block = nn.Sequential(
             nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps * 9, kernel_size=3),
-            nn.PixelShuffle(3),
-            nn.PReLU(),
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3),
-            nn.PixelShuffle(2),
+            nn.Conv2d(feature_maps, feature_maps * 108, kernel_size=3),
+            nn.PixelShuffle(6),
             nn.PReLU(),
         )
 
         self.output_block = nn.Sequential(
             nn.ReplicationPad2d(4),
-            nn.Conv2d(feature_maps, 1, kernel_size=9),
+            nn.Conv2d(feature_maps * 3, 1, kernel_size=9),
             # nn.Tanh(),
         )
 
@@ -214,7 +210,7 @@ class SRGAN(pl.LightningModule):
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
 
-        return 0.06 * perceptual_loss + 0.1 * adv_loss + content_loss
+        return 0.006 * perceptual_loss + 0.001 * adv_loss + content_loss
 
     @staticmethod
     def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:
