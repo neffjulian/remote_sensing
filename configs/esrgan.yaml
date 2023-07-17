@@ -15,20 +15,20 @@ model:
   batch_size: 16
   feature_maps_gen: 128 # 64
   feature_maps_disc: 64 # 64
-  num_res_blocks: 16 # 16
+  num_res_blocks: 23 # 16
 
 datamodule:
   batch_size: 16
-  augment: True
+  augment: False
 
 trainer:
-  max_epochs: 100
+  max_epochs: 250
   profiler: "simple"
   log_every_n_steps: 5
 
 optimizer:
   lr: 0.0001
-  scheduler_step: 25
+  scheduler_step: 50
 
 scheduler:
   mode: min

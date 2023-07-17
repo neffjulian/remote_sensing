@@ -17,12 +17,87 @@ if torch.cuda.is_available():
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
+
+class LREncoder(nn.Module):
+    def __init__(self, channels: int, growth: int, residual_scaling: float = 0.2) -> None:
+        super().__init__()
+        self.residual_scaling = residual_scaling
+        self.convs = nn.ModuleList()
+        for i in range(4):
+            self.convs.append(
+                nn.Sequential(
+                    nn.ReplicationPad2d(1),
+                    nn.Conv2d(channels + i * growth, growth, kernel_size=3),
+                    nn.LeakyReLU(negative_slope=0.2, inplace=True)
+                )
+            )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        features = [x]
+        for conv in self.convs:
+            out = conv(torch.cat(features, dim=1))
+            features.append(out)
+        return out * self.residual_scaling + x
+
+class ConvBlock(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int) -> None:
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(channels_in, channels_out, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.conv(x)
+class ResBlock(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int,  te) -> None:
+        self.conv1 = ConvBlock(channels_in, channels_out)
+        self.conv2 = ConvBlock(channels_out, channels_out)
+        self.te = te
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.conv2(self.conv1(x) + self.te) + x
+
+class ContractingStep(nn.Module):
+    def __init__(self, channels: int, double_channels: bool, te) -> None:
+        super().__init__()
+        if double_channels:
+            self.res1 = ResBlock(channels // 2, channels, te)
+        else:
+            self.res1 = ResBlock(channels, channels, te)
+
+        self.res2 = ResBlock(channels, channels, te)
+        self.pooling = nn.MaxPool2d(kernel_size=2, stride=2)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.pooling(self.res2(self.res1(x)))
+    
+class MiddleStep(nn.Module):
+    def __init__(self, channels: int, te) -> None:
+        super().__init__()
+        self.res1 = ResBlock(channels, channels, te)
+        self.res2 = ResBlock(channels, channels, te)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.res2(self.res1(x))
+    
+class ExpansiveStep(nn.Module):
+    def __init__(self, channels: int, double_channels: bool, te) -> None:
+        super().__init__()
+        if double_channels:
+            self.res1 = ResBlock(channels // 2, channels, te)
+        else:
+            self.res1 = ResBlock(channels, channels, te)
+        self.res2 = ResBlock(channels, channels * 4, te)
+        self.upsample = nn.PixelShuffle(2)
+
 class SRDiff(LightningModule):
     def __init__(self, hparams: dict):
         super().__init__()
 
         self.nr_steps = 30
-        betas = torch.linspace(-18, 10, self.nr_steps)
+        betas = torch.linspace(0.0001, 0.02, self.nr_steps)
         self.betas = torch.sigmoid(betas) * (3e-1 - 1e-5) + 1e-5
         self.alphas = 1. - self.betas
         self.alpha_bars = torch.cumprod(self.alphas, dim=0)
@@ -91,4 +166,3 @@ class SRDiff(LightningModule):
             _, _, noise = self._reverse_process(noise, t)
             samples.append(noise)
         return samples
-

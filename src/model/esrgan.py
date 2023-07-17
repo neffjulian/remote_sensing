@@ -28,7 +28,7 @@ class ResidualDenseBlock(nn.Module):
                 nn.Sequential(
                     nn.ReplicationPad2d(1),
                     nn.Conv2d(channels + i * growth, growth, kernel_size=3),
-                    nn.LeakyReLU(negative_slope=0.2, inplace=True)
+                    nn.LeakyReLU(negative_slope=0.2, inplace=True) if i < 4 else nn.Identity()
                 )
             )
     
@@ -234,7 +234,9 @@ class ESRGAN(pl.LightningModule):
         perceptual_loss = self._perceptual_loss(hr_image, fake)
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
-
+        self.log("Perceptual Loss", perceptual_loss, on_epoch=True, sync_dist=True)
+        self.log("Adv Loss", adv_loss, on_epoch=True, sync_dist=True)
+        
         return perceptual_loss + 0.005 * adv_loss + content_loss * 0.01
 
     @staticmethod
