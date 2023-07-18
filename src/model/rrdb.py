@@ -42,6 +42,7 @@ class RRDB(LightningModule):
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
 
         self.channels = hparams["model"]["channels"]
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
         upscaling_factor = 6
         upscaling_channels = 32
