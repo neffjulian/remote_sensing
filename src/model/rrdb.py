@@ -74,9 +74,9 @@ class RRDB(pl.LightningModule):
 
             ResidualInResidual(blocks, self.channels),
 
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(self.channels, self.channels, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            # nn.ReplicationPad2d(1),
+            # nn.Conv2d(self.channels, self.channels, kernel_size=3),
+            # nn.LeakyReLU(negative_slope=0.2, inplace=True),
             
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, 1, kernel_size=3),

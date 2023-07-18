@@ -1,7 +1,9 @@
+import math
 import numpy as np
 from pathlib import Path
 from matplotlib import pyplot as plt
 import torch
+import torch.nn as nn
 
 DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed', '4b', '03_0000_00.npy')
 
@@ -17,6 +19,23 @@ def forward(data: torch.Tensor, timestep: int, alpha: torch.Tensor, beta: torch.
     xt = data * torch.sqrt(alpha_bar_forward) + torch.randn_like(data) * torch.sqrt(1. - alpha_bar_forward)
 
     return xt
+
+class Swish(nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * torch.sigmoid(x)
+    
+class TimeEmbedd(nn.Module):
+    def __init__(self, channels: int) -> None:
+        super().__init__()
+        self.channels = channels
+        self.lin1 = nn.Linear(channels // 4, channels)
+        self.act = Swish()
+        self.lin2 = nn.Linear(channels, channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        half_dim = self.channels // 8
+        emb = math.log(10000) / (half_dim - 1)
+        emb = torch.exp(torch.arange(half_dim) * -emb)
 
 def main():
     data = torch.Tensor(np.load(DATA_DIR))
