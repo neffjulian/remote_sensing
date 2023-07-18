@@ -15,7 +15,7 @@ model:
   channels: 64
 
 datamodule:
-  batch_size: 32
+  batch_size: 16
   augment: False
 
 trainer:
