@@ -84,7 +84,7 @@ class RRDB(pl.LightningModule):
 
         for module in self.model.modules():
             if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.002)
+                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
