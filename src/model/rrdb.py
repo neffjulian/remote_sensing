@@ -12,9 +12,6 @@ from torch.optim.lr_scheduler import StepLR
 import pytorch_lightning as pl
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-if torch.cuda.is_available():
-    torch.set_float32_matmul_precision("high")
-
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
@@ -75,8 +72,7 @@ class RRDB(pl.LightningModule):
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-
-        self.blocks = ResidualInResidual(16, self.channels)
+        self.blocks = nn.Sequential(ResidualInResidual(16, self.channels))
         
         self.out = nn.Sequential(
             nn.ReplicationPad2d(1),
