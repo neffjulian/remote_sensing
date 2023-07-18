@@ -73,7 +73,7 @@ class RRDB(pl.LightningModule):
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-        self.blocks = nn.Sequential(ResidualInResidual(16, self.channels))
+        self.blocks = nn.Sequential(ResidualInResidual(8, self.channels))
         
         self.out = nn.Sequential(
             nn.ReplicationPad2d(1),
