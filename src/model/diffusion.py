@@ -36,6 +36,10 @@ class TimeEmbedd(nn.Module):
         half_dim = self.channels // 8
         emb = math.log(10000) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim) * -emb)
+        emb = x[:, None] * emb[None, :]
+        emb = torch.cat((emb.sin(), emb.cos()), dim=1)
+        emb = self.act(self.lin1(emb))
+        return self.lin2(emb)
 
 def main():
     data = torch.Tensor(np.load(DATA_DIR))

@@ -13,11 +13,11 @@ predict: True
 model:
   name: rrdb
   channels: 64
-  upscaling_channels: 8
+  upscaling_channels: 4
   blocks: 8
 
 datamodule:
-  batch_size: 32
+  batch_size: 16
   augment: True
 
 trainer:
