@@ -64,7 +64,7 @@ def main(hparams: dict) -> None:
             default_root_dir=LOG_DIR,
             accelerator="gpu",
             devices=4,
-            accumulate_grad_batches=2
+            accumulate_grad_batches=8
         )
 
         trainer.fit(model=model, datamodule=datamodule)
