@@ -63,19 +63,19 @@ class RRDB(pl.LightningModule):
         self.model = nn.Sequential(
             nn.ReplicationPad2d(1),
             nn.Conv2d(1, upscaling_factor * upscaling_factor * upscaling_channels, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2),
 
             nn.PixelShuffle(upscaling_factor),
 
             nn.ReplicationPad2d(1),
             nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2),
 
             ResidualInResidual(16, self.channels),
 
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, self.channels, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2),
             
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, 1, kernel_size=3),
