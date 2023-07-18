@@ -46,7 +46,7 @@ def main():
     # print(alpha_bar)
 
     pos_encoding = PositionalEncoding()
-    print(pos_encoding(torch.Tensor([1])).shape)
+    print(pos_encoding(torch.arange(1)).shape)
 
     # for i in range(1, 16):
     #     row = i // 4
