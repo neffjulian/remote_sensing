@@ -12,13 +12,15 @@ from torch.optim.lr_scheduler import StepLR
 import pytorch_lightning as pl
 from torchmetrics import StructuralSimilarityIndexMeasure
 
+if torch.cuda.is_available():
+    torch.set_float32_matmul_precision("high")
+
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class ResidualDenseBlock(nn.Module):
-    def __init__(self, channels: int, residual_scaling: float = 0.2) -> None:
+    def __init__(self, channels: int) -> None:
         super().__init__()
-        self.residual_scaling = residual_scaling
 
         self.convs = nn.ModuleList()
         for i in range(5):
@@ -26,7 +28,7 @@ class ResidualDenseBlock(nn.Module):
                 nn.Sequential(
                     nn.ReplicationPad2d(1),
                     nn.Conv2d(channels + i * channels, channels, kernel_size=3),
-                    nn.LeakyReLU(negative_slope=0.2, inplace=True) if i < 4 else nn.Identity()
+                    nn.LeakyReLU(negative_slope=0.2) if i < 4 else nn.Identity()
                 )
             )
     
@@ -35,20 +37,19 @@ class ResidualDenseBlock(nn.Module):
         for conv in self.convs:
             out = conv(torch.cat(features, dim=1))
             features.append(out)
-        return out * self.residual_scaling + x
+        return out * 0.2 + x
     
 class ResidualInResidual(nn.Module):
     def __init__(self, blocks: int, channels: int, residual_scaling: float = 0.2) -> None:
         super().__init__()
-        res_blocks = [ResidualDenseBlock(channels, residual_scaling)] * blocks
+        res_blocks = [ResidualDenseBlock(channels)] * blocks
         self.blocks = nn.ModuleList(res_blocks)
-        self.residual_scaling = residual_scaling
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = x
         for block in self.blocks:
-            out += self.residual_scaling * block(out)
-        return x + self.residual_scaling * out
+            out += 0.2 * block(out)
+        return x + 0.2 * out
     
 class RRDB(pl.LightningModule):
     def __init__(self, hparams: dict) -> None:
@@ -97,17 +98,6 @@ class RRDB(pl.LightningModule):
                 'monitor': 'val_ssim'
             }
         }
-    
-    def shared_step(self, batch, stage):
-        lr_image, hr_image = batch
-        sr_image = self.forward(lr_image)
-        l1_loss = F.l1_loss(sr_image, hr_image)
-        if stage == "val":
-            mse_loss = F.mse_loss(sr_image, hr_image)
-            self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)     
-            self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
-            self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
-        return l1_loss
     
     def training_step(self, batch, batch_idx):
         lr_image, hr_image = batch
