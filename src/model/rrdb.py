@@ -43,7 +43,8 @@ class ResidualDenseBlock(nn.Module):
 class ResidualInResidual(nn.Module):
     def __init__(self, blocks: int, channels: int, residual_scaling: float = 0.2) -> None:
         super().__init__()
-        self.blocks = [ResidualDenseBlock(channels)] * blocks
+        self.blocks = [ResidualDenseBlock(channels, residual_scaling)] * blocks
+        self.residual_scaling = residual_scaling
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = x
