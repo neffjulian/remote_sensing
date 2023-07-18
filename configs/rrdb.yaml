@@ -17,7 +17,7 @@ model:
   blocks: 16
 
 datamodule:
-  batch_size: 1
+  batch_size: 4
   augment: False
 
 trainer:
