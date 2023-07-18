@@ -32,8 +32,9 @@ class ResidualDenseBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = [x]
         for conv in self.convs:
-            features.append(conv(torch.cat(features, dim=1)))
-        return features[-1] * 0.2 + x
+            out = conv(torch.cat(features, dim=1))
+            features.append(out)
+        return out * 0.2 + x
     
 class ResidualInResidual(nn.Module):
     def __init__(self, blocks: int, channels: int) -> None:
@@ -81,12 +82,6 @@ class RRDB(pl.LightningModule):
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, 1, kernel_size=3),
         )
-
-        for module in self.model.modules():
-            if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.001)
-                if module.bias is not None:
-                    module.bias.data.zero_()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)

@@ -13,8 +13,8 @@ predict: True
 model:
   name: rrdb
   channels: 64
-  upscaling_channels: 16
-  blocks: 16
+  upscaling_channels: 32
+  blocks: 8
 
 datamodule:
   batch_size: 8

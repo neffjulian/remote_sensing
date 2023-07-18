@@ -18,27 +18,6 @@ def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
 
-class LREncoder(nn.Module):
-    def __init__(self, channels: int, growth: int, residual_scaling: float = 0.2) -> None:
-        super().__init__()
-        self.residual_scaling = residual_scaling
-        self.convs = nn.ModuleList()
-        for i in range(4):
-            self.convs.append(
-                nn.Sequential(
-                    nn.ReplicationPad2d(1),
-                    nn.Conv2d(channels + i * growth, growth, kernel_size=3),
-                    nn.LeakyReLU(negative_slope=0.2, inplace=True)
-                )
-            )
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        features = [x]
-        for conv in self.convs:
-            out = conv(torch.cat(features, dim=1))
-            features.append(out)
-        return out * self.residual_scaling + x
-
 class ConvBlock(nn.Module):
     def __init__(self, channels_in: int, channels_out: int) -> None:
         super().__init__()
