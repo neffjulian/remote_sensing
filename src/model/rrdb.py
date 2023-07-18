@@ -12,9 +12,6 @@ from torch.optim.lr_scheduler import StepLR
 import pytorch_lightning as pl
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-if torch.cuda.is_available():
-    torch.set_float32_matmul_precision("high")
-
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
@@ -28,7 +25,7 @@ class ResidualDenseBlock(nn.Module):
                 nn.Sequential(
                     nn.ReplicationPad2d(1),
                     nn.Conv2d(channels + i * channels, channels, kernel_size=3),
-                    nn.LeakyReLU(negative_slope=0.2) if i < 4 else nn.Identity()
+                    nn.LeakyReLU(negative_slope=0.2, inplace=True) if i < 4 else nn.Identity()
                 )
             )
     
@@ -67,14 +64,14 @@ class RRDB(pl.LightningModule):
         self.upsample = nn.Sequential(
             nn.ReplicationPad2d(1),
             nn.Conv2d(1, upscaling_factor * upscaling_factor * upscaling_channels, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.PixelShuffle(upscaling_factor),
             nn.ReplicationPad2d(1),
             nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2)
+            nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-        self.blocks = nn.Sequential(ResidualInResidual(8, self.channels))
+        self.blocks = ResidualInResidual(8, self.channels)
         
         self.out = nn.Sequential(
             nn.ReplicationPad2d(1),
