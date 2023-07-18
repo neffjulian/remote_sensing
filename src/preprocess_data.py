@@ -191,9 +191,9 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
         s2_psnr = psnr(downsampled_file, s2_file)
         s2_ssim, _ = ssim((downsampled_file * (255. / 8.)).astype(np.uint8), (s2_file * (255. / 8.)).astype(np.uint8), full=True)
 
-        if ps_psnr <= 0.25 or s2_psnr <= 0.1:
+        if ps_psnr <= 0.25 or s2_psnr <= 0.15:
             continue
-        elif ps_ssim <= 0.7 or s2_ssim <= 0.2:
+        elif ps_ssim <= 0.8 or s2_ssim <= 0.2:
             continue
 
         files_to_keep.append(ps_filename.name)
@@ -271,13 +271,13 @@ def create_lr_dataset(ps_band: str):
     print(f"SSIM: {np.mean(ssim_scores)}")
 
 def main():
-    process_satellite_data("sentinel", "20m", False)
-    process_satellite_data("sentinel", "20m", True)
-    process_satellite_data("planetscope", "4b", False)
-    process_satellite_data("planetscope", "4b", True)
+    # process_satellite_data("sentinel", "20m", False)
+    # process_satellite_data("sentinel", "20m", True)
+    # process_satellite_data("planetscope", "4b", False)
+    # process_satellite_data("planetscope", "4b", True)
 
-    remove_unused_images(in_situ=False)
-    remove_unused_images(in_situ=True)
+    # remove_unused_images(in_situ=False)
+    # remove_unused_images(in_situ=True)
     remove_outliers("4b", "20m")
     create_lr_dataset("4b")
 
