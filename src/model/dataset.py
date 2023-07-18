@@ -95,7 +95,7 @@ class SRDataModule(pl.LightningDataModule):
         self.files = [file.name for file in DATA_DIR.joinpath(self.planetscope_bands).iterdir()]
 
         total_size = len(self.files)
-        train_size = int(0.8 * total_size)
+        train_size = int(0.9 * total_size)
         val_size = total_size - train_size
 
         self.train_set, self.val_set = random_split(

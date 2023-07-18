@@ -2,6 +2,7 @@
 SRDiff: Single Image Super-Resolution with Diffusion Probabilistic Models (2021) by Li et al.
 
 Paper: https://arxiv.org/pdf/2104.14951.pdf
+Adapted from: https://github.com/jbergq/simple-diffusion-model/tree/main
 """
 
 import torch
