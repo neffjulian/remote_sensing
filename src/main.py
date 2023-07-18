@@ -21,7 +21,6 @@ from model.srgan import SRGAN
 from model.esrgan import ESRGAN
 from model.rrdb import RRDB
 
-
 DOTENV_PATH = Path(__file__).parent.parent.joinpath(".env")
 LOG_DIR = Path(__file__).parent.parent.joinpath("logs")
 load_dotenv(DOTENV_PATH)

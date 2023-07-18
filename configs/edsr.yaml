@@ -28,7 +28,6 @@ optimizer:
   lr: 0.0002
   scheduler_step: 10
 
-
 scheduler:
   mode: min
   patience: 3

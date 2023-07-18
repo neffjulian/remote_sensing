@@ -15,8 +15,8 @@ model:
   channels: 64
 
 datamodule:
-  batch_size: 16
-  augment: True
+  batch_size: 32
+  augment: False
 
 trainer:
   max_epochs: 250
