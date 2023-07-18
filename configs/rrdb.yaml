@@ -14,10 +14,10 @@ model:
   name: rrdb
   channels: 64
   upscaling_channels: 4
-  blocks: 4
+  blocks: 16
 
 datamodule:
-  batch_size: 32
+  batch_size: 1
   augment: False
 
 trainer:
