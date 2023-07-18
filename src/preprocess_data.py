@@ -271,13 +271,13 @@ def create_lr_dataset(ps_band: str):
     print(f"SSIM: {np.mean(ssim_scores)}")
 
 def main():
-    # process_satellite_data("sentinel", "20m", False)
-    # process_satellite_data("sentinel", "20m", True)
-    # process_satellite_data("planetscope", "4b", False)
-    # process_satellite_data("planetscope", "4b", True)
+    process_satellite_data("sentinel", "20m", False)
+    process_satellite_data("sentinel", "20m", True)
+    process_satellite_data("planetscope", "4b", False)
+    process_satellite_data("planetscope", "4b", True)
 
-    # remove_unused_images(in_situ=False)
-    # remove_unused_images(in_situ=True)
+    remove_unused_images(in_situ=False)
+    remove_unused_images(in_situ=True)
     remove_outliers("4b", "20m")
     create_lr_dataset("4b")
 
