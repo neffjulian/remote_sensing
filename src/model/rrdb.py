@@ -37,7 +37,7 @@ class ResidualDenseBlock(nn.Module):
         return out * 0.2 + x
     
 class ResidualInResidual(nn.Module):
-    def __init__(self, blocks: int, channels: int, residual_scaling: float = 0.2) -> None:
+    def __init__(self, blocks: int, channels: int) -> None:
         super().__init__()
         res_blocks = [ResidualDenseBlock(channels)] * blocks
         self.blocks = nn.ModuleList(res_blocks)
@@ -61,28 +61,29 @@ class RRDB(pl.LightningModule):
         upscaling_factor = 6
         upscaling_channels = 16
 
-        self.upsample = nn.Sequential(
+        self.model = nn.Sequential(
             nn.ReplicationPad2d(1),
             nn.Conv2d(1, upscaling_factor * upscaling_factor * upscaling_channels, kernel_size=3),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
+
             nn.PixelShuffle(upscaling_factor),
+
             nn.ReplicationPad2d(1),
             nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True)
-        )
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-        self.blocks = ResidualInResidual(8, self.channels)
-        
-        self.out = nn.Sequential(
+            ResidualInResidual(16, self.channels),
+
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, self.channels, kernel_size=3),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, 1, kernel_size=3),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.out(self.blocks(self.upsample(x)))
+        return self.model(x)
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -101,8 +102,7 @@ class RRDB(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         lr_image, hr_image = batch
-        sr_image = self.forward(lr_image)
-        return F.l1_loss(sr_image, hr_image)
+        return F.l1_loss(self.forward(lr_image), hr_image)
     
     def validation_step(self, batch, batch_idx):
         lr_image, hr_image = batch
@@ -115,6 +115,4 @@ class RRDB(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
-        sr_image = self.forward(lr_image)
-        lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
-        return lr_image, sr_image, hr_image, names
+        return F.interpolate(lr_image, size=(150, 150), mode='bicubic'), self.forward(lr_image), hr_image, names
