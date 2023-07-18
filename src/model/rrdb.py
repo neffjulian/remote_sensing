@@ -44,7 +44,7 @@ class RRDB(LightningModule):
         self.channels = hparams["model"]["channels"]
 
         upscaling_factor = 6
-        upscaling_channels = 16
+        upscaling_channels = 32
 
         self.upsample = nn.Sequential(
             nn.ReplicationPad2d(1),
@@ -52,7 +52,7 @@ class RRDB(LightningModule):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.PixelShuffle(upscaling_factor),
             nn.ReplicationPad2d(1),
-            nn.Conv2d(upscaling_factor, self.channels, kernel_size=3),
+            nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
