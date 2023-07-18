@@ -20,6 +20,18 @@ def forward(data: torch.Tensor, timestep: int, alpha: torch.Tensor, beta: torch.
 
     return xt
 
+class ConvBlock(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int) -> None:
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(channels_in, channels_out, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.conv(x)
+
 class PositionalEncoding(nn.Module):
     def __init__(self, max_time_steps: int = 1000, embedding_size: int = 512, n: int = 10000) -> None:
         super().__init__()
