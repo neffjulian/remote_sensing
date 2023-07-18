@@ -1,9 +1,15 @@
+"""
+RRDB: Residual in Residual Dense Block
+
+Paper: https://arxiv.org/pdf/1809.00219.pdf
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.optim.lr_scheduler import StepLR
-from pytorch_lightning import LightningModule
+import pytorch_lightning as pl
 from torchmetrics import StructuralSimilarityIndexMeasure
 
 if torch.cuda.is_available():
@@ -34,8 +40,18 @@ class ResidualDenseBlock(nn.Module):
             features.append(out)
         return out * self.residual_scaling + x
     
-class RRDB(LightningModule):
-    def __init__(self, hparams: dict):
+class ResidualInResidual(nn.Module):
+    def __init__(self, blocks: int, channels: int, residual_scaling: float = 0.2) -> None:
+        self.blocks = [ResidualDenseBlock(channels)] * blocks
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = x
+        for block in self.blocks:
+            out += self.residual_scaling * block(out)
+        return x + self.residual_scaling * out
+    
+class RRDB(pl.LightningModule):
+    def __init__(self, hparams: dict) -> None:
         super().__init__()
 
         self.lr = hparams["optimizer"]["lr"]
@@ -57,25 +73,19 @@ class RRDB(LightningModule):
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-        blocks = [ResidualDenseBlock(self.channels, 0.2)] * 16
-        self.blocks = nn.Sequential(*blocks)
+
+        self.blocks = ResidualInResidual(16, self.channels)
         
         self.out = nn.Sequential(
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, 1, kernel_size=3),
         )
 
-        for module in self.modules():
-            if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.0001)
-                if module.bias is not None:
-                    module.bias.data.zero_()
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.out(self.blocks(self.upsample(x)))
     
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, momentum=0.9)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
@@ -92,18 +102,27 @@ class RRDB(LightningModule):
     def shared_step(self, batch, stage):
         lr_image, hr_image = batch
         sr_image = self.forward(lr_image)
-        mse_loss = F.mse_loss(sr_image, hr_image)
-        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
+        l1_loss = F.l1_loss(sr_image, hr_image)
         if stage == "val":
+            mse_loss = F.mse_loss(sr_image, hr_image)
+            self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)     
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
             self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
-        return mse_loss
+        return l1_loss
     
     def training_step(self, batch, batch_idx):
-        return self.shared_step(batch, "train")
-
+        lr_image, hr_image = batch
+        sr_image = self.forward(lr_image)
+        return F.l1_loss(sr_image, hr_image)
+    
     def validation_step(self, batch, batch_idx):
-        self.shared_step(batch, "val")
+        lr_image, hr_image = batch
+        sr_image = self.forward(lr_image)
+        mse_loss = F.mse_loss(sr_image, hr_image)
+        self.log(f"mse", mse_loss, sync_dist=True)     
+        self.log(f"psnr", psnr(mse_loss), sync_dist=True)
+        self.log(f"ssim", self.ssim(sr_image, hr_image), sync_dist=True)
+        return F.l1_loss(sr_image, hr_image)
 
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
