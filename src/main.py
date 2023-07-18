@@ -64,6 +64,7 @@ def main(hparams: dict) -> None:
             default_root_dir=LOG_DIR,
             accelerator="gpu",
             devices=4,
+            detect_anomaly=True,
             accumulate_grad_batches=8
         )
 
