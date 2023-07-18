@@ -58,7 +58,8 @@ class RRDB(pl.LightningModule):
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
         upscaling_factor = 6
-        upscaling_channels = 16
+        upscaling_channels = hparams["model"]["upscaling_channels"]
+        blocks = hparams["model"]["blocks"]
 
         self.model = nn.Sequential(
             nn.ReplicationPad2d(1),
@@ -71,7 +72,7 @@ class RRDB(pl.LightningModule):
             nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            ResidualInResidual(16, self.channels),
+            ResidualInResidual(blocks, self.channels),
 
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, self.channels, kernel_size=3),
@@ -80,6 +81,12 @@ class RRDB(pl.LightningModule):
             nn.ReplicationPad2d(1),
             nn.Conv2d(self.channels, 1, kernel_size=3),
         )
+
+        for module in self.model.modules():
+            if isinstance(module, nn.Conv2d):
+                torch.nn.init.normal_(module.weight, mean=0, std=0.002)
+                if module.bias is not None:
+                    module.bias.data.zero_()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)

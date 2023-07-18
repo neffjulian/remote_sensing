@@ -13,10 +13,12 @@ predict: True
 model:
   name: rrdb
   channels: 64
+  upscaling_channels: 8
+  blocks: 8
 
 datamodule:
   batch_size: 32
-  augment: False
+  augment: True
 
 trainer:
   max_epochs: 250
