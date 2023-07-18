@@ -62,8 +62,7 @@ def main(hparams: dict) -> None:
             logger = wandb_logger,
             default_root_dir=LOG_DIR,
             accelerator="auto",
-            # devices=4,
-            accumulate_grad_batches=2
+            accumulate_grad_batches=4
         )
 
         trainer.fit(model=model, datamodule=datamodule)
