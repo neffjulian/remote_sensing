@@ -62,7 +62,8 @@ def main(hparams: dict) -> None:
             callbacks = [DeviceStatsMonitor()],
             logger = wandb_logger,
             default_root_dir=LOG_DIR,
-            # accelerator="gpu",
+            accelerator="auto",
+            strategy="ddp",
             # devices=4,
             accumulate_grad_batches=2
         )
