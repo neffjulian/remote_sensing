@@ -63,7 +63,7 @@ def main(hparams: dict) -> None:
             logger = wandb_logger,
             default_root_dir=LOG_DIR,
             accelerator="auto",
-            strategy="ddp",
+            strategy="fsdp",
             # devices=4,
             accumulate_grad_batches=2
         )
