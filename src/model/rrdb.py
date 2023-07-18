@@ -59,7 +59,7 @@ class RRDB(pl.LightningModule):
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
         upscaling_factor = 6
-        upscaling_channels = 32
+        upscaling_channels = 16
 
         self.upsample = nn.Sequential(
             nn.ReplicationPad2d(1),
