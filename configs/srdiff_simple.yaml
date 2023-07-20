@@ -16,13 +16,13 @@ model:
 
 datamodule:
   batch_size: 16
-  augment: False
+  augment: True
 
 trainer:
-  max_epochs: 50
+  max_epochs: 20
   profiler: "simple"
-  log_every_n_steps: 1
+  log_every_n_steps: 10
 
 optimizer:
   lr: 0.01
-  scheduler_step: 1
+  scheduler_step: 2

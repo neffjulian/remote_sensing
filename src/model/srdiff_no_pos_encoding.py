@@ -56,6 +56,7 @@ class BetaScheduler:
         alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
         betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
         return torch.clip(betas, 0.0001, 0.9999)
+    
 class ResidualDenseBlock(nn.Module):
     def __init__(self, channels: int) -> None:
         super().__init__()
@@ -253,6 +254,9 @@ class SRDIFF_simple(LightningModule):
     def _conditional_noise_predictor(self, x_t: torch.Tensor, x_e: torch.Tensor) -> torch.Tensor:
         return self.unet(torch.cat([self.start_block(x_t), x_e], dim=1))
     
+    def _is_last_batch(self, batch_idx: int):
+        return batch_idx == self.trainer.num_training_batches - 1
+    
     def _train(self, x_L: torch.Tensor, x_H: torch.Tensor) -> torch.Tensor:
         x_e = self.lr_encoder(x_L)
         x_r = x_H - self.upsample(x_L)
@@ -260,9 +264,9 @@ class SRDIFF_simple(LightningModule):
         num_imgs = x_L.shape[0]
         ts = torch.randint(0, self.T, size=(num_imgs,))
         alpha_hat_ts = self.alpha_hat[ts].to(self.device)
+        alpha_hat_t = alpha_hat_t[:, None, None, None]
         noise = torch.normal(mean = 0, std = 1, size = x_H.shape, device=self.device)
-        x_t = torch.sqrt(alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * x_r \
-            + torch.sqrt(1. - alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise
+        x_t = torch.sqrt(alpha_hat_ts) * x_r + torch.sqrt(1. - alpha_hat_ts) * noise
         noise_pred = self._conditional_noise_predictor(x_t, x_e)
         loss = F.l1_loss(noise_pred, noise)
         return loss
@@ -270,6 +274,7 @@ class SRDIFF_simple(LightningModule):
     def _infere(self, x_L: torch.Tensor) -> torch.Tensor:
         up_x_L = self.upsample(x_L)
         x_e = self.lr_encoder(x_L)
+        
         x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device = self.device)
         for t in range(self.T-1, -1, -1):
             z = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device=self.device)

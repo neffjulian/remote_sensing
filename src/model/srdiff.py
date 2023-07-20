@@ -1,9 +1,4 @@
-"""
-SRDiff: Single Image Super-Resolution with Diffusion Probabilistic Models (2021) by Li et al.
-
-Paper: https://arxiv.org/pdf/2104.14951.pdf
-Adapted from: https://github.com/jbergq/simple-diffusion-model/tree/main
-"""
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -12,107 +7,13 @@ from torch.optim.lr_scheduler import StepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-if torch.cuda.is_available():
-    torch.set_float32_matmul_precision("high")
+WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt")
 
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
-class LREncoder(nn.Module):
-    def __init__() -> None:
-        super().__init__()
-
-
-    
-class ConvBlock(nn.Module):
-    def __init__(self, channels_in: int, channels_out: int, stride: int = 1) -> None:
-        super().__init__()
-        self.conv = nn.Sequential(
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(channels_in, channels_out, kernel_size=3, stride=stride),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True)
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.conv(x)
-    
-class ResBlock(nn.Module):
-    def __init__(self, channels_in: int, channels_out: int, stride: int = 1) -> None:
-        self.conv1 = ConvBlock(channels_in, channels_out)
-        self.conv2 = ConvBlock(channels_out, channels_out, stride)
-
-    def forward(self, x: torch.Tensor, te: torch.Tensor) -> torch.Tensor:
-        return self.conv2(self.conv1(x) + te) + x
-
-class ContractingStep(nn.Module):
-    def __init__(self, channels: int, double_channels: bool) -> None:
-        super().__init__()
-        if double_channels:
-            self.res1 = ResBlock(channels // 2, channels)
-        else:
-            self.res1 = ResBlock(channels, channels)
-
-        self.res2 = ResBlock(channels, channels, stride=2)
-
-    def forward(self, x: torch.Tensor, te: torch.Tensor) -> torch.Tensor:
-        return self.pooling(self.res2(self.res1(x, te), te))
-    
-class MiddleStep(nn.Module):
-    def __init__(self, channels: int) -> None:
-        super().__init__()
-        self.res1 = ResBlock(channels, channels)
-        self.res2 = ResBlock(channels, channels)
-
-    def forward(self, x: torch.Tensor, te: torch.Tensor) -> torch.Tensor:
-        return self.res2(self.res1(x, te), te)
-    
-class ExpansiveStep(nn.Module):
-    def __init__(self, channels: int, double_channels: bool) -> None:
-        super().__init__()
-        if double_channels:
-            self.res1 = ResBlock(channels // 2, channels)
-        else:
-            self.res1 = ResBlock(channels, channels)
-        self.res2 = ResBlock(channels, channels)
-
-    def forward(self, x: torch.Tensor, te: torch.Tensor) -> torch.Tensor:
-        return self.upsample(self.res2(self.res1(x, te), te))
-
-class UNet(nn.Module):
-    def __init__(self, channels: int) -> None:
-        super().__init__()
-
-        self.contract1 = ContractingStep(channels, double_channels=False)
-        self.contract2 = ContractingStep(channels * 2, double_channels=True)
-        self.contract3 = ContractingStep(channels * 2, double_channels=False)
-        self.contract4 = ContractingStep(channels * 4, double_channels=True)
-
-        self.middle = MiddleStep(channels * 4)
-
-        self.expand1 = ExpansiveStep(channels * 4, double_channels=False)
-        self.expand2 = ExpansiveStep(channels * 2, double_channels=True)
-        self.expand3 = ExpansiveStep(channels * 2, double_channels=False)
-        self.expand4 = ExpansiveStep(channels, double_channels=True)
-
-        self.conv = ConvBlock(channels, channels)
-
-    def forward(self, x: torch.Tensor, te: torch.Tensor) -> torch.Tensor:
-        x1 = self.contract1(x, te)
-        x2 = self.contract2(x1, te)
-        x3 = self.contract3(x2, te)
-        x4 = self.contract4(x3, te)
-
-        x5 = self.middle(x4, te)
-
-        x6 = self.expand1(x5, te)
-        x7 = self.expand2(torch.cat([x6, x3], dim=1), te)
-        x8 = self.expand3(torch.cat([x7, x2], dim=1), te)
-        x9 = self.expand4(torch.cat([x8, x1], dim=1), te)
-
-        return self.conv(x9)
-        
-
 class BetaScheduler:
+    # Copied from: https://github.com/jbergq/simple-diffusion-model/blob/main/src/model/beta_scheduler.py
     def __init__(self, type="linear") -> None:
         schedule_map = {
             "linear": self.linear_beta_schedule,
@@ -155,85 +56,266 @@ class BetaScheduler:
         alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
         betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
         return torch.clip(betas, 0.0001, 0.9999)
-
-class SRDiff(LightningModule):
-    def __init__(self, hparams: dict):
+class ResidualDenseBlock(nn.Module):
+    def __init__(self, channels: int) -> None:
         super().__init__()
 
-        self.nr_steps = 100
+        self.convs = nn.ModuleList()
+        for i in range(5):
+            self.convs.append(
+                nn.Sequential(
+                    nn.ReplicationPad2d(1),
+                    nn.Conv2d(channels + i * channels, channels, kernel_size=3),
+                    nn.LeakyReLU(negative_slope=0.2) if i < 4 else nn.Identity()
+                )
+            )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        features = [x]
+        for conv in self.convs:
+            out = conv(torch.cat(features, dim=1))
+            features.append(out)
+        return out * 0.2 + x
+    
+class ResidualInResidual(nn.Module):
+    def __init__(self, blocks: int, channels: int) -> None:
+        super().__init__()
+        res_blocks = [ResidualDenseBlock(channels)] * blocks
+        self.blocks = nn.ModuleList(res_blocks)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = x
+        for block in self.blocks:
+            out += 0.2 * block(out) 
+        return x + 0.2 * out
+
+class RRDB(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
         self.channels = 64
-        self.input_dim = 1
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
-        betascheduler = BetaScheduler(type="cosine")
-        self.betas = betascheduler(self.nr_steps)
-        self.alphas = 1 - self.betas
-        self.alpha_cum = torch.cumprod(self.alphas, dim=0)
+        upscaling_factor = 6
+        upscaling_channels = 3
+        blocks = 16
 
-        self.preprocess_input = ConvBlock(self.input_dim, self.channels)
-        self.lr_encoder = LREncoder(self.channels)
-        self.model = UNet(self.channels)
+        self.model = nn.Sequential(
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(1, upscaling_factor * upscaling_factor * upscaling_channels, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2),
 
-    def forward(self, xt: torch.Tensor):
-        pass
+            nn.PixelShuffle(upscaling_factor),
+
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            ResidualInResidual(blocks, self.channels),
+
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(self.channels, self.channels, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2),
+            
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(self.channels, 1, kernel_size=3),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.model(x)
+    
+class ConvBlock(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int) -> None:
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(channels_in, channels_out, kernel_size=3, padding=1),
+            nn.Mish()
+        )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.conv(x)
+    
+class ResBlock(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int) -> None:
+        super().__init__()
+        self.conv1 = ConvBlock(channels_in, channels_in)
+        self.conv2 = ConvBlock(channels_in, channels_out)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.conv2(self.conv1(x) + x)
+    
+class ContractingStep(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int) -> None:
+        super().__init__()
+        self.contract = nn.Sequential(
+            ResBlock(channels_in, channels_out),
+            ResBlock(channels_out, channels_out),
+            nn.MaxPool2d(2)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.contract(x)
+    
+class ExpansiveStep(nn.Module):
+    def __init__(self, index: int, channels_in: int, channels_out: int) -> None:
+        super().__init__()
+        out_size = {1: (18, 18), 2: (37, 37), 3: (75, 75), 4: (150, 150)}
+
+        self.res1 = ResBlock(channels_in * 2, channels_in)
+        self.res2 = ResBlock(channels_in, channels_out)
+        self.upsample = nn.UpsamplingBilinear2d(size=out_size[index])
+        self.out_size = out_size[index]
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.res1(x)
+        x = self.res2(x)
+        x = self.upsample(x)
+        return x
+    
+class MiddleStep(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int) -> None:
+        super().__init__()
+        self.middle = nn.Sequential(
+            ResBlock(channels_in, channels_in),
+            ResBlock(channels_in, channels_out)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.middle(x)
+    
+class UNet(nn.Module):
+    def __init__(self, channels: int = 64) -> None:
+        super().__init__()
+        self.channels = channels
+
+        self.contracting1 = ContractingStep(channels + 1, channels)
+        self.contracting2 = ContractingStep(channels, channels * 2)
+        self.contracting3 = ContractingStep(channels * 2, channels * 2)
+        self.contracting4 = ContractingStep(channels * 2, channels * 4)
+        self.middle = MiddleStep(channels * 4, channels * 4)
+        self.expansive1 = ExpansiveStep(1, channels * 4, channels * 2)
+        self.expansive2 = ExpansiveStep(2, channels * 2, channels * 2)
+        self.expansive3 = ExpansiveStep(3, channels * 2, channels)
+        self.expansive4 = ExpansiveStep(4, channels, channels)
+        self.output = ConvBlock(channels, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        c1 = self.contracting1(x)
+        c2 = self.contracting2(c1)
+        c3 = self.contracting3(c2)
+        c4 = self.contracting4(c3)
+        m = self.middle(c4)
+        e1 = self.expansive1(torch.cat([m, c4], dim=1))
+        e2 = self.expansive2(torch.cat([e1, c3], dim=1))
+        e3 = self.expansive3(torch.cat([e2, c2], dim=1))
+        e4 = self.expansive4(torch.cat([e3, c1], dim=1))
+        return self.output(e4)
+
+class SRDIFF_simple(LightningModule):
+    def __init__(self, hparams: dict) -> None:
+        super().__init__()
+        self.channels = hparams["model"]["channels"]
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
+        self.lr = hparams["optimizer"]["lr"]
+        self.scheduler_step = hparams["optimizer"]["scheduler_step"]
+        # Applies SR using the RRDB Model.
+        self.lr_encoder = self._get_lr_encoder()
+        
+        # Get remaining blocks
+        self.start_block = ConvBlock(1, self.channels)
+        self.unet = UNet(channels=self.channels)
+
+        # Get alphas and betas
+        self.T = 100
+        beta_scheduler = BetaScheduler()
+        self.beta = beta_scheduler(self.T)
+        self.alpha = 1. - self.beta
+        self.alpha_hat = torch.cumprod(self.alpha, dim=0).to(self.device)
+        
+        self.beta_hat = torch.zeros(self.T, device=self.device)
+        self.beta_hat[0] = self.beta[0]
+        for t in range(1, self.T):
+            self.beta_hat[t] = (1. - self.alpha_hat[t-1]) / (1. - self.alpha_hat[t]) * self.beta[t]
+
+        self.loss = nn.L1Loss()
+        self.upsample = nn.UpsamplingBilinear2d(size=(150, 150))
+
+    def _get_lr_encoder(self) -> RRDB:
+        encoder = RRDB()
+        checkpoint = torch.load(WEIGHT_DIR, map_location=self.device)
+        encoder.load_state_dict(checkpoint["state_dict"])
+
+        for param in encoder.parameters():
+            param.requires_grad = False
+
+        return encoder
+    
+    def _conditional_noise_predictor(self, x_t: torch.Tensor, x_e: torch.Tensor) -> torch.Tensor:
+        return self.unet(torch.cat([self.start_block(x_t), x_e], dim=1))
+    
+    def _train(self, x_L: torch.Tensor, x_H: torch.Tensor) -> torch.Tensor:
+        x_e = self.lr_encoder(x_L)
+        x_r = x_H - self.upsample(x_L)
+
+        num_imgs = x_L.shape[0]
+        ts = torch.randint(0, self.T, size=(num_imgs,))
+        alpha_hat_ts = self.alpha_hat[ts].to(self.device)
+        noise = torch.normal(mean = 0, std = 1, size = x_H.shape, device=self.device)
+        x_t = torch.sqrt(alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * x_r \
+            + torch.sqrt(1. - alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise
+        noise_pred = self._conditional_noise_predictor(x_t, x_e)
+        loss = F.l1_loss(noise_pred, noise)
+        return loss
+    
+    def _infere(self, x_L: torch.Tensor) -> torch.Tensor:
+        up_x_L = self.upsample(x_L)
+        x_e = self.lr_encoder(x_L)
+        x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device = self.device)
+        for t in range(self.T-1, -1, -1):
+            z = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device=self.device)
+            x_T = (1. / torch.sqrt(self.alpha[t])) \
+                * (x_T - (1. - self.alpha[t]) / torch.sqrt(1. - self.alpha_hat[t]) \
+                * self._conditional_noise_predictor(x_T, x_e))
+            if t > 0:
+                x_T += torch.sqrt(self.beta_hat[t]) * z
+
+        return up_x_L + x_T
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': StepLR(
                     optimizer=optimizer,
                     step_size=self.scheduler_step,
-                    gamma=0.1,
-                    verbose=True
+                    gamma=0.5,
                 ),
                 'monitor': 'val_ssim'
             }
         }
-
-    def shared_step(self, batch, stage):
-        pass
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self._infere(x)
 
     def training_step(self, batch, batch_idx):
-        pass
+        lr_image, hr_image = batch
+        loss = self._train(lr_image, hr_image)
+        self.log('train_loss', loss, sync_dist=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        pass
+        lr_image, hr_image = batch
+        sr_image = self._infere(lr_image)
+        loss = self._train(lr_image, hr_image)
+        ssim = self.ssim(sr_image, hr_image)
+        self.log('val_loss', loss, sync_dist=True)
+        psnr_value = psnr(F.mse_loss(sr_image, hr_image))
+        self.log('val_psnr', psnr_value, sync_dist=True)
+        self.log('val_ssim', ssim, sync_dist=True)
 
     def predict_step(self, batch, batch_idx):
-        pass
-
-    def _forward_process(self, x: torch.Tensor, time_step: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        time_step = time_step - 1
-        beta_forward = self.betas[time_step]
-        alpha_forward = self.alphas[time_step]
-        alpha_cum_forward = self.alpha_bars[time_step]
-
-        xt = x * torch.sqrt(alpha_cum_forward) + torch.randn_like(x) * torch.sqrt(1. - alpha_cum_forward)
-        mu1_scl = torch.sqrt(alpha_cum_forward / alpha_forward)
-        mu2_scl = 1. / torch.sqrt(alpha_forward)
-
-        cov1 = 1. - alpha_cum_forward / alpha_forward
-        cov2 = beta_forward / alpha_forward
-        lam = 1. / cov1 + 1. / cov2
-        mu = (x * mu1_scl / cov1 + xt * mu2_scl / cov2) / lam
-        sigma = torch.sqrt(1. / lam)
-
-        return mu, sigma, xt
-
-    def _reverse_process(self, x: torch.Tensor, time_step: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        time_step = time_step - 1
-        if time_step == 0:
-            return None, None, x
-        mu, h = self.forward(x, time_step).chunk(2, dim=1)
-        sigma = torch.sqrt(torch.exp(h))
-        samples = mu + torch.randn_like(x) * sigma
-        return mu, sigma, samples
-
-    def _sample(self, size: torch.Tensor):
-        noise = torch.randn((size, 2))
-        samples = [noise]
-        for t in range(self.nr_steps):
-            _, _, noise = self._reverse_process(noise, t)
-            samples.append(noise)
-        return samples
+        lr_image, hr_image, names = batch
+        sr_image = self._infere(lr_image)
+        lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
+        return lr_image, sr_image, hr_image, names
