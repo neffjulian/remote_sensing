@@ -225,7 +225,6 @@ class SRDIFF_simple(LightningModule):
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         # Applies SR using the RRDB Model.
         self.lr_encoder = self._get_lr_encoder()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Get remaining blocks
         self.start_block = ConvBlock(1, self.channels)
