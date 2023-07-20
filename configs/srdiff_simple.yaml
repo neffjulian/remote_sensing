@@ -11,7 +11,7 @@ train: True
 predict: True
 
 model:
-  name: srdiff
+  name: srdiff_simple
   channels: 64
 
 datamodule:
