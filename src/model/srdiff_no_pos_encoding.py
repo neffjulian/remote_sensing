@@ -309,7 +309,7 @@ class SRDIFF_simple(LightningModule):
         lr_image, hr_image = batch
         sr_image = self._infere(lr_image)
         ssim = self.ssim(sr_image, hr_image)
-        psnr_value = psnr(sr_image, hr_image)
+        psnr_value = psnr(F.mse_loss(sr_image, hr_image))
         self.log('val_psnr', psnr_value)
         self.log('val_ssim', ssim)
 
