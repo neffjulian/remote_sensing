@@ -261,7 +261,8 @@ class SRDIFF_simple(LightningModule):
         ts = torch.randint(0, self.T, size=(num_imgs,))
         alpha_hat_ts = self.alpha_hat[ts]
         noise = torch.normal(mean = 0, std = 1, size = x_H.shape, device=self.device)
-
+        print(alpha_hat_ts.shape, x_r.shape, noise.shape)
+        raise Exception
         x_t = torch.sqrt(alpha_hat_ts) * x_r + torch.sqrt(1. - alpha_hat_ts) * noise
         noise_pred = self._conditional_noise_predictor(x_t, x_e)
         loss = F.l1_loss(noise_pred, noise)
@@ -309,8 +310,8 @@ class SRDIFF_simple(LightningModule):
         sr_image = self._infere(lr_image)
         ssim = self.ssim(sr_image, hr_image)
         psnr_value = psnr(F.mse_loss(sr_image, hr_image))
-        self.log('val_psnr', psnr_value)
-        self.log('val_ssim', ssim)
+        self.log('val_psnr', psnr_value, sync_dist=True)
+        self.log('val_ssim', ssim, sync_dist=True)
 
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
