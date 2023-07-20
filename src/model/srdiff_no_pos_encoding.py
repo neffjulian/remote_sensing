@@ -258,24 +258,14 @@ class SRDIFF_simple(LightningModule):
         x_e = self.lr_encoder(x_L)
         x_r = x_H - up_x_L
 
-        assert not torch.isnan(x_r).any()
-        assert not torch.isnan(x_e).any()
-        assert not torch.isnan(up_x_L).any()
-
         num_imgs = x_L.shape[0]
         ts = torch.randint(0, self.T, size=(num_imgs,))
         alpha_hat_ts = self.alpha_hat[ts].to(self.device)
         noise = torch.normal(mean = 0, std = 1, size = x_H.shape, device=self.device)
-        assert not torch.isnan(noise).any()
-        x_t = torch.sqrt(alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * x_r
-        x_t_2 = torch.sqrt(1. - alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise
-        assert not torch.isnan(x_t).any()
-        assert not torch.isnan(x_t_2).any()
-        x_t = x_t + x_t_2
+        x_t = torch.sqrt(alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * x_r \
+            + torch.sqrt(1. - alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise
         noise_pred = self._conditional_noise_predictor(x_t, x_e)
-        assert not torch.isnan(noise_pred).any()
         loss = F.l1_loss(noise_pred, noise)
-        assert not torch.isnan(loss).any()
         return loss
     
     def _infere(self, x_L: torch.Tensor) -> torch.Tensor:
@@ -314,6 +304,7 @@ class SRDIFF_simple(LightningModule):
         lr_image, hr_image = batch
         loss = self._train(lr_image, hr_image)
         self.log('train_loss', loss)
+        return loss
 
     def validation_step(self, batch, batch_idx):
         lr_image, hr_image = batch
