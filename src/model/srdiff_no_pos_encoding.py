@@ -281,7 +281,7 @@ class SRDIFF_simple(LightningModule):
         up_x_L = self.upsample(x_L)
         x_e = self.lr_encoder(x_L)
         x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape)
-        for t in range(self.T, -1, -1):
+        for t in range(self.T-1, -1, -1):
             z = torch.normal(mean = 0, std = 1, size = up_x_L.shape)
             x_T = (1. / torch.sqrt(self.alpha[t])) \
                 * (x_T - (1. - self.alpha[t]) / torch.sqrt(1. - self.alpha_hat[t]) \
