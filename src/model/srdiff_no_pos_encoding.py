@@ -226,7 +226,7 @@ class SRDIFF_simple(LightningModule):
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
         # Applies SR using the RRDB Model.
-        self.lr_encoder = self.get_lr_encoder()
+        self.lr_encoder = self._get_lr_encoder()
         
         # Get remaining blocks
         self.start_block = ConvBlock(1, self.channels)
