@@ -291,7 +291,7 @@ class SRDIFF_simple(LightningModule):
         return up_x_L + x_T
     
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr)
+        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
