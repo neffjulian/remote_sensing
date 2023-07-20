@@ -230,7 +230,7 @@ class SRDIFF_simple(LightningModule):
         beta_scheduler = BetaScheduler()
         self.beta = beta_scheduler(self.T)
         self.alpha = 1. - self.beta
-        self.alpha_hat = torch.cumprod(self.alpha, dim=0)
+        self.alpha_hat = torch.cumprod(self.alpha, dim=0).to(self.device)
         
         self.beta_hat = torch.zeros(self.T, device=self.device)
         self.beta_hat[0] = self.beta[0]
