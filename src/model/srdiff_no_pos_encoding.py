@@ -275,6 +275,7 @@ class SRDIFF_simple(LightningModule):
         noise_pred = self._conditional_noise_predictor(x_t, x_e)
         assert not torch.isnan(noise_pred).any()
         loss = F.l1_loss(noise_pred, noise)
+        assert not torch.isnan(loss).any()
         return loss
     
     def _infere(self, x_L: torch.Tensor) -> torch.Tensor:
