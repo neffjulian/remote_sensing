@@ -266,7 +266,7 @@ class SRDIFF_simple(LightningModule):
         num_imgs = x_L.shape[0]
         ts = torch.randint(0, self.T, size=(num_imgs,))
         alpha_hat_ts = self.alpha_hat[ts]
-        noise = torch.normal(mean = 0, std = 1, size = x_H.shape)
+        noise = torch.normal(mean = 0, std = 1, size = x_H.shape, device=self.device)
         noise = noise.type_as(x_r, device = self.device)
 
         x_t = torch.sqrt(alpha_hat_ts) * x_r + torch.sqrt(1. - alpha_hat_ts) * noise
@@ -277,11 +277,9 @@ class SRDIFF_simple(LightningModule):
     def _infere(self, x_L: torch.Tensor) -> torch.Tensor:
         up_x_L = self.upsample(x_L)
         x_e = self.lr_encoder(x_L)
-        x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape)
-        x_T = x_T.type_as(up_x_L, device = self.device)
+        x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device = self.device)
         for t in range(self.T-1, -1, -1):
-            z = torch.normal(mean = 0, std = 1, size = up_x_L.shape)
-            z = z.type_as(up_x_L, device = self.device)
+            z = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device=self.device)
             x_T = (1. / torch.sqrt(self.alpha[t])) \
                 * (x_T - (1. - self.alpha[t]) / torch.sqrt(1. - self.alpha_hat[t]) \
                 * self._conditional_noise_predictor(x_T, x_e))
