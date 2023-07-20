@@ -228,10 +228,10 @@ class SRDIFF_simple(LightningModule):
         # Get alphas and betas
         self.T = 100
         beta_scheduler = BetaScheduler()
-        self.beta = beta_scheduler(self.T)
+        self.beta = beta_scheduler(self.T).to(self.device)
         self.alpha = 1. - self.beta
-        self.alpha_hat = torch.cumprod(self.alpha, dim=0)
-        self.beta_hat = torch.zeros(self.T)
+        self.alpha_hat = torch.cumprod(self.alpha, dim=0).to(self.device)
+        self.beta_hat = torch.zeros(self.T, self.device)
         self.beta_hat[0] = self.beta[0]
         for t in range(1, self.T):
             self.beta_hat[t] = (1. - self.alpha_hat[t-1]) / (1. - self.alpha_hat[t]) * self.beta[t]
