@@ -256,6 +256,9 @@ class SRDIFF_simple(LightningModule):
         return encoder
     
     def _conditional_noise_predictor(self, x_t: torch.Tensor, x_e: torch.Tensor) -> torch.Tensor:
+        a = self.start_block(x_t)
+        print(a.shape, x_e.shape)
+        raise Exception
         return self.end_block(self.unet(torch.cat([self.start_block(x_t), x_e], dim=0)))
     
     def _train(self, x_L: torch.Tensor, x_H: torch.Tensor) -> torch.Tensor:
