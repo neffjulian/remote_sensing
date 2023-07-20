@@ -264,7 +264,7 @@ class SRDIFF_simple(LightningModule):
         num_imgs = x_L.shape[0]
         ts = torch.randint(0, self.T, size=(num_imgs,))
         alpha_hat_ts = self.alpha_hat[ts].to(self.device)
-        alpha_hat_t = alpha_hat_t[:, None, None, None]
+        alpha_hat_ts = alpha_hat_ts[:, None, None, None]
         noise = torch.normal(mean = 0, std = 1, size = x_H.shape, device=self.device)
         x_t = torch.sqrt(alpha_hat_ts) * x_r + torch.sqrt(1. - alpha_hat_ts) * noise
         noise_pred = self._conditional_noise_predictor(x_t, x_e)
