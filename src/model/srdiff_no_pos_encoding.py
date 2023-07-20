@@ -169,12 +169,7 @@ class ExpansiveStep(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.res1(x)
         x = self.res2(x)
-        a = (len(x.shape) == 3)
-        if a:
-            x = x.unsqueeze(0)
         x = self.upsample(x)
-        if a:
-            x = x.squeeze(0)
         return x
     
 class MiddleStep(nn.Module):
@@ -210,10 +205,10 @@ class UNet(nn.Module):
         c3 = self.contracting3(c2)
         c4 = self.contracting4(c3)
         m = self.middle(c4)
-        e1 = self.expansive1(torch.cat([m, c4], dim=0))
-        e2 = self.expansive2(torch.cat([e1, c3], dim=0))
-        e3 = self.expansive3(torch.cat([e2, c2], dim=0))
-        e4 = self.expansive4(torch.cat([e3, c1], dim=0))
+        e1 = self.expansive1(torch.cat([m, c4], dim=1))
+        e2 = self.expansive2(torch.cat([e1, c3], dim=1))
+        e3 = self.expansive3(torch.cat([e2, c2], dim=1))
+        e4 = self.expansive4(torch.cat([e3, c1], dim=1))
         return self.output(e4)
 
 class SRDIFF_simple(LightningModule):
