@@ -12,6 +12,9 @@ WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt"
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
+if torch.cuda.is_available():
+    torch.set_default_tensor_type(torch.cuda.FloatTensor)
+
 class BetaScheduler:
     # Copied from: https://github.com/jbergq/simple-diffusion-model/blob/main/src/model/beta_scheduler.py
     def __init__(self, type="linear") -> None:
@@ -246,8 +249,10 @@ class SRDIFF_simple(LightningModule):
         self.upsample = nn.UpsamplingBilinear2d(size=(150, 150))
 
     def _get_lr_encoder(self) -> RRDB:
-        encoder = RRDB.load_state_dict(torch.load(WEIGHT_DIR)["state_dict"])
+        encoder = RRDB()
         # checkpoint = torch.load(WEIGHT_DIR, map_location=torch.device("cpu"))
+        checkpoint = torch.load(WEIGHT_DIR)
+        encoder.load_state_dict(checkpoint["state_dict"])
 
         for param in encoder.parameters():
             param.requires_grad = False
