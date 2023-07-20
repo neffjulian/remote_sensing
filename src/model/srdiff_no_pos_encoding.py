@@ -300,22 +300,17 @@ class SRDIFF_simple(LightningModule):
 
     def training_step(self, batch, batch_idx):
         lr_image, hr_image = batch
-        x_l = (lr_image - lr_image.min()) / (lr_image.max() - lr_image.min())
-        x_h = (hr_image - hr_image.min()) / (hr_image.max() - hr_image.min())
-        loss = self._train(x_l, x_h)
+        loss = self._train(lr_image, hr_image)
         self.log('train_loss', loss, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         lr_image, hr_image = batch
-        x_l = (lr_image - lr_image.min()) / (lr_image.max() - lr_image.min())
-        x_h = (hr_image - hr_image.min()) / (hr_image.max() - hr_image.min())
-        sr_image = self._infere(x_l)
-        x_s = (sr_image + lr_image.min()) * (lr_image.max() - lr_image.min())
-        loss = self._train(x_l, x_h)
-        ssim = self.ssim(x_s, hr_image)
+        sr_image = self._infere(lr_image)
+        loss = self._train(lr_image, hr_image)
+        ssim = self.ssim(sr_image, hr_image)
         self.log('val_loss', loss, sync_dist=True)
-        psnr_value = psnr(F.mse_loss(x_s, hr_image))
+        psnr_value = psnr(F.mse_loss(sr_image, hr_image))
         self.log('val_psnr', psnr_value, sync_dist=True)
         self.log('val_ssim', ssim, sync_dist=True)
 
