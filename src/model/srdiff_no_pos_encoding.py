@@ -12,9 +12,6 @@ WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt"
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
-if torch.cuda.is_available():
-    torch.set_default_tensor_type(torch.cuda.FloatTensor)
-
 class BetaScheduler:
     # Copied from: https://github.com/jbergq/simple-diffusion-model/blob/main/src/model/beta_scheduler.py
     def __init__(self, type="linear") -> None:
@@ -227,7 +224,7 @@ class SRDIFF_simple(LightningModule):
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         # Applies SR using the RRDB Model.
-        self.lr_encoder = self._get_lr_encoder()
+        self.lr_encoder = self._get_lr_encoder().to('cuda')
         
         # Get remaining blocks
         self.start_block = ConvBlock(1, self.channels)
