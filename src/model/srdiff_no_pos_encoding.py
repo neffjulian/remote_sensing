@@ -247,8 +247,7 @@ class SRDIFF_simple(LightningModule):
 
     def _get_lr_encoder(self) -> RRDB:
         encoder = RRDB()
-        # checkpoint = torch.load(WEIGHT_DIR, map_location=torch.device("cpu"))
-        checkpoint = torch.load(WEIGHT_DIR)
+        checkpoint = torch.load(WEIGHT_DIR, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         encoder.load_state_dict(checkpoint["state_dict"])
 
         for param in encoder.parameters():
