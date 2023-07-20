@@ -254,9 +254,8 @@ class SRDIFF_simple(LightningModule):
         return self.unet(torch.cat([self.start_block(x_t), x_e], dim=1))
     
     def _train(self, x_L: torch.Tensor, x_H: torch.Tensor) -> torch.Tensor:
-        up_x_L = self.upsample(x_L)
         x_e = self.lr_encoder(x_L)
-        x_r = x_H - up_x_L
+        x_r = x_H - self.upsample(x_L)
 
         num_imgs = x_L.shape[0]
         ts = torch.randint(0, self.T, size=(num_imgs,))
@@ -291,7 +290,6 @@ class SRDIFF_simple(LightningModule):
                     optimizer=optimizer,
                     step_size=self.scheduler_step,
                     gamma=0.5,
-                    verbose=True
                 ),
                 'monitor': 'val_ssim'
             }
@@ -303,13 +301,15 @@ class SRDIFF_simple(LightningModule):
     def training_step(self, batch, batch_idx):
         lr_image, hr_image = batch
         loss = self._train(lr_image, hr_image)
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         lr_image, hr_image = batch
         sr_image = self._infere(lr_image)
+        loss = self._train(lr_image, hr_image)
         ssim = self.ssim(sr_image, hr_image)
+        self.log('val_loss', loss, sync_dist=True)
         psnr_value = psnr(F.mse_loss(sr_image, hr_image))
         self.log('val_psnr', psnr_value, sync_dist=True)
         self.log('val_ssim', ssim, sync_dist=True)
