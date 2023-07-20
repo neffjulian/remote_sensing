@@ -208,15 +208,25 @@ class UNet(nn.Module):
         self.output = ConvBlock(channels, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        print("x", x.shape)
         c1 = self.contracting1(x)
+        print("c1", c1.shape)
         c2 = self.contracting2(c1)
+        print("c2", c2.shape)
         c3 = self.contracting3(c2)
+        print("c3", c3.shape)
         c4 = self.contracting4(c3)
+        print("c4", c4.shape)
         m = self.middle(c4)
+        print("m", m.shape)
         e1 = self.expansive1(torch.cat([m, c4], dim=0))
+        print("e1", e1.shape)
         e2 = self.expansive2(torch.cat([e1, c3], dim=0))
+        print("e2", e2.shape)
         e3 = self.expansive3(torch.cat([e2, c2], dim=0))
+        print("e3", e3.shape)
         e4 = self.expansive4(torch.cat([e3, c1], dim=0))
+        print("e4", e4.shape)
         return self.output(e4)
 
 class SRDIFF_simple(LightningModule):
