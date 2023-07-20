@@ -225,6 +225,7 @@ class SRDIFF_simple(LightningModule):
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         # Applies SR using the RRDB Model.
         self.lr_encoder = self._get_lr_encoder()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Get remaining blocks
         self.start_block = ConvBlock(1, self.channels)
@@ -267,6 +268,7 @@ class SRDIFF_simple(LightningModule):
         ts = torch.randint(0, self.T, size=(num_imgs,))
         alpha_hat_ts = self.alpha_hat[ts]
         noise = torch.normal(mean = 0, std = 1, size = x_H.shape)
+        noise = noise.type_as(x_r, device = self.device)
 
         x_t = torch.sqrt(alpha_hat_ts) * x_r + torch.sqrt(1. - alpha_hat_ts) * noise
         noise_pred = self._conditional_noise_predictor(x_t, x_e)
@@ -277,8 +279,10 @@ class SRDIFF_simple(LightningModule):
         up_x_L = self.upsample(x_L)
         x_e = self.lr_encoder(x_L)
         x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape)
+        x_T = x_T.type_as(up_x_L, device = self.device)
         for t in range(self.T-1, -1, -1):
             z = torch.normal(mean = 0, std = 1, size = up_x_L.shape)
+            z = z.type_as(up_x_L, device = self.device)
             x_T = (1. / torch.sqrt(self.alpha[t])) \
                 * (x_T - (1. - self.alpha[t]) / torch.sqrt(1. - self.alpha_hat[t]) \
                 * self._conditional_noise_predictor(x_T, x_e))
