@@ -7,8 +7,6 @@ from torch.optim.lr_scheduler import StepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-if torch.cuda.is_available():
-    torch.set_float32_matmul_precision("high")
 
 WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt")
 
