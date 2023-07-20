@@ -224,7 +224,6 @@ class SRDIFF_simple(LightningModule):
         # Get remaining blocks
         self.start_block = ConvBlock(1, self.channels)
         self.unet = UNet(channels=self.channels)
-        self.end_block = ConvBlock(64, 1)
 
         # Get alphas and betas
         self.T = 100
@@ -251,7 +250,7 @@ class SRDIFF_simple(LightningModule):
         return encoder
     
     def _conditional_noise_predictor(self, x_t: torch.Tensor, x_e: torch.Tensor) -> torch.Tensor:
-        return self.end_block(self.unet(torch.cat([self.start_block(x_t), x_e], dim=1)))
+        return self.unet(torch.cat([self.start_block(x_t), x_e], dim=1))
     
     def _train(self, x_L: torch.Tensor, x_H: torch.Tensor) -> torch.Tensor:
         up_x_L = self.upsample(x_L)
