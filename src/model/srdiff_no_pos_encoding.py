@@ -224,7 +224,8 @@ class SRDIFF_simple(LightningModule):
         super().__init__()
         self.channels = hparams["model"]["channels"]
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
-
+        self.lr = hparams["optimizer"]["lr"]
+        self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         # Applies SR using the RRDB Model.
         self.lr_encoder = self._get_lr_encoder()
         
