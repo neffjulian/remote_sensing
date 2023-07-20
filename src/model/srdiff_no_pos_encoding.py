@@ -1,7 +1,4 @@
 from pathlib import Path
-import numpy as np
-
-import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
@@ -15,11 +12,10 @@ from diffusion_utils.beta_scheduler import BetaScheduler
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("high")
 
+WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt")
+
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
-
-WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt")
-PIC_DIR = Path(__file__).parent.parent.parent.joinpath("data", "processed", "20m", "03_0000_00.npy")
 
 class ResidualDenseBlock(nn.Module):
     def __init__(self, channels: int) -> None:
@@ -28,9 +24,9 @@ class ResidualDenseBlock(nn.Module):
         self.convs = nn.ModuleList()
         for i in range(5):
             self.convs.append(
-                nn.Sequential( # (64, 150, 150)
-                    nn.ReplicationPad2d(1), # (64, 152, 152)
-                    nn.Conv2d(channels + i * channels, channels, kernel_size=3), # (64, 150, 150)
+                nn.Sequential(
+                    nn.ReplicationPad2d(1),
+                    nn.Conv2d(channels + i * channels, channels, kernel_size=3),
                     nn.LeakyReLU(negative_slope=0.2) if i < 4 else nn.Identity()
                 )
             )
@@ -49,7 +45,7 @@ class ResidualInResidual(nn.Module):
         self.blocks = nn.ModuleList(res_blocks)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out = x # (64, 150, 150)
+        out = x
         for block in self.blocks:
             out += 0.2 * block(out) 
         return x + 0.2 * out
@@ -66,14 +62,14 @@ class RRDB(nn.Module):
         blocks = 16
 
         self.model = nn.Sequential(
-            nn.ReplicationPad2d(1), # (1, 27, 27)
-            nn.Conv2d(1, upscaling_factor * upscaling_factor * upscaling_channels, kernel_size=3), # (108, 25, 25)
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(1, upscaling_factor * upscaling_factor * upscaling_channels, kernel_size=3),
             nn.LeakyReLU(negative_slope=0.2),
 
-            nn.PixelShuffle(upscaling_factor), # (3, 150, 150)
+            nn.PixelShuffle(upscaling_factor),
 
-            nn.ReplicationPad2d(1), # (3, 152, 152)
-            nn.Conv2d(upscaling_channels, self.channels, kernel_size=3), # (64, 150, 150)
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
             nn.LeakyReLU(negative_slope=0.2),
 
             ResidualInResidual(blocks, self.channels),
@@ -182,9 +178,9 @@ class UNet(nn.Module):
         return self.output(e4)
 
 class SRDIFF_simple(LightningModule):
-    def __init__(self, channels: int = 64) -> None:
+    def __init__(self, hparams: dict) -> None:
         super().__init__()
-        self.channels = channels
+        self.channels = hparams["model"]["channels"]
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
         # Applies SR using the RRDB Model.
@@ -200,20 +196,19 @@ class SRDIFF_simple(LightningModule):
         beta_scheduler = BetaScheduler()
         self.beta = beta_scheduler(self.T)
         self.alpha = 1. - self.beta
-        self.alpha_hat = torch.cumprod(alphas, dim=0)
+        self.alpha_hat = torch.cumprod(self.alpha, dim=0)
         self.beta_hat = torch.zeros(self.T)
         self.beta_hat[0] = self.beta[0]
         for t in range(1, self.T):
             self.beta_hat[t] = (1. - self.alpha_hat[t-1]) / (1. - self.alpha_hat[t]) * self.beta[t]
 
         self.loss = nn.L1Loss()
-
         self.upsample = nn.UpsamplingBilinear2d(size=(150, 150))
 
     def _get_lr_encoder(self) -> RRDB:
         encoder = RRDB()
-        checkpoint = torch.load(WEIGHT_DIR, map_location=torch.device("cpu"))
-        # checkpoint = torch.load(WEIGHT_DIR)
+        # checkpoint = torch.load(WEIGHT_DIR, map_location=torch.device("cpu"))
+        checkpoint = torch.load(WEIGHT_DIR)
         encoder.load_state_dict(checkpoint["state_dict"])
 
         for param in encoder.parameters():
@@ -329,3 +324,5 @@ class SRDIFF_simple(LightningModule):
 
 # plt.imshow(sr)
 # plt.show()
+
+
