@@ -7,7 +7,6 @@ from torch.optim.lr_scheduler import StepLR
 from pytorch_lightning import LightningModule
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-
 WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt")
 
 def psnr(mse):
@@ -247,10 +246,8 @@ class SRDIFF_simple(LightningModule):
         self.upsample = nn.UpsamplingBilinear2d(size=(150, 150))
 
     def _get_lr_encoder(self) -> RRDB:
-        encoder = RRDB()
+        encoder = RRDB.load_state_dict(torch.load(WEIGHT_DIR)["state_dict"])
         # checkpoint = torch.load(WEIGHT_DIR, map_location=torch.device("cpu"))
-        checkpoint = torch.load(WEIGHT_DIR)
-        encoder.load_state_dict(checkpoint["state_dict"])
 
         for param in encoder.parameters():
             param.requires_grad = False
