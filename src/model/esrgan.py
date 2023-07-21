@@ -17,18 +17,28 @@ from torchmetrics import StructuralSimilarityIndexMeasure
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from torch.optim.lr_scheduler import StepLR
+import pytorch_lightning as pl
+from torchmetrics import StructuralSimilarityIndexMeasure
+
+def psnr(mse):
+    return 20 * torch.log10(8. / torch.sqrt(mse))
+
 class ResidualDenseBlock(nn.Module):
-    def __init__(self, channels: int, growth: int, residual_scaling: float = 0.2) -> None:
+    def __init__(self, channels: int) -> None:
         super().__init__()
-        self.residual_scaling = residual_scaling
 
         self.convs = nn.ModuleList()
         for i in range(5):
             self.convs.append(
                 nn.Sequential(
                     nn.ReplicationPad2d(1),
-                    nn.Conv2d(channels + i * growth, growth, kernel_size=3),
-                    nn.LeakyReLU(negative_slope=0.2, inplace=True) if i < 4 else nn.Identity()
+                    nn.Conv2d(channels + i * channels, channels, kernel_size=3),
+                    nn.LeakyReLU(negative_slope=0.2) if i < 4 else nn.Identity()
                 )
             )
     
@@ -37,69 +47,52 @@ class ResidualDenseBlock(nn.Module):
         for conv in self.convs:
             out = conv(torch.cat(features, dim=1))
             features.append(out)
-        return out * self.residual_scaling + x
+        return out * 0.2 + x
     
-class RRDB(nn.Module):
-    def __init__(self, blocks: int, channels: int, growth: int, residual_scaling: float = 0.2) -> None:
+class ResidualInResidual(nn.Module):
+    def __init__(self, blocks: int, channels: int) -> None:
         super().__init__()
-        self.residual_scaling = residual_scaling
-        self.blocks = [ResidualDenseBlock(channels, growth, residual_scaling)] * blocks
+        res_blocks = [ResidualDenseBlock(channels)] * blocks
+        self.blocks = nn.ModuleList(res_blocks)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = x
         for block in self.blocks:
-            out += self.residual_scaling * block(out)
-        return x + self.residual_scaling * out
-
-
-class Generator(nn.Module): # I.e. SRResNet
-    def __init__(self, feature_maps: int = 64, num_res_blocks: int = 23) -> None:
+            out += 0.2 * block(out)
+        return x + 0.2 * out
+    
+class Generator(nn.Module):
+    def __init__(self) -> None:
         super().__init__()
 
-        self.input_block = nn.Sequential(
+        self.channels = 64
+        upscaling_factor = 6
+        upscaling_channels = 3
+        blocks = 16
+
+        self.model = nn.Sequential(
             nn.ReplicationPad2d(1),
-            nn.Conv2d(1, feature_maps, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.Conv2d(1, upscaling_factor * upscaling_factor * upscaling_channels, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            nn.PixelShuffle(upscaling_factor),
+
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(upscaling_channels, self.channels, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2),
+
+            ResidualInResidual(blocks, self.channels),
+
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(self.channels, self.channels, kernel_size=3),
+            nn.LeakyReLU(negative_slope=0.2),
+            
+            nn.ReplicationPad2d(1),
+            nn.Conv2d(self.channels, 1, kernel_size=3),
         )
-
-        residual_blocks = [RRDB(channels=feature_maps, growth=32)] * num_res_blocks
-        residual_blocks += [
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps, kernel_size=3),
-        ]
-        self.residual_blocks = nn.Sequential(*residual_blocks)
-
-        self.upscale_block = nn.Sequential(
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps * 9, kernel_size=3),
-            nn.PixelShuffle(3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps * 4, kernel_size=3),
-            nn.PixelShuffle(2),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-        )
-
-        self.output_block = nn.Sequential(
-            nn.ReplicationPad2d(1),
-            nn.Conv2d(feature_maps, feature_maps, kernel_size=3),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.ReplicationPad2d(4),
-            nn.Conv2d(feature_maps, 1, kernel_size=9),
-        )
-
-        for module in self.modules():
-            if isinstance(module, nn.Conv2d):
-                torch.nn.init.normal_(module.weight, mean=0, std=0.0001)
-                if module.bias is not None:
-                    module.bias.data.zero_()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x_input = self.input_block(x)
-        x_input = (x_input * 0.2) + self.residual_blocks(x_input)
-        x_input = self.upscale_block(x_input)
-        x_input = self.output_block(x_input)
-        return x_input
+        return self.model(x)
 
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
@@ -165,7 +158,7 @@ class ESRGAN(pl.LightningModule):
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
 
-        self.generator = Generator(hparams["model"]["feature_maps_gen"], hparams["model"]["num_res_blocks"])
+        self.generator = Generator()
         self.discriminator = Discriminator(hparams["model"]["feature_maps_disc"])
 
         self.feature_extractor = VGG19FeatureExtractor()
