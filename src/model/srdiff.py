@@ -12,6 +12,30 @@ WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights", "rrdb.ckpt"
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
+class PositionalEncoding(nn.Module):
+    # Taken from: https://github.com/jbergq/simple-diffusion-model/blob/main/src/model/network/layers/positional_encoding.py
+
+    def __init__(self, device: torch.device, max_time_steps: int, embedding_size: int, n: int = 10000) -> None:
+        super().__init__()
+
+        i = torch.arange(embedding_size // 2)
+        k = torch.arange(max_time_steps).unsqueeze(dim=1)
+
+        self.pos_embeddings = torch.zeros(max_time_steps, embedding_size, requires_grad=False, device=device)
+        self.pos_embeddings[:, 0::2] = torch.sin(k / (n ** (2 * i / embedding_size)))
+        self.pos_embeddings[:, 1::2] = torch.cos(k / (n ** (2 * i / embedding_size)))
+
+    def forward(self, t: torch.Tensor) -> torch.Tensor:
+        """Returns embedding encoding time step `t`.
+
+        Args:
+            t (Tensor): Time step.
+
+        Returns:
+            Tensor: Returned position embedding.
+        """
+        return self.pos_embeddings[t, :]
+
 class BetaScheduler:
     # Copied from: https://github.com/jbergq/simple-diffusion-model/blob/main/src/model/beta_scheduler.py
     def __init__(self, type="linear") -> None:
@@ -56,6 +80,7 @@ class BetaScheduler:
         alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
         betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
         return torch.clip(betas, 0.0001, 0.9999)
+    
 class ResidualDenseBlock(nn.Module):
     def __init__(self, channels: int) -> None:
         super().__init__()
@@ -145,19 +170,22 @@ class ResBlock(nn.Module):
         return self.conv2(self.conv1(x) + x)
     
 class ContractingStep(nn.Module):
-    def __init__(self, channels_in: int, channels_out: int) -> None:
+    def __init__(self, channels_in: int, channels_out: int, emb_size: int) -> None:
         super().__init__()
-        self.contract = nn.Sequential(
-            ResBlock(channels_in, channels_out),
-            ResBlock(channels_out, channels_out),
-            nn.MaxPool2d(2)
+        self.r1 = ResBlock(channels_in, channels_out)
+        self.r2 = ResBlock(channels_out, channels_out)
+        self.mp = nn.MaxPool2d(2)
+        self.proj = nn.Sequential(
+            nn.Linear(emb_size, channels_out),
+            nn.Mish()
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.contract(x)
+    def forward(self, x: torch.Tensor, t: torch.TensorType) -> torch.Tensor:
+        t_emb = self.proj(t).unsqueeze(-1).unsqueeze(-1)
+        return self.mp(self.rs(self.r1(x) + t_emb))
     
 class ExpansiveStep(nn.Module):
-    def __init__(self, index: int, channels_in: int, channels_out: int) -> None:
+    def __init__(self, index: int, channels_in: int, channels_out: int, emb_size: int) -> None:
         super().__init__()
         out_size = {1: (18, 18), 2: (37, 37), 3: (75, 75), 4: (150, 150)}
 
@@ -165,53 +193,65 @@ class ExpansiveStep(nn.Module):
         self.res2 = ResBlock(channels_in, channels_out)
         self.upsample = nn.UpsamplingBilinear2d(size=out_size[index])
         self.out_size = out_size[index]
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.res1(x)
-        x = self.res2(x)
-        x = self.upsample(x)
-        return x
-    
-class MiddleStep(nn.Module):
-    def __init__(self, channels_in: int, channels_out: int) -> None:
-        super().__init__()
-        self.middle = nn.Sequential(
-            ResBlock(channels_in, channels_in),
-            ResBlock(channels_in, channels_out)
+        self.proj = nn.Sequential(
+            nn.Linear(emb_size, channels_in),
+            nn.Mish()
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.middle(x)
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        t_emb = self.proj(t).unsqueeze(-1).unsqueeze(-1)
+        return self.upsample(self.res2(self.res1(x) + t_emb))
+    
+class MiddleStep(nn.Module):
+    def __init__(self, channels_in: int, channels_out: int, emb_size: int) -> None:
+        super().__init__()
+        self.r1 = ResBlock(channels_in, channels_in)
+        self.r2 = ResBlock(channels_in, channels_out)
+
+        self.proj = nn.Sequential(
+            nn.Linear(emb_size, channels_in),
+            nn.Mish()
+        )
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        t_emb = self.proj(t).unsqueeze(-1).unsqueeze(-1)
+        return self.r1(self.r2(x) + t_emb)
     
 class UNet(nn.Module):
-    def __init__(self, channels: int = 64) -> None:
+    def __init__(self, channels: int = 64, time_steps: int = 100, embedding_size: int = 512) -> None:
         super().__init__()
         self.channels = channels
 
-        self.contracting1 = ContractingStep(channels + 1, channels)
-        self.contracting2 = ContractingStep(channels, channels * 2)
-        self.contracting3 = ContractingStep(channels * 2, channels * 2)
-        self.contracting4 = ContractingStep(channels * 2, channels * 4)
-        self.middle = MiddleStep(channels * 4, channels * 4)
-        self.expansive1 = ExpansiveStep(1, channels * 4, channels * 2)
-        self.expansive2 = ExpansiveStep(2, channels * 2, channels * 2)
-        self.expansive3 = ExpansiveStep(3, channels * 2, channels)
-        self.expansive4 = ExpansiveStep(4, channels, channels)
+        self.embedding = nn.Sequential(
+            PositionalEncoding(self.device, time_steps, embedding_size),
+            nn.Linear(embedding_size, embedding_size)
+        )
+
+        self.contracting1 = ContractingStep(channels + 1, channels, embedding_size)
+        self.contracting2 = ContractingStep(channels, channels * 2, embedding_size)
+        self.contracting3 = ContractingStep(channels * 2, channels * 2, embedding_size)
+        self.contracting4 = ContractingStep(channels * 2, channels * 4, embedding_size)
+        self.middle = MiddleStep(channels * 4, channels * 4, embedding_size)
+        self.expansive1 = ExpansiveStep(1, channels * 4, channels * 2, embedding_size)
+        self.expansive2 = ExpansiveStep(2, channels * 2, channels * 2, embedding_size)
+        self.expansive3 = ExpansiveStep(3, channels * 2, channels, embedding_size)
+        self.expansive4 = ExpansiveStep(4, channels, channels, embedding_size)
         self.output = ConvBlock(channels, 1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        c1 = self.contracting1(x)
-        c2 = self.contracting2(c1)
-        c3 = self.contracting3(c2)
-        c4 = self.contracting4(c3)
-        m = self.middle(c4)
-        e1 = self.expansive1(torch.cat([m, c4], dim=1))
-        e2 = self.expansive2(torch.cat([e1, c3], dim=1))
-        e3 = self.expansive3(torch.cat([e2, c2], dim=1))
-        e4 = self.expansive4(torch.cat([e3, c1], dim=1))
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        t_emb = self.embedding(t)
+        c1 = self.contracting1(x, t_emb)
+        c2 = self.contracting2(c1, t)
+        c3 = self.contracting3(c2, t)
+        c4 = self.contracting4(c3, t)
+        m = self.middle(c4, t)
+        e1 = self.expansive1(torch.cat([m, c4], dim=1), t)
+        e2 = self.expansive2(torch.cat([e1, c3], dim=1), t)
+        e3 = self.expansive3(torch.cat([e2, c2], dim=1),t)
+        e4 = self.expansive4(torch.cat([e3, c1], dim=1), t)
         return self.output(e4)
 
-class SRDIFF_simple(LightningModule):
+class SRDIFF(LightningModule):
     def __init__(self, hparams: dict) -> None:
         super().__init__()
         self.channels = hparams["model"]["channels"]
@@ -250,8 +290,11 @@ class SRDIFF_simple(LightningModule):
 
         return encoder
     
-    def _conditional_noise_predictor(self, x_t: torch.Tensor, x_e: torch.Tensor) -> torch.Tensor:
-        return self.unet(torch.cat([self.start_block(x_t), x_e], dim=1))
+    def _conditional_noise_predictor(self, x_t: torch.Tensor, x_e: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        return self.unet(torch.cat([self.start_block(x_t), x_e], dim=1), t)
+    
+    def _is_last_batch(self, batch_idx: int):
+        return batch_idx == self.trainer.num_training_batches - 1
     
     def _train(self, x_L: torch.Tensor, x_H: torch.Tensor) -> torch.Tensor:
         x_e = self.lr_encoder(x_L)
@@ -260,22 +303,23 @@ class SRDIFF_simple(LightningModule):
         num_imgs = x_L.shape[0]
         ts = torch.randint(0, self.T, size=(num_imgs,))
         alpha_hat_ts = self.alpha_hat[ts].to(self.device)
+        alpha_hat_ts = alpha_hat_ts[:, None, None, None]
         noise = torch.normal(mean = 0, std = 1, size = x_H.shape, device=self.device)
-        x_t = torch.sqrt(alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * x_r \
-            + torch.sqrt(1. - alpha_hat_ts).unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise
-        noise_pred = self._conditional_noise_predictor(x_t, x_e)
+        x_t = torch.sqrt(alpha_hat_ts) * x_r + torch.sqrt(1. - alpha_hat_ts) * noise
+        noise_pred = self._conditional_noise_predictor(x_t, x_e, ts)
         loss = F.l1_loss(noise_pred, noise)
         return loss
     
     def _infere(self, x_L: torch.Tensor) -> torch.Tensor:
         up_x_L = self.upsample(x_L)
         x_e = self.lr_encoder(x_L)
+        
         x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device = self.device)
         for t in range(self.T-1, -1, -1):
             z = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device=self.device)
             x_T = (1. / torch.sqrt(self.alpha[t])) \
                 * (x_T - (1. - self.alpha[t]) / torch.sqrt(1. - self.alpha_hat[t]) \
-                * self._conditional_noise_predictor(x_T, x_e))
+                * self._conditional_noise_predictor(x_T, x_e, t))
             if t > 0:
                 x_T += torch.sqrt(self.beta_hat[t]) * z
 

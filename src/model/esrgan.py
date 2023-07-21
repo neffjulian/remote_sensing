@@ -194,12 +194,12 @@ class ESRGAN(pl.LightningModule):
         loss_gen = self._generator_loss(lr_image, hr_image)
         loss_disc = self._discriminator_loss(lr_image, hr_image)
 
-        self.log("val_loss_gen", loss_gen, on_epoch=True, sync_dist=True)
-        self.log("val_loss_disc", loss_disc, on_epoch=True, sync_dist=True)
+        self.log("loss_gen", loss_gen, on_epoch=True, sync_dist=True)
+        self.log("loss_disc", loss_disc, on_epoch=True, sync_dist=True)
 
         mse_loss = F.mse_loss(sr_image, hr_image)
-        self.log("val_psnr", psnr(mse_loss), on_epoch=True, sync_dist=True)
-        self.log("val_ssim", self.ssim(sr_image, hr_image), on_epoch=True, sync_dist=True)
+        self.log("psnr", psnr(mse_loss), on_epoch=True, sync_dist=True)
+        self.log("ssim", self.ssim(sr_image, hr_image), on_epoch=True, sync_dist=True)
 
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
