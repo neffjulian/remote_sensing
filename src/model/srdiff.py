@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -310,12 +311,14 @@ class SRDIFF(LightningModule):
         loss = F.l1_loss(noise_pred, noise)
         return loss
     
-    def _infere(self, x_L: torch.Tensor) -> torch.Tensor:
+    def _infere(self, x_L: torch.Tensor, show_steps: bool = False) -> torch.Tensor:
         up_x_L = self.upsample(x_L)
-        x_e = self.lr_encoder(x_L)
-        
+        x_e = self.lr_encoder(x_L)        
         x_T = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device = self.device)
+
+        steps = [x_T]
         for t in range(self.T-1, -1, -1):
+
             z = torch.normal(mean = 0, std = 1, size = up_x_L.shape, device=self.device)
             x_T = (1. / torch.sqrt(self.alpha[t])) \
                 * (x_T - (1. - self.alpha[t]) / torch.sqrt(1. - self.alpha_hat[t]) \
@@ -323,7 +326,9 @@ class SRDIFF(LightningModule):
             if t > 0:
                 x_T += torch.sqrt(self.beta_hat[t]) * z
 
-        return up_x_L + x_T
+            steps.append(x_T)
+
+        return up_x_L + x_T, steps
     
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
@@ -340,7 +345,8 @@ class SRDIFF(LightningModule):
         }
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self._infere(x)
+        out, _ = self._infere(x)
+        return out
 
     def training_step(self, batch, batch_idx):
         lr_image, hr_image = batch
@@ -350,7 +356,7 @@ class SRDIFF(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         lr_image, hr_image = batch
-        sr_image = self._infere(lr_image)
+        sr_image, _ = self._infere(lr_image)
         loss = self._train(lr_image, hr_image)
         ssim = self.ssim(sr_image, hr_image)
         self.log('val_loss', loss, sync_dist=True)
@@ -360,6 +366,10 @@ class SRDIFF(LightningModule):
 
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
-        sr_image = self._infere(lr_image)
+        sr_image, steps = self._infere(lr_image)
         lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
+        
+        for i, step in enumerate(steps):
+            for j, data in enumerate(step):
+                np.save(f"step_{i}_{j}.npy", data.numpy())
         return lr_image, sr_image, hr_image, names
