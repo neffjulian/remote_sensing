@@ -24,8 +24,8 @@ def main():
     epsg = geo_info.epsg
     ulx = geo_info.ulx
     uly = geo_info.uly
-
-    pixres_x, pixres_y = 3.33, -3.33
+    pixres_x = 3.33
+    pixres_y = -3.33
 
     new_geo_info = GeoInfo(
         epsg=epsg,
