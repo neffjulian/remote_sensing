@@ -230,7 +230,7 @@ class ESRGAN(pl.LightningModule):
         self.log("Perceptual Loss", perceptual_loss, on_epoch=True, sync_dist=True)
         self.log("Adv Loss", adv_loss, on_epoch=True, sync_dist=True)
         
-        return perceptual_loss + 0.05 * adv_loss + content_loss * 0.01
+        return perceptual_loss + 0.005 * adv_loss + content_loss * 0.1
 
     @staticmethod
     def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:
