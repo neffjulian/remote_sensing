@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.loggers import WandbLogger
@@ -24,6 +25,7 @@ from model.srdiff_no_pos_encoding import SRDIFF_simple
 
 DOTENV_PATH = Path(__file__).parent.parent.joinpath(".env")
 LOG_DIR = Path(__file__).parent.parent.joinpath("logs")
+WEIGHT_DIR = Path(__file__).parent.parent.joinpath("weights")
 load_dotenv(DOTENV_PATH)
 WANDB_API_KEY = os.getenv('WANDB_API_KEY')
 os.environ["WANDB_SILENT"] = "true"
@@ -36,6 +38,12 @@ MODELS = {
     "esrgan": ESRGAN,
     "rrdb": RRDB,
     "srdiff_simple": SRDIFF_simple 
+}
+
+WEIGHTS = {
+    "edsr": WEIGHT_DIR.joinpath("edsr.ckpt"),
+    "srcnn": WEIGHT_DIR.joinpath("srcnn.ckpt"),
+    "rrdb": WEIGHT_DIR.joinpath("rrdb.ckpt")
 }
 
 def main(hparams: dict) -> None:
@@ -72,7 +80,10 @@ def main(hparams: dict) -> None:
     if hparams["predict"] is True:
         trainer = pl.Trainer(devices=1, accelerator="gpu", default_root_dir=LOG_DIR)
         model.eval()
-        output = trainer.predict(model=model, datamodule=datamodule)
+        if hparams["train"] is True:
+            output = trainer.predict(model=model, datamodule=datamodule)
+        else:
+            output = trainer.predict(model=model, datamodule=datamodule, ckpt_path=WEIGHTS[hparams["model"]["name"]])
         visualize_output(experiment_name, output)
 
         print("--------------------")

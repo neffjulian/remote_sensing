@@ -1,0 +1,33 @@
+random_seed: 123
+
+experiment_name: RRDB
+
+sentinel_resolution: "20m"
+planetscope_bands: "4b"
+
+train: False
+predict: True
+
+model:
+  name: rrdb
+  channels: 64
+  upscaling_channels: 3
+  blocks: 16
+
+datamodule:
+  batch_size: 8
+  augment: True
+
+trainer:
+  max_epochs: 10
+  profiler: "simple"
+  log_every_n_steps: 10
+
+optimizer:
+  lr: 0.0005
+  scheduler_step: 3
+
+scheduler:
+  mode: min
+  patience: 5
+  min_lr: 0.0000001
