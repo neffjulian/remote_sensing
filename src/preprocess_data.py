@@ -102,7 +102,7 @@ def psnr(x, y):
     return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
 
 def process_file(satellite: str, target_dir: Path, target_name: str, data: np.ndarray, in_situ: bool, augment: bool = False) -> None:
-    if in_situ is True:
+    if in_situ is True: # In situ data covers an area of 500x500m 
         out_dim = (25, 25) if satellite == "sentinel" else (150, 150)
     else:
         out_dim = (100, 100) if satellite == "sentinel" else (600, 600)

@@ -20,19 +20,20 @@ def download_data() -> None:
     data_zip.unlink()
 
 def download_model_weights() -> None:
-    print("Downloading model weights for SRCNN")
+    print("\n \n Downloading model weights for SRCNN")
     url = "https://polybox.ethz.ch/index.php/s/kNEZ2m5ZOjOBdDq/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
-    print("Downloading model weights for EDSR")
+    print("\n Downloading model weights for EDSR")
     url = "https://polybox.ethz.ch/index.php/s/AwqJ7rCallI147h/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
-    print("Downloading model weights for RRDB")
+    print("\n Downloading model weights for RRDB")
     url = "https://polybox.ethz.ch/index.php/s/xGuK4DUhyJ5ZFaX/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data", type=bool)
     parser.add_argument("-w", "--weights", type=bool)

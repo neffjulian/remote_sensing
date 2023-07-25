@@ -7,7 +7,7 @@ data/results/*
 src/model/.ipynb_checkpoints/*
 src/.ipynb_checkpoints/*
 logs/*
-# weights/*
+weights/*
 
 .env
 *.pyc
