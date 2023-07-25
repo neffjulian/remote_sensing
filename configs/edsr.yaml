@@ -2,12 +2,10 @@ random_seed: 123
 
 experiment_name: EDSR
 
-# resume_from_checkpoint: ...
-
 sentinel_resolution: "20m"
 planetscope_bands: "4b"
 
-train: true
+train: false
 predict: true
 
 model:
@@ -27,9 +25,3 @@ trainer:
 optimizer:
   lr: 0.0002
   scheduler_step: 10
-
-scheduler:
-  mode: min
-  patience: 3
-  min_lr: 0.000001
-  verbose: True

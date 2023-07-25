@@ -2,8 +2,6 @@ random_seed: 123
 
 experiment_name: ESRGAN
 
-# resume_from_checkpoint: ...
-
 sentinel_resolution: "20m"
 planetscope_bands: "4b"
 
