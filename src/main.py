@@ -73,11 +73,12 @@ def main(hparams: dict) -> None:
         trainer.fit(model=model, datamodule=datamodule)
 
     if hparams["predict"] is True:
-        model = MODELS[hparams["model"]["name"]].load_from_checkpoint(
-            checkpoint_path=WEIGHT_DIR.joinpath(f"{hparams['model']['name']}.ckpt"), 
-            map_location=torch.device('cpu'), 
-            hparams=hparams
-        )
+        if hparams["train"] is False:
+            model = MODELS[hparams["model"]["name"]].load_from_checkpoint(
+                checkpoint_path=WEIGHT_DIR.joinpath(f"{hparams['model']['name']}.ckpt"), 
+                map_location=torch.device('cpu'), 
+                hparams=hparams
+            )
         model.eval()
         
         in_situ = get_in_situ()
