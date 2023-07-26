@@ -20,13 +20,13 @@ datamodule:
   augment: True
 
 trainer:
-  max_epochs: 50
+  max_epochs: 40
   profiler: "simple"
-  log_every_n_steps: 10
+  log_every_n_steps: 8
 
 optimizer:
   lr: 0.0005
-  scheduler_step: 10
+  scheduler_step: 8
 
 scheduler:
   mode: min

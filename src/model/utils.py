@@ -89,7 +89,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     ax2 = axes[1]
     if error is True: 
         error = np.abs(planet_scope - super_resolved)
-        im2 = ax2.imshow(error, cmap='Reds', vmin=0., vmax=1.)
+        im2 = ax2.imshow(error, cmap='Reds', vmin=0., vmax=8.)
         ax2.set_title('Error: Super-Resolved Image to original PlanetScope Image')
     else:
         im2 = ax2.imshow(super_resolved, cmap='viridis', vmin=0., vmax=8.)
@@ -207,8 +207,15 @@ def get_in_situ():
                 data.append((s2_file_interp, ps_file_interp, s2_raster, file.name[:4]))
     return data
 
-def get_lai_pred(mat: np.ndarray) -> np.float64:
-    return (mat[74:74] + mat[74:75] + mat[75:75] + mat[75:74]) / 4
+def get_lai_pred(mat: np.ndarray):
+    if mat.shape == (75, 75):
+        return mat[37,37]
+    elif mat.shape == (25, 25):
+        return mat[12,12]
+    elif mat.shape == (150, 150):
+        return (mat[74,74] + mat[74,75] + mat[75,75] + mat[75,74]) / 4
+    else:
+        raise Exception("Invalid shape: ", mat.shape)
 
 def visualize_in_situ(results: tuple, experiment_name: str) -> None:
     field_data = pd.read_csv(FIELD_DATA)
@@ -231,12 +238,8 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
             pixres_y=-10/3
         )
 
-        index = int(name) - 1
-        lai_lr = get_lai_pred(lr_interp)
-        lai_sr = get_lai_pred(sr)
-        lai_hr = get_lai_pred(hr)
-        print(index, lai_lr, lai_sr, lai_hr, lai[index])
-        lai_preds.append((index, lai_lr, lai_sr, lai_hr, lai[index]))
+        index = int(name)
+        lai_preds.append((index, get_lai_pred(lr), get_lai_pred(sr), get_lai_pred(hr), lai[index]))
 
         x, y = s2_raster["lai"].values.shape
         raster = RasterCollection(
@@ -263,9 +266,9 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
         lr_error.append(np.abs(lai_lr - lai))
         sr_error.append(np.abs(lai_sr - lai))
         hr_error.append(np.abs(lai_hr - lai))
-    lai_preds.append((1000, sum(lr_error) / len(lr_error), sum(sr_error) / len(sr_error), sum(hr_error) / len(hr_error), 1000))
+    lai_preds.append((1000, np.mean(lr_error), np.mean(sr_error), np.mean(hr_error), 1000))
 
-    df = pd.DataFrame(lai_preds, columns=["index", "lr_error", "sr_error", "hr_error", "lai"])
+    df = pd.DataFrame(lai_preds, columns=["index", "s2_lai", "sr_lai", "hr_lai", "in_situ_lai"])
     df.to_csv(path.joinpath("lai_preds.csv"), index=False)
 
 def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_name: str, ps_downsampled: bool, raster: RasterCollection) -> None:
@@ -345,6 +348,6 @@ def get_ps_sample():
 if __name__ == "__main__":
     # get_in_situ()
     # get_sample()
-    # report_gpu()
-    in_situ = gpd.read_file(IN_SITU)
-    print(in_situ['lai'])
+    report_gpu()
+    # in_situ = gpd.read_file(IN_SITU)
+    # print(in_situ['lai'])
