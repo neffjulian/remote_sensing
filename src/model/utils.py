@@ -12,11 +12,13 @@ import matplotlib.pyplot as plt
 from eodal.core.raster import RasterCollection
 from eodal.core.band import Band, GeoInfo
 from skimage.metrics import structural_similarity as ssim
+import geopandas as gpd
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 RESULT_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'results')
 FILTER_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'filtered')
 FIELD_DATA = Path(__file__).parent.parent.parent.joinpath('data', 'coordinates', 'field_data.csv')
+IN_SITU = Path(__file__).parent.parent.parent.joinpath('data', 'coordinates', 'in-situ_glai.gpkg')
 
 def psnr(x, y):
     return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
@@ -107,10 +109,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.colorbar(im3, ax=ax3, label=r'LAI [m$^2$ m$^{-2}$]')
 
     plt.tight_layout()
-    if error is True:
-        plt.savefig(dir.parent / ("error_ " + dir.name), dpi=300)
-    else:
-        plt.savefig(dir, dpi=300)
+    plt.savefig(dir, dpi=300)
     plt.close(f)
 
 def visualize_output(name: str, output: list) -> None:
@@ -208,7 +207,7 @@ def get_in_situ():
                 data.append((s2_file_interp, ps_file_interp, s2_raster, file.name[:4]))
     return data
 
-def get_lai_pred(mat: np.ndarray) -> float:
+def get_lai_pred(mat: np.ndarray) -> np.float64:
     return (mat[74:74] + mat[74:75] + mat[75:75] + mat[75:74]) / 4
 
 def visualize_in_situ(results: tuple, experiment_name: str) -> None:
@@ -236,6 +235,7 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
         lai_lr = get_lai_pred(lr_interp)
         lai_sr = get_lai_pred(sr)
         lai_hr = get_lai_pred(hr)
+        print(index, lai_lr, lai_sr, lai_hr, lai[index])
         lai_preds.append((index, lai_lr, lai_sr, lai_hr, lai[index]))
 
         x, y = s2_raster["lai"].values.shape
@@ -260,10 +260,10 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
 
     lr_error, sr_error, hr_error = [], [], []
     for index, lai_lr, lai_sr, lai_hr, lai in lai_preds:
-        lr_error.append(abs(lai_lr - lai))
-        sr_error.append(abs(lai_sr - lai))
-        hr_error.append(abs(lai_hr - lai))
-    lai.preds.append((1000, np.mean(lr_error), np.mean(sr_error), np.mean(hr_error), 1000))
+        lr_error.append(np.abs(lai_lr - lai))
+        sr_error.append(np.abs(lai_sr - lai))
+        hr_error.append(np.abs(lai_hr - lai))
+    lai_preds.append((1000, sum(lr_error) / len(lr_error), sum(sr_error) / len(sr_error), sum(hr_error) / len(hr_error), 1000))
 
     df = pd.DataFrame(lai_preds, columns=["index", "lr_error", "sr_error", "hr_error", "lai"])
     df.to_csv(path.joinpath("lai_preds.csv"), index=False)
@@ -284,7 +284,7 @@ def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_
         sr[j * x: (j + 1) * x, k * y: (k + 1) * y] = sr_tiles[i]
         hr[j * x: (j + 1) * x, k * y: (k + 1) * y] = hr_tiles[i]
     save_output_visualization(lr, sr, hr, path.joinpath(file_name), ps_downsampled)
-    save_output_visualization(lr, sr, hr, path.joinpath(file_name), ps_downsampled, True)
+    save_output_visualization(lr, sr, hr, path.joinpath("error_" + file_name), ps_downsampled, True)
     
     geo_info = GeoInfo(
         epsg=raster["lai"].geo_info.epsg,
@@ -345,4 +345,6 @@ def get_ps_sample():
 if __name__ == "__main__":
     # get_in_situ()
     # get_sample()
-    report_gpu()
+    # report_gpu()
+    in_situ = gpd.read_file(IN_SITU)
+    print(in_situ['lai'])
