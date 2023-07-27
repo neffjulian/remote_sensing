@@ -22,11 +22,11 @@ datamodule:
 trainer:
   max_epochs: 40
   profiler: "simple"
-  log_every_n_steps: 8
+  log_every_n_steps: 10
 
 optimizer:
   lr: 0.0005
-  scheduler_step: 8
+  scheduler_step: 10
 
 scheduler:
   mode: min
