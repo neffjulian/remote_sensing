@@ -13,6 +13,7 @@ from eodal.core.raster import RasterCollection
 from eodal.core.band import Band, GeoInfo
 from skimage.metrics import structural_similarity as ssim
 import geopandas as gpd
+from datetime import datetime
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 RESULT_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'results')
@@ -220,6 +221,7 @@ def get_lai_pred(mat: np.ndarray):
 def visualize_in_situ(results: tuple, experiment_name: str) -> None:
     field_data = pd.read_csv(FIELD_DATA)
     lai = field_data["lai"].values
+    dates = field_data["date"].values
     lai_preds = []
 
     path = RESULT_DIR.joinpath(experiment_name)
@@ -239,7 +241,7 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
         )
 
         index = int(name)
-        lai_preds.append((index, get_lai_pred(lr), get_lai_pred(sr), get_lai_pred(hr), lai[index]))
+        lai_preds.append((index, get_lai_pred(lr), get_lai_pred(sr), get_lai_pred(hr), lai[index], dates[index]))
 
         x, y = s2_raster["lai"].values.shape
         raster = RasterCollection(
@@ -262,13 +264,13 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
     print("LR-HR PSNR:", np.median(psnr_lr), " SR-HR PSNR:", np.median(psnr_sr), " |  LR-HR SSIM:", np.median(ssim_lr), " SR-HR SSIM:", np.median(ssim_sr))
 
     lr_error, sr_error, hr_error = [], [], []
-    for index, lai_lr, lai_sr, lai_hr, lai in lai_preds:
+    for _, lai_lr, lai_sr, lai_hr, lai, _ in lai_preds:
         lr_error.append(np.abs(lai_lr - lai))
         sr_error.append(np.abs(lai_sr - lai))
         hr_error.append(np.abs(lai_hr - lai))
-    lai_preds.append((1000, np.mean(lr_error), np.mean(sr_error), np.mean(hr_error), 1000))
+    lai_preds.append((1000, np.mean(lr_error), np.mean(sr_error), np.mean(hr_error), 1000, 1000))
 
-    df = pd.DataFrame(lai_preds, columns=["index", "s2_lai", "sr_lai", "hr_lai", "in_situ_lai"])
+    df = pd.DataFrame(lai_preds, columns=["index", "s2_lai", "sr_lai", "hr_lai", "in_situ_lai", "date"])
     df.to_csv(path.joinpath("lai_preds.csv"), index=False)
 
 def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_name: str, ps_downsampled: bool, raster: RasterCollection) -> None:
@@ -345,9 +347,37 @@ def get_ps_sample():
     lr_tiles = create_tiles(lr_file_interp)
     return lr_tiles, ps_tiles, RasterCollection.from_multi_band_raster(ps_fileloc)
 
+def make_plot_from_csv(lai_preds: np.ndarray):
+    preds = lai_preds[:-1]
+    dates = [datetime.strptime(date, "%Y-%m-%d %H:%M:%S") for date in preds['date']]
+    preds = sorted(list(zip(dates, preds['s2_lai'], preds['sr_lai'], preds['hr_lai'], preds['in_situ_lai'])), key=lambda x: x[0])
+
+    dates = [pred[0] for pred in preds]
+    s2_lai = [pred[1] for pred in preds]
+    sr_lai = [pred[2] for pred in preds]
+    hr_lai = [pred[3] for pred in preds]
+    in_situ_lai = [pred[4] for pred in preds]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(dates, s2_lai, label="Sentinel-2", marker='o', linestyle='-')
+    ax.plot(dates, sr_lai, label="Super-Resolved", marker='o', linestyle='-')
+    ax.plot(dates, hr_lai, label="PlanetScope")
+    ax.plot(dates, in_situ_lai, label="In-Situ")
+
+    ax.set_xlabel("Date")
+    ax.set_ylabel(r"LAI [m$^2$ m$^{-2}$]")
+    ax.set_title("LAI Prediction")
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
+
 if __name__ == "__main__":
     # get_in_situ()
     # get_sample()
-    report_gpu()
-    # in_situ = gpd.read_file(IN_SITU)
-    # print(in_situ['lai'])
+    # report_gpu()
+
+    csv = RESULT_DIR.joinpath("RRDB_2023_07_27_08_56", "lai_preds.csv")
+    df = pd.read_csv(csv)
+    npy = df.to_numpy()
+    print(npy.shape)
+    make_plot_from_csv(df[:-1])
