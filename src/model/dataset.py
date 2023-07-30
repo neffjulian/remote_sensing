@@ -96,8 +96,8 @@ class SRDataModule(pl.LightningDataModule):
 
         val_file = ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0030', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
 
-        self.train_set = [file for file in self.files if file.name[3:7] not in val_file]
-        self.val_set = [file for file in self.files if file.name[3:7] in val_file]
+        self.train_set = [file for file in self.files if file[3:7] not in val_file]
+        self.val_set = [file for file in self.files if file[3:7] in val_file]
 
         print(f"Train set size: {len(self.train_set)}")
         print(f"Val set size: {len(self.val_set)}")
