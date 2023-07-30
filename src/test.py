@@ -1,81 +1,134 @@
+import cv2
 import numpy as np
-import pandas as pd
 from pathlib import Path
 from eodal.core.raster import RasterCollection
 from eodal.core.band import Band, GeoInfo
 import matplotlib.pyplot as plt
+import torch
+import yaml
 
-s2_dir = Path(__file__).parent.parent.joinpath('data', 'processed', '20m_in_situ')
-ps_dir = Path(__file__).parent.parent.joinpath('data', 'processed', '4b_in_situ')
+from model.rrdb import RRDB
 
-filter_2s_dir = Path(__file__).parent.parent.joinpath('data', 'filtered', 'sentinel')
-filter_ps_dir = Path(__file__).parent.parent.joinpath('data', 'filtered', 'planetscope')
-
+filter_dir = Path(__file__).parent.parent.joinpath('data', 'filtered')
 results_dir = Path(__file__).parent.parent.joinpath('data', 'results')
 
-def main():
-    months = {"jan": "01", "feb": "02", "mar": "03", "apr": "04", 
-              "may": "05", "jun": "06", "jul": "07", "aug": "08", 
-              "sep": "09", "oct": "10", "nov": "11", "dec": "12"}
-    
-    s2_tif_file = results_dir.joinpath('0001_scene_20m_lai.tif')
-    sr_npy_file = results_dir.joinpath('0001.npy')
-    ps_tif_file = results_dir.joinpath('0001_lai_4bands.tif')
+WEIGHT_DIR = Path(__file__).parent.parent.joinpath("weights")
+CONFIG_DIR = Path(__file__).parent.parent.joinpath("configs")
+VALIDATE_DIR = Path(__file__).parent.parent.joinpath("data", "validate", "bicubic")
 
-    s2_data = RasterCollection.from_multi_band_raster(s2_tif_file)
-    ps_data = RasterCollection.from_multi_band_raster(ps_tif_file)
-    sr_data = np.load(sr_npy_file)
+with open(CONFIG_DIR.joinpath("rrdb.yaml"), "r") as f:
+    hparams = yaml.load(f, Loader=yaml.FullLoader)
 
-    s2_geo_info = s2_data["lai"].geo_info
-    ps_geo_info = ps_data["lai"].geo_info
-
-    max_diff = 0
-
-                # if(s2_diff - ps_diff > 100):
-                #     print(i, year.name, month.name, s2_geo_info.uly, s2_geo_info.ulx, ps_geo_info.uly, ps_geo_info.ulx)
+model = RRDB.load_from_checkpoint(
+                checkpoint_path=WEIGHT_DIR.joinpath("rrdb.ckpt"), 
+                map_location=torch.device('cpu'),
+                hparams=hparams)
+model.eval()
 
 
-                
-    print(max_diff)
-    # for year in filter_ps_dir.iterdir():
+def get_common_indices(s2_bands, ps_bands):
+    # Iterates over the filtered data and returns the indices for which we have a pair of images for each month
+    s2_dir = filter_dir.joinpath("sentinel")
+    ps_dir = filter_dir.joinpath("planetscope")
+
+    indices_per_month = []
+    for year in s2_dir.iterdir():
+        for month in year.iterdir():
+            curr_ps_dir = ps_dir.joinpath(year.name, month.name, "lai")
+            curr_s2_dir = s2_dir.joinpath(year.name, month.name, "lai")
+
+            if not curr_ps_dir.exists() or not curr_s2_dir.exists():
+                continue
+
+            s2_files = list(curr_s2_dir.glob(f"*_scene_{s2_bands}_lai.tif"))
+            ps_files = list(curr_ps_dir.glob(f"*_lai_{ps_bands}ands.tif"))
+
+            common_indices = list(set([f.name[0:4] for f in s2_files]).intersection([f.name[0:4] for f in ps_files]))
+            indices_per_month.append(common_indices)
+    return sorted(list(set.intersection(*map(set, indices_per_month))), key=lambda x: int(x))
+
+def process_files(lr: np.ndarray, algorithm: str = "rrdb") -> np.ndarray:
+    data = torch.tensor(lr).unsqueeze(0).unsqueeze(0)
+    with torch.no_grad():
+        if algorithm == "bicubic":
+            out = torch.nn.functional.interpolate(data, scale_factor=6, mode="bicubic")
+        elif algorithm == "rrdb":
+            out = model(data)
+        else:
+            raise Exception
+    return out.squeeze(0).squeeze(0).numpy()
+
+
+def reconstruct_tiles(tiles: list[np.ndarray]) -> np.ndarray:
+    x, y = tiles[0].shape
+    new_x, new_y = x * 4, y * 4
+    reconstructed = np.empty((new_x, new_y))
+    for i in range(0, new_x, x):
+        for j in range(0, new_y, y):
+            reconstructed[i:i+x, j:j+y] = tiles.pop(0)
+    return reconstructed
+
+def create_raster(data: np.ndarray, collection: RasterCollection):
+    geo_info = GeoInfo(
+            epsg=collection["lai"].geo_info.epsg,
+            ulx=collection["lai"].geo_info.ulx,
+            uly=collection["lai"].geo_info.uly,
+            pixres_x=10/3, # New pixres is now 3.33 m as we have 6 times more pixels
+            pixres_y=-10/3
+        )
+
+    raster = RasterCollection(
+        band_constructor=Band,
+        band_name="lai",
+        values = data,
+        geo_info = geo_info
+    )
+
+    return raster
+
+def process_s2_files(dir: Path, s2_files: list[Path]):
+    for path in s2_files:
+        file = RasterCollection.from_multi_band_raster(path)
+        lai = np.nan_to_num(file["lai"].values)
+        shape = lai.shape
+
+        ps_file_interp = cv2.resize(lai, (100, 100), interpolation=cv2.INTER_AREA)
+        tiles = [ps_file_interp[i:i+25, j:j+25] for i in range(0, 100, 25) for j in range(0, 100, 25)]
+
+        tiles = [process_files(tile) for tile in tiles]
+        sr_file = cv2.resize(reconstruct_tiles(tiles), (shape[1] * 6, shape[0] * 6), interpolation=cv2.INTER_CUBIC)
+        sr_raster = create_raster(sr_file, file)
+        sr_raster.to_rasterio(dir.joinpath(path.name[0:4] + ".tif"))
+
+def main(s2_bands: str, ps_bands: str):
+    # Get the indices for which we have a pair of images for each month
+    common_indices = get_common_indices(s2_bands, ps_bands)
+
+    print(common_indices[0:25])
+
+    # s2_dir = filter_dir.joinpath("sentinel")
+    # ps_dir = filter_dir.joinpath("planetscope")
+    # out_dir = VALIDATE_DIR.joinpath(f"{s2_bands}_{ps_bands}")
+
+    # for year in s2_dir.iterdir():
     #     for month in year.iterdir():
-    #         for filename in month.iterdir():
-    #             print(filename)
-    # print(s2_geo_info.uly - s2_geo_info.ulx)
-    # print(ps_geo_info.uly - ps_geo_info.ulx)
+    #         print(month.name)
+    #         curr_ps_dir = ps_dir.joinpath(year.name, month.name, "lai")
+    #         curr_s2_dir = s2_dir.joinpath(year.name, month.name, "lai")
 
-    # band_name = "lai"
-    # geo_info = s2_data["lai"].geo_info
-    # epsg = geo_info.epsg
-    # ulx = geo_info.ulx
-    # uly = geo_info.uly
-    # pixres_x = 3.33
-    # pixres_y = -3.33
+    #         if not curr_ps_dir.exists() or not curr_s2_dir.exists():
+    #             continue
 
-    # new_geo_info = GeoInfo(
-    #     epsg=epsg,
-    #     ulx=ulx,
-    #     uly=uly,
-    #     pixres_x=pixres_x,
-    #     pixres_y=pixres_y
-    # )
+    #         s2_files = [curr_s2_dir.joinpath(f"{index}_scene_{s2_bands}_lai.tif") for index in common_indices]
+    #         # ps_files = [curr_ps_dir.joinpath(f"{index}_lai_{ps_bands}ands.tif") for index in common_indices]
 
-    # epsg = 32633
-
-    # raster = RasterCollection(
-    #     band_constructor=Band,
-    #     band_name=band_name,
-    #     values = sr_data,
-    #     geo_info=new_geo_info
-    # )
-
-    # # raster.to_rasterio()
-    # # TEST IN QGIS!
-
-    # f = raster.plot_band("lai", colormap="viridis", vmin=0, vmax=8)
-    # f.show()
-    # plt.show()
+    #         validate_dir = out_dir.joinpath(year.name, month.name)
+    #         validate_dir.mkdir(parents=True, exist_ok=True)
+    #         process_s2_files(validate_dir, s2_files)
 
 
 if __name__ == '__main__':
-    main()
+    s2_bands = "20m"
+    ps_bands = "4b"
+
+    main(s2_bands, ps_bands)

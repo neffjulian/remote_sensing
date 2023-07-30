@@ -232,6 +232,9 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
         lr_interp = cv2.resize(lr, (150, 150), interpolation=cv2.INTER_CUBIC)
         save_output_visualization(lr_interp, sr, hr, path.joinpath(name + ".png"))
 
+        index = int(name)
+        lai_preds.append((index, get_lai_pred(lr), get_lai_pred(sr), get_lai_pred(hr), lai[index], dates[index]))
+
         geo_info = GeoInfo(
             epsg=s2_raster["lai"].geo_info.epsg,
             ulx=s2_raster["lai"].geo_info.ulx,
@@ -239,9 +242,6 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
             pixres_x=10/3,
             pixres_y=-10/3
         )
-
-        index = int(name)
-        lai_preds.append((index, get_lai_pred(lr), get_lai_pred(sr), get_lai_pred(hr), lai[index], dates[index]))
 
         x, y = s2_raster["lai"].values.shape
         raster = RasterCollection(
@@ -359,6 +359,7 @@ def make_plot_from_csv(lai_preds: np.ndarray):
     in_situ_lai = [pred[4] for pred in preds]
 
     fig, ax = plt.subplots(figsize=(10, 6))
+    # Scatter
     ax.plot(dates, s2_lai, label="Sentinel-2", marker='o', linestyle='-')
     ax.plot(dates, sr_lai, label="Super-Resolved", marker='o', linestyle='-')
     ax.plot(dates, hr_lai, label="PlanetScope")

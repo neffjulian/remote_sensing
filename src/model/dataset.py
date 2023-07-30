@@ -94,15 +94,23 @@ class SRDataModule(pl.LightningDataModule):
 
         self.files = [file.name for file in DATA_DIR.joinpath(self.planetscope_bands).iterdir()]
 
-        total_size = len(self.files)
-        train_size = int(0.9 * total_size)
-        val_size = total_size - train_size
+        val_file = ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0030', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
 
-        self.train_set, self.val_set = random_split(
-            dataset = self.files, 
-            lengths = [train_size, val_size], 
-            generator =torch.Generator().manual_seed(hparams["random_seed"])
-        )
+        self.train_set = [file for file in self.files if file.name[3:7] not in val_file]
+        self.val_set = [file for file in self.files if file.name[3:7] in val_file]
+
+        print(f"Train set size: {len(self.train_set)}")
+        print(f"Val set size: {len(self.val_set)}")
+
+        # total_size = len(self.files)
+        # train_size = int(0.9 * total_size)
+        # val_size = total_size - train_size
+
+        # self.train_set, self.val_set = random_split(
+        #     dataset = self.files, 
+        #     lengths = [train_size, val_size], 
+        #     generator =torch.Generator().manual_seed(hparams["random_seed"])
+        # )
 
         self.predict_files = DATA_DIR.joinpath(self.sentinel_resolution + "_in_situ")
 
