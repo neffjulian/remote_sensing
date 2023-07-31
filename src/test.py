@@ -28,6 +28,8 @@ model.eval()
 
 def get_common_indices(s2_bands, ps_bands):
     # Iterates over the filtered data and returns the indices for which we have a pair of images for each month
+    return ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0030', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
+
     s2_dir = filter_dir.joinpath("sentinel")
     ps_dir = filter_dir.joinpath("planetscope")
 
