@@ -15,11 +15,11 @@ model:
   blocks: 16
 
 datamodule:
-  batch_size: 4
+  batch_size: 2
   augment: True
 
 trainer:
-  max_epochs: 25
+  max_epochs: 20
   profiler: "simple"
   log_every_n_steps: 10
 

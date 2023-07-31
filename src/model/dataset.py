@@ -129,4 +129,4 @@ class SRDataModule(pl.LightningDataModule):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=16, pin_memory=True, persistent_workers=True)
 
     def predict_dataloader(self):
-        return DataLoader(self.predict_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, pin_memory=True, persistent_workers=True)
+        return DataLoader(self.predict_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, pin_memory=True)
