@@ -276,7 +276,7 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
 def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_name: str, ps_downsampled: bool, raster: RasterCollection) -> None:
     path = RESULT_DIR.joinpath(experiment_name)
     path.mkdir(parents=True, exist_ok=True)
-    file_name = "s2_0052" if ps_downsampled is False else "ps_0052"
+    file_name = "s2_0023" if ps_downsampled is False else "ps_0023"
 
     lr = np.zeros((600, 600))
     sr = np.zeros((600, 600))
@@ -324,8 +324,8 @@ def create_tiles(data: np.ndarray) -> list[np.ndarray]:
     return tiles
 
 def get_sample():
-    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", "0052_lai_4bands.tif")
-    s2_fileloc = FILTER_DIR.joinpath("sentinel", "2022", "06_jun", "lai", "0052_scene_20m_lai.tif")
+    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", "0023_lai_4bands.tif")
+    s2_fileloc = FILTER_DIR.joinpath("sentinel", "2022", "06_jun", "lai", "0023_scene_20m_lai.tif")
 
     ps_file = np.nan_to_num(RasterCollection.from_multi_band_raster(ps_fileloc)["lai"].values)
     s2_file = np.nan_to_num(RasterCollection.from_multi_band_raster(s2_fileloc)["lai"].values)
@@ -339,7 +339,7 @@ def get_sample():
     return s2_tiles, ps_tiles, RasterCollection.from_multi_band_raster(s2_fileloc)
 
 def get_ps_sample():
-    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", "0052_lai_4bands.tif")
+    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", "0023_lai_4bands.tif")
     ps_file = np.nan_to_num(RasterCollection.from_multi_band_raster(ps_fileloc)["lai"].values)
     ps_file_interp = cv2.resize(ps_file, (600, 600), interpolation=cv2.INTER_AREA)
     lr_file_interp = cv2.resize(ps_file, (100, 100), interpolation=cv2.INTER_AREA)

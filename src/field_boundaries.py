@@ -14,6 +14,7 @@ from shapely.geometry import Polygon
 warnings.filterwarnings('ignore')
 
 DIST_BETWEEN_PARCELS = 10  # meters
+VALIDATE_DIR = Path(__file__).parent.parent.joinpath("data", "validate")
 
 
 def buffer_geom(geom: Polygon) -> Polygon:
@@ -229,26 +230,44 @@ def extract_gradients_at_boundaries(
             f'Processed parcel {idx} ({counter}/{boundaries_with_gradient.shape[0]}).')
         counter += 1
 
-
-def main(data_dir: Path) -> None:
+def main(name: str) -> None:
+# def main(data_dir: Path) -> None:
     """
     Main function of the script.
 
     :param data_dir: Path to the data directory.
     """
 
-    # output directory
-    output_dir = data_dir.joinpath('output')
-    output_dir.mkdir(exist_ok=True)
+    parcel_stats_dir = VALIDATE_DIR.joinpath("ps_parcel_stats")
+    data_dir = VALIDATE_DIR.joinpath(name)
 
-    for file in data_dir.glob("*.tif"):
-        field_boundaries_path = data_dir.joinpath(file.stem + '_parcel_stats.gpkg')
+    for month in data_dir.iterdir():
+        for index in month.iterdir():
+            if not index.name[:4].isdigit():
+                continue
+            print("---- INDEX: ", index.name)
+            
+            field_boundaries_path = parcel_stats_dir.joinpath(index.name[:4] + '_lai_4bands_parcel_stats.gpkg')
+            out_dir = data_dir.joinpath(month.name, index.name[:4] + "_field_boundaries")
+            out_dir.mkdir(exist_ok=True, parents=True)
+            extract_gradients_at_boundaries(
+                field_bounaries_path=field_boundaries_path,
+                sat_lai_path=index,
+                output_dir=out_dir
+            )
 
-        extract_gradients_at_boundaries(
-            field_bounaries_path=field_boundaries_path,
-            sat_lai_path=file,
-            output_dir=output_dir
-        )
+    # # output directory
+    # output_dir = data_dir.joinpath('output')
+    # output_dir.mkdir(exist_ok=True)
+
+    # for file in data_dir.glob("*.tif"):
+    #     field_boundaries_path = data_dir.joinpath(file.stem + '_parcel_stats.gpkg')
+
+    #     extract_gradients_at_boundaries(
+    #         field_bounaries_path=field_boundaries_path,
+    #         sat_lai_path=file,
+    #         output_dir=output_dir
+    #     )
 
     # # path to Planet GLAI
     # sat_lai_path = data_dir / '0002_lai_4bands.tif'
@@ -263,7 +282,9 @@ def main(data_dir: Path) -> None:
     # )
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data_dir", type=Path, help="Choose a data directory", required=True)
-    args = parser.parse_args()
-    main(args.data_dir)
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("-d", "--data_dir", type=Path, help="Choose a data directory", required=True)
+    # args = parser.parse_args()
+    # main(args.data_dir)
+    name = "4b"
+    main(name)

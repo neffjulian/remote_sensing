@@ -1,3 +1,5 @@
+from math import log10, sqrt
+import shutil
 import cv2
 import numpy as np
 from pathlib import Path
@@ -14,7 +16,7 @@ results_dir = Path(__file__).parent.parent.joinpath('data', 'results')
 
 WEIGHT_DIR = Path(__file__).parent.parent.joinpath("weights")
 CONFIG_DIR = Path(__file__).parent.parent.joinpath("configs")
-VALIDATE_DIR = Path(__file__).parent.parent.joinpath("data", "validate", "bicubic")
+VALIDATE_DIR = Path(__file__).parent.parent.joinpath("data", "validate")
 
 with open(CONFIG_DIR.joinpath("rrdb.yaml"), "r") as f:
     hparams = yaml.load(f, Loader=yaml.FullLoader)
@@ -25,10 +27,12 @@ model = RRDB.load_from_checkpoint(
                 hparams=hparams)
 model.eval()
 
+# First 25 entries which the "get_common_indices" function returns. Results in around 10% of all data which is also used for validation
+INDICES = ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0030', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
+
 
 def get_common_indices(s2_bands, ps_bands):
     # Iterates over the filtered data and returns the indices for which we have a pair of images for each month
-    return ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0030', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
 
     s2_dir = filter_dir.joinpath("sentinel")
     ps_dir = filter_dir.joinpath("planetscope")
@@ -104,30 +108,27 @@ def process_s2_files(dir: Path, s2_files: list[Path]):
 
 def main(s2_bands: str, ps_bands: str):
     # Get the indices for which we have a pair of images for each month
-    common_indices = get_common_indices(s2_bands, ps_bands)
+    # common_indices = get_common_indices(s2_bands, ps_bands)
+    common_indices = INDICES
 
-    print(common_indices[0:25])
+    s2_dir = filter_dir.joinpath("sentinel")
+    ps_dir = filter_dir.joinpath("planetscope")
+    out_dir = VALIDATE_DIR.joinpath(f"{s2_bands}_bicubic")
 
-    # s2_dir = filter_dir.joinpath("sentinel")
-    # ps_dir = filter_dir.joinpath("planetscope")
-    # out_dir = VALIDATE_DIR.joinpath(f"{s2_bands}_{ps_bands}")
+    for year in s2_dir.iterdir():
+        for month in year.iterdir():
+            curr_ps_dir = ps_dir.joinpath(year.name, month.name, "lai")
+            curr_s2_dir = s2_dir.joinpath(year.name, month.name, "lai")
 
-    # for year in s2_dir.iterdir():
-    #     for month in year.iterdir():
-    #         print(month.name)
-    #         curr_ps_dir = ps_dir.joinpath(year.name, month.name, "lai")
-    #         curr_s2_dir = s2_dir.joinpath(year.name, month.name, "lai")
+            if not curr_ps_dir.exists() or not curr_s2_dir.exists():
+                continue
 
-    #         if not curr_ps_dir.exists() or not curr_s2_dir.exists():
-    #             continue
+            s2_files = [curr_s2_dir.joinpath(f"{index}_scene_{s2_bands}_lai.tif") for index in common_indices]
+            # ps_files = [curr_ps_dir.joinpath(f"{index}_lai_{ps_bands}ands.tif") for index in common_indices]
 
-    #         s2_files = [curr_s2_dir.joinpath(f"{index}_scene_{s2_bands}_lai.tif") for index in common_indices]
-    #         # ps_files = [curr_ps_dir.joinpath(f"{index}_lai_{ps_bands}ands.tif") for index in common_indices]
-
-    #         validate_dir = out_dir.joinpath(year.name, month.name)
-    #         validate_dir.mkdir(parents=True, exist_ok=True)
-    #         process_s2_files(validate_dir, s2_files)
-
+            validate_dir = out_dir.joinpath(month.name)
+            validate_dir.mkdir(parents=True, exist_ok=True)
+            process_s2_files(validate_dir, s2_files)
 
 if __name__ == '__main__':
     s2_bands = "20m"
@@ -135,4 +136,23 @@ if __name__ == '__main__':
 
     main(s2_bands, ps_bands)
 
-    folder = filter_dir.joinpath("sentinel", "2019", "01", "lai")
+    # sentinel_dir = filter_dir.joinpath("sentinel", "2022")
+    # planetscope_dir = filter_dir.joinpath("planetscope", "2022")
+    # months = [month.name for month in sentinel_dir.iterdir() if month.name[:2].isdigit()]
+
+    # for index in INDICES:
+    #     for month in months:
+    #         sentinel_file = sentinel_dir.joinpath(month, "lai", f"{index}_scene_{s2_bands}_lai.tif")
+    #         planetscope_file = planetscope_dir.joinpath(month, "lai", f"{index}_lai_{ps_bands}ands.tif")
+
+    #         if not sentinel_file.exists() or not planetscope_file.exists():
+    #             print(f"Missing {index} for {month}")
+    #             break
+
+    #         VALIDATE_DIR.joinpath(s2_bands, month).mkdir(parents=True, exist_ok=True)
+    #         VALIDATE_DIR.joinpath(ps_bands, month).mkdir(parents=True, exist_ok=True)
+
+    #         s2_new_loc = VALIDATE_DIR.joinpath(s2_bands, month, f"{index}.tif")
+    #         ps_new_loc = VALIDATE_DIR.joinpath(ps_bands, month, f"{index}.tif")
+    #         shutil.copy(sentinel_file, s2_new_loc)
+    #         shutil.copy(planetscope_file, ps_new_loc)

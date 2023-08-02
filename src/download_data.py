@@ -29,7 +29,7 @@ def download_model_weights() -> None:
     wget.download(url,out=str(WEIGHT_DIR))
 
     print("\n Downloading model weights for RRDB")
-    url = "https://polybox.ethz.ch/index.php/s/xGuK4DUhyJ5ZFaX/download"
+    url = "https://polybox.ethz.ch/index.php/s/h4lbEodffke5Eru/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
 if __name__ == "__main__":
