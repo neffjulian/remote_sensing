@@ -14,14 +14,14 @@ model:
   blocks: 32
 
 datamodule:
-  batch_size: 32
+  batch_size: 2
   augment: True
 
 trainer:
-  max_epochs: 50
+  max_epochs: 20
   profiler: "simple"
   log_every_n_steps: 5
 
 optimizer:
   lr: 0.0002
-  scheduler_step: 10
+  scheduler_step: 5

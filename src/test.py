@@ -134,3 +134,5 @@ if __name__ == '__main__':
     ps_bands = "4b"
 
     main(s2_bands, ps_bands)
+
+    folder = filter_dir.joinpath("sentinel", "2019", "01", "lai")
