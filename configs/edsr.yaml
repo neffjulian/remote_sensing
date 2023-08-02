@@ -5,7 +5,7 @@ experiment_name: EDSR
 sentinel_resolution: "20m"
 planetscope_bands: "4b"
 
-train: false
+train: true
 predict: true
 
 model:
