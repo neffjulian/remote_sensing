@@ -6,24 +6,16 @@ Adpted from: https://github.com/leverxgroup/esrgan
 """
 
 from typing import Tuple
+from pathlib import Path
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
-
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-def psnr(mse):
-    return 20 * torch.log10(8. / torch.sqrt(mse))
+WEIGHT_DIR = Path(__file__).parent.parent.joinpath("weights")
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from torch.optim.lr_scheduler import StepLR
-import pytorch_lightning as pl
-from torchmetrics import StructuralSimilarityIndexMeasure
 
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
@@ -230,7 +222,7 @@ class ESRGAN(pl.LightningModule):
         self.log("Perceptual Loss", perceptual_loss, on_epoch=True, sync_dist=True)
         self.log("Adv Loss", adv_loss, on_epoch=True, sync_dist=True)
         
-        return 0.01 * perceptual_loss + 0.01 * adv_loss + content_loss * 0.98
+        return 0.8 * perceptual_loss + 0.005 * adv_loss + content_loss * 0.1
 
     @staticmethod
     def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:

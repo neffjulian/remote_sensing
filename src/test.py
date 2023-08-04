@@ -10,6 +10,8 @@ import torch
 import yaml
 
 from model.rrdb import RRDB
+from model.srcnn import SRCNN
+from model.edsr import EDSR
 
 filter_dir = Path(__file__).parent.parent.joinpath('data', 'filtered')
 results_dir = Path(__file__).parent.parent.joinpath('data', 'results')
@@ -21,11 +23,29 @@ VALIDATE_DIR = Path(__file__).parent.parent.joinpath("data", "validate")
 with open(CONFIG_DIR.joinpath("rrdb.yaml"), "r") as f:
     hparams = yaml.load(f, Loader=yaml.FullLoader)
 
-model = RRDB.load_from_checkpoint(
+rrdb = RRDB.load_from_checkpoint(
                 checkpoint_path=WEIGHT_DIR.joinpath("rrdb.ckpt"), 
                 map_location=torch.device('cpu'),
                 hparams=hparams)
-model.eval()
+rrdb.eval()
+
+with open(CONFIG_DIR.joinpath("srcnn.yaml"), "r") as f:
+    hparams = yaml.load(f, Loader=yaml.FullLoader)
+
+srcnn = SRCNN.load_from_checkpoint(
+                checkpoint_path=WEIGHT_DIR.joinpath("srcnn.ckpt"),
+                map_location=torch.device('cpu'),
+                hparams=hparams)
+srcnn.eval()
+
+with open(CONFIG_DIR.joinpath("edsr.yaml"), "r") as f:
+    hparams = yaml.load(f, Loader=yaml.FullLoader)
+
+edsr = EDSR.load_from_checkpoint(
+                checkpoint_path=WEIGHT_DIR.joinpath("edsr.ckpt"),
+                map_location=torch.device('cpu'),
+                hparams=hparams)
+edsr.eval()
 
 # First 25 entries which the "get_common_indices" function returns. Results in around 10% of all data which is also used for validation
 INDICES = ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0030', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
@@ -53,13 +73,17 @@ def get_common_indices(s2_bands, ps_bands):
             indices_per_month.append(common_indices)
     return sorted(list(set.intersection(*map(set, indices_per_month))), key=lambda x: int(x))
 
-def process_files(lr: np.ndarray, algorithm: str = "rrdb") -> np.ndarray:
+def process_files(lr: np.ndarray, algorithm: str = "edsr") -> np.ndarray:
     data = torch.tensor(lr).unsqueeze(0).unsqueeze(0)
     with torch.no_grad():
         if algorithm == "bicubic":
             out = torch.nn.functional.interpolate(data, scale_factor=6, mode="bicubic")
         elif algorithm == "rrdb":
-            out = model(data)
+            out = rrdb(data)
+        elif algorithm == "srcnn":
+            out = srcnn(data)
+        elif algorithm == "edsr":
+            out = edsr(data)
         else:
             raise Exception
     return out.squeeze(0).squeeze(0).numpy()
@@ -94,6 +118,10 @@ def create_raster(data: np.ndarray, collection: RasterCollection):
 
 def process_s2_files(dir: Path, s2_files: list[Path]):
     for path in s2_files:
+        if dir.joinpath(path.name[0:4] + ".tif").exists():
+            continue
+        print(dir.name, path.name[0:4])
+
         file = RasterCollection.from_multi_band_raster(path)
         lai = np.nan_to_num(file["lai"].values)
         shape = lai.shape
@@ -113,7 +141,7 @@ def main(s2_bands: str, ps_bands: str):
 
     s2_dir = filter_dir.joinpath("sentinel")
     ps_dir = filter_dir.joinpath("planetscope")
-    out_dir = VALIDATE_DIR.joinpath(f"{s2_bands}_bicubic")
+    out_dir = VALIDATE_DIR.joinpath(f"{s2_bands}_edsr")
 
     for year in s2_dir.iterdir():
         for month in year.iterdir():
@@ -132,7 +160,7 @@ def main(s2_bands: str, ps_bands: str):
 
 if __name__ == '__main__':
     s2_bands = "20m"
-    ps_bands = "4b"
+    ps_bands = "8b"
 
     main(s2_bands, ps_bands)
 
@@ -142,6 +170,7 @@ if __name__ == '__main__':
 
     # for index in INDICES:
     #     for month in months:
+    #         print(f"Processing {index} for {month}")
     #         sentinel_file = sentinel_dir.joinpath(month, "lai", f"{index}_scene_{s2_bands}_lai.tif")
     #         planetscope_file = planetscope_dir.joinpath(month, "lai", f"{index}_lai_{ps_bands}ands.tif")
 

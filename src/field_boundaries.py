@@ -286,5 +286,5 @@ if __name__ == '__main__':
     # parser.add_argument("-d", "--data_dir", type=Path, help="Choose a data directory", required=True)
     # args = parser.parse_args()
     # main(args.data_dir)
-    name = "4b"
+    name = "8b"
     main(name)
