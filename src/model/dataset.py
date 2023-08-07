@@ -66,9 +66,9 @@ class SRDataModule(pl.LightningDataModule):
 
         self.train_set, self.val_set = torch.utils.data.random_split(files, [train_size, val_size], generator=torch.Generator().manual_seed(hparams["random_seed"]))
         test_files = [file for file in self.files if file[3:7] in test_files]
-        print(f"Train set size: {len(self.train_set)}, {len(self.train_set) / len(self.files)}%")
-        print(f"Val set size: {len(self.val_set)}, {len(self.val_set) / len(self.files)}%")
-        print(f"Test set size: {len(test_files)}, {len(test_files) / len(self.files)}%")
+        print(f"Train set size: {len(self.train_set)}, {len(self.train_set) / len(self.files) * 100}%")
+        print(f"Val set size: {len(self.val_set)}, {len(self.val_set) / len(self.files) * 100}%")
+        print(f"Test set size: {len(test_files)}, {len(test_files) / len(self.files) * 100}%")
 
     def setup(self, stage=None):
             self.train_dataset = SRDataset(self.params, self.train_set)
