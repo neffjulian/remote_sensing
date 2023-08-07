@@ -1,4 +1,5 @@
-# Code directly copied and only minorly adopted from https://github.com/lukasValentin/field_boundaries/blob/master/src/field_bounaries.py
+# Code directly copied and minorly adopted from https://github.com/lukasValentin/field_boundaries/blob/master/src/field_bounaries.py
+
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -14,8 +15,7 @@ from shapely.geometry import Polygon
 warnings.filterwarnings('ignore')
 
 DIST_BETWEEN_PARCELS = 10  # meters
-VALIDATE_DIR = Path(__file__).parent.parent.joinpath("data", "validate")
-
+VALIDATE_DIR = Path(__file__).parent.parent.parent.joinpath("data", "validate")
 
 def buffer_geom(geom: Polygon) -> Polygon:
     """
@@ -26,7 +26,6 @@ def buffer_geom(geom: Polygon) -> Polygon:
     """
     _geom = deepcopy(geom)
     return _geom.buffer(DIST_BETWEEN_PARCELS)
-
 
 def identify_boundaries_with_gradient(
     field_bounaries_path: Path
@@ -88,7 +87,6 @@ def identify_boundaries_with_gradient(
 
     return field_boundaries[sel_cols]
 
-
 def plot_clipped_image(
     band: Band,
     parcel: pd.Series,
@@ -133,7 +131,6 @@ def plot_clipped_image(
         return f
     else:
         raise ValueError('iteration must be either 1 or 2.')
-
 
 def extract_gradients_at_boundaries(
     field_bounaries_path: Path,
@@ -230,8 +227,7 @@ def extract_gradients_at_boundaries(
             f'Processed parcel {idx} ({counter}/{boundaries_with_gradient.shape[0]}).')
         counter += 1
 
-def main(name: str) -> None:
-# def main(data_dir: Path) -> None:
+def create_boundaries(name: str) -> None:
     """
     Main function of the script.
 
@@ -250,41 +246,15 @@ def main(name: str) -> None:
             field_boundaries_path = parcel_stats_dir.joinpath(index.name[:4] + '_lai_4bands_parcel_stats.gpkg')
             out_dir = data_dir.joinpath(month.name, index.name[:4] + "_field_boundaries")
             out_dir.mkdir(exist_ok=True, parents=True)
+
             extract_gradients_at_boundaries(
                 field_bounaries_path=field_boundaries_path,
                 sat_lai_path=index,
                 output_dir=out_dir
             )
 
-    # # output directory
-    # output_dir = data_dir.joinpath('output')
-    # output_dir.mkdir(exist_ok=True)
-
-    # for file in data_dir.glob("*.tif"):
-    #     field_boundaries_path = data_dir.joinpath(file.stem + '_parcel_stats.gpkg')
-
-    #     extract_gradients_at_boundaries(
-    #         field_bounaries_path=field_boundaries_path,
-    #         sat_lai_path=file,
-    #         output_dir=output_dir
-    #     )
-
-    # # path to Planet GLAI
-    # sat_lai_path = data_dir / '0002_lai_4bands.tif'
-    # # corresponding field boundaries with median GLAI values
-    # field_bounaries_path = data_dir.joinpath(sat_lai_path.stem + '_parcel_stats.gpkg')
-
-    # # extract gradients at boundaries
-    # extract_gradients_at_boundaries(
-    #     field_bounaries_path=field_bounaries_path,
-    #     sat_lai_path=sat_lai_path,
-    #     output_dir=output_dir
-    # )
-
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("-d", "--data_dir", type=Path, help="Choose a data directory", required=True)
-    # args = parser.parse_args()
-    # main(args.data_dir)
-    name = "8b"
-    main(name)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--bands", type=Path, help="Select bands. Either '4b' or '8b'", required=True)
+    args = parser.parse_args()
+    create_boundaries(args.bands)

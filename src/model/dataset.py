@@ -5,49 +5,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.dataset import random_split
 import pytorch_lightning as pl
-from skimage.metrics import structural_similarity as ssim
 
 DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed')
 
 def psnr(x, y):
     return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
-
-
-class SRPredictDataset(Dataset):
-    def __init__(self, hparams: dict, files: list[str]) -> None:
-        super().__init__()
-
-        ps_4b_dir = DATA_DIR.joinpath("4b")
-        ps_4b_in_situ_dir = DATA_DIR.joinpath("4b_in_situ")
-        ps_4b_lr_dir = DATA_DIR.joinpath("4b_lr")
-        s2_20m_dir = DATA_DIR.joinpath("20m")
-        s2_20m_in_situ_dir = DATA_DIR.joinpath("20m_in_situ")
-
-        self.files = []
-        for file in s2_20m_in_situ_dir.iterdir():
-            self.files.append((s2_20m_in_situ_dir.joinpath(file.name), ps_4b_in_situ_dir.joinpath(file.name), file.name))
-
-        ps_4b_files = [file.name for file in ps_4b_dir.iterdir() if file.name.startswith("06_0000")]
-        ps_4b_lr_files = [file.name for file in ps_4b_lr_dir.iterdir() if file.name.startswith("06_0000")]
-        s2_20m_files = [file.name for file in s2_20m_dir.iterdir() if file.name.startswith("06_0000")]
-        assert ps_4b_files == ps_4b_lr_files == s2_20m_files
-
-        for file in ps_4b_files:
-            self.files.append((ps_4b_lr_dir.joinpath(file), ps_4b_dir.joinpath(file), file))
-
-        for file in s2_20m_files:
-            self.files.append((s2_20m_dir.joinpath(file), ps_4b_dir.joinpath(file), file))
-
-    def __len__(self):
-        return len(self.files)
-    
-    def __getitem__(self, idx):
-        lr_filename, hr_filename, filename = self.files[idx]
-        lr_file = torch.from_numpy(np.load(lr_filename))
-        hr_file = torch.from_numpy(np.load(hr_filename))
-        return lr_file.unsqueeze(0), hr_file.unsqueeze(0), filename
 
 class SRDataset(Dataset):
     def __init__(self, hparams: dict, files: list[str]) -> None:
@@ -102,31 +65,12 @@ class SRDataModule(pl.LightningDataModule):
         print(f"Train set size: {len(self.train_set)}")
         print(f"Val set size: {len(self.val_set)}")
 
-        # total_size = len(self.files)
-        # train_size = int(0.9 * total_size)
-        # val_size = total_size - train_size
-
-        # self.train_set, self.val_set = random_split(
-        #     dataset = self.files, 
-        #     lengths = [train_size, val_size], 
-        #     generator =torch.Generator().manual_seed(hparams["random_seed"])
-        # )
-
-        self.predict_files = DATA_DIR.joinpath(self.sentinel_resolution + "_in_situ")
-
     def setup(self, stage=None):
-        # if stage == 'fit':
             self.train_dataset = SRDataset(self.params, self.train_set)
             self.val_dataset = SRDataset(self.params, self.val_set)
-        # elif stage == 'predict':
-            files_in_situ = [file.name for file in self.predict_files.iterdir()]
-            self.predict_dataset = SRPredictDataset(self.params, files_in_situ)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=16, pin_memory=True, persistent_workers=True)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=16, pin_memory=True, persistent_workers=True)
-
-    def predict_dataloader(self):
-        return DataLoader(self.predict_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, pin_memory=True)

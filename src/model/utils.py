@@ -187,14 +187,14 @@ def report_gpu():
    gc.collect()
    torch.cuda.empty_cache()
 
-def get_in_situ():
+def get_in_situ(ps_bands: str, s2_bands: str):
     ps_in_situ = FILTER_DIR.joinpath("in_situ", "planetscope_in_situ", "2022", "03_mar", "lai")
     s2_in_situ = FILTER_DIR.joinpath("in_situ", "sentinel_in_situ", "2022", "03_mar", "lai")
     data = []
 
     for file in ps_in_situ.iterdir():
-        if file.name.endswith(".tif") and "4bands" in file.name:
-            s2_file_name = f"{file.name[:4]}_scene_20m_lai.tif"
+        if file.name.endswith(".tif") and f"{ps_bands}ands" in file.name:
+            s2_file_name = f"{file.name[:4]}_scene_{s2_bands}_lai.tif"
             if s2_in_situ.joinpath(s2_file_name).exists():
                 ps_raster = RasterCollection.from_multi_band_raster(file)
                 s2_raster = RasterCollection.from_multi_band_raster(s2_in_situ.joinpath(s2_file_name))
@@ -323,9 +323,9 @@ def create_tiles(data: np.ndarray) -> list[np.ndarray]:
             tiles.append(data[i * x: (i + 1) * x, j * y: (j + 1) * y])
     return tiles
 
-def get_sample():
-    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", "0023_lai_4bands.tif")
-    s2_fileloc = FILTER_DIR.joinpath("sentinel", "2022", "06_jun", "lai", "0023_scene_20m_lai.tif")
+def get_sample(ps_bands: str, s2_bands: str):
+    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", f"0023_lai_{ps_bands}ands.tif")
+    s2_fileloc = FILTER_DIR.joinpath("sentinel", "2022", "06_jun", "lai", f"0023_scene_{s2_bands}_lai.tif")
 
     ps_file = np.nan_to_num(RasterCollection.from_multi_band_raster(ps_fileloc)["lai"].values)
     s2_file = np.nan_to_num(RasterCollection.from_multi_band_raster(s2_fileloc)["lai"].values)
@@ -338,8 +338,8 @@ def get_sample():
 
     return s2_tiles, ps_tiles, RasterCollection.from_multi_band_raster(s2_fileloc)
 
-def get_ps_sample():
-    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", "0023_lai_4bands.tif")
+def get_ps_sample(ps_bands: str):
+    ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", f"0023_lai_{ps_bands}ands.tif")
     ps_file = np.nan_to_num(RasterCollection.from_multi_band_raster(ps_fileloc)["lai"].values)
     ps_file_interp = cv2.resize(ps_file, (600, 600), interpolation=cv2.INTER_AREA)
     lr_file_interp = cv2.resize(ps_file, (100, 100), interpolation=cv2.INTER_AREA)

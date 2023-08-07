@@ -1,4 +1,5 @@
 import os
+import argparse
 from pathlib import Path
 from math import log10, sqrt
 
@@ -36,9 +37,9 @@ def remove_files(foldername: str, files_to_keep: list[str], in_situ: bool) -> No
     for file in files_to_remove:
         file.unlink()
 
-def remove_unused_images(in_situ: bool = False) -> None:
+def remove_unused_images(planetscope_bands: str, sentinel_bands: str, in_situ: bool) -> None:
     """Remove unused images from the processed folders."""
-    folders = ["4b", "20m"]
+    folders = [planetscope_bands, sentinel_bands]
     files = [get_filenames(folder, in_situ) for folder in folders]
     files_to_keep = list(set.intersection(*map(set, files)))
 
@@ -180,7 +181,10 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
 
     for ps_filename in ps_folder.iterdir():
         ps_file = np.load(ps_filename)
-        s2_file = np.load(s2_folder.joinpath(ps_filename.name))
+        if s2_folder.joinpath(ps_filename.name).exists():
+            s2_file = np.load(s2_folder.joinpath(ps_filename.name))
+        else:
+            continue
 
         downsampled_file = cv2.resize(ps_file, (25, 25), interpolation=cv2.INTER_AREA)
         upsampled_file = cv2.resize(downsampled_file, (150, 150), interpolation=cv2.INTER_CUBIC)
@@ -270,13 +274,17 @@ def create_lr_dataset(ps_band: str):
     print(f"PSNR: {np.mean(psnr_scores)}")
     print(f"SSIM: {np.mean(ssim_scores)}")
 
-def main():
-    process_satellite_data("sentinel", "20m", False)
-    process_satellite_data("planetscope", "4b", False)
-    remove_unused_images(in_situ=False)
-    
-    remove_outliers("4b", "20m")
-    create_lr_dataset("4b")
+def main(planetscope_bands: str, sentinel_bands: str):
+    process_satellite_data("sentinel", sentinel_bands, False)
+    process_satellite_data("planetscope", planetscope_bands, False)
+    remove_unused_images(planetscope_bands, sentinel_bands, in_situ=False)
+    remove_outliers(planetscope_bands, sentinel_bands)
+    create_lr_dataset(planetscope_bands)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sentinel_bands", type=str, required=True, help="Either '10m' or '20m'")
+    parser.add_argument("--planetscope_bands", type=str, required=True, help="Either '4b' or '8b'")
+    args = parser.parse_args()
+
+    main(args.planetscope_bands, args.sentinel_bands)
