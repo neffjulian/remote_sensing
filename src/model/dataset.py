@@ -60,11 +60,12 @@ class SRDataModule(pl.LightningDataModule):
         test_files = ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
 
         files = [file for file in self.files if file[3:7] not in test_files]
+
         train_size = int(len(files) * 0.8)
         val_size = len(files) - train_size
 
         self.train_set, self.val_set = torch.utils.data.random_split(files, [train_size, val_size], generator=torch.Generator().manual_seed(hparams["random_seed"]))
-
+        test_files = [file for file in self.files if file[3:7] in test_files]
         print(f"Train set size: {len(self.train_set)}, {len(self.train_set) / len(self.files)}%")
         print(f"Val set size: {len(self.val_set)}, {len(self.val_set) / len(self.files)}%")
         print(f"Test set size: {len(test_files)}, {len(test_files) / len(self.files)}%")
