@@ -75,7 +75,7 @@ def validate_boundaries(ps_name: str, sr_name: str) -> None:
                 corr_coeff, p_value, psnr_value, ssim_value = compare_field_boundaries(index, boundary)
                 results.append((index.name, boundary.name, corr_coeff, p_value, psnr_value, ssim_value))
         df = pd.DataFrame(results, columns=["index", "boundary", "corr_coeff", "p_value", "psnr", "ssim"])
-        df.to_csv(month.joinpath("results.csv"), index=False)
+        df.to_csv(month.joinpath(f"{ps_name}_results.csv"), index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
