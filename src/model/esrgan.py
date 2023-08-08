@@ -220,6 +220,7 @@ class ESRGAN(pl.LightningModule):
         perceptual_loss = self._perceptual_loss(hr_image, fake)
         adv_loss = self._adv_loss(fake_pred, ones=True)
         content_loss = F.mse_loss(fake, hr_image)
+        # content_loss = F.l1_loss(fake, hr_image)
         self.log("Perceptual Loss", perceptual_loss, on_epoch=True, sync_dist=True)
         self.log("Adv Loss", adv_loss, on_epoch=True, sync_dist=True)
         

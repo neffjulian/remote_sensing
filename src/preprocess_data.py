@@ -226,7 +226,7 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
     # plt.legend()
     # plt.xlabel('PSNR')
     # plt.ylabel('Frequency')
-    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs S2')
+    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs ')
     # plt.show()
 
     # overlap = np.intersect1d(ps_ssim_, s2_ssim_)

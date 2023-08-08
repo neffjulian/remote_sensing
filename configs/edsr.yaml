@@ -2,7 +2,7 @@ random_seed: 123
 
 experiment_name: EDSR
 
-sentinel_resolution: "10m"
+sentinel_resolution: "20m"
 planetscope_bands: "4b"
 
 train: True
@@ -20,7 +20,7 @@ datamodule:
 trainer:
   max_epochs: 20
   profiler: "simple"
-  log_every_n_steps: 1000
+  log_every_n_steps: 100
 
 optimizer:
   lr: 0.0002
