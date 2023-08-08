@@ -50,7 +50,7 @@ class SRCNN(LightningModule):
 
     def forward(self, x):
         mean = torch.mean(x)
-        return self.model(x) + mean
+        return self.model(x - mean) + mean
     
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
