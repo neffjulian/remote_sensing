@@ -139,9 +139,10 @@ class Discriminator(nn.Module):
         )
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.conv_blocks(x)
-        x = self.mlp(x)
-        return x
+        mean = torch.mean(x)
+        std = torch.std(x)
+        x = self.conv_blocks((x - mean) / std)
+        return self.mlp(x) * std + mean
 
 class ESRGAN(pl.LightningModule):
     def __init__(self, hparams: dict) -> None:

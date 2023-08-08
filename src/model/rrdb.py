@@ -83,9 +83,10 @@ class RRDB(pl.LightningModule):
             nn.Conv2d(self.channels, 1, kernel_size=3),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         mean = torch.mean(x)
-        return self.model(x - mean) + mean
+        std = torch.std(x)
+        return self.model((x - mean) / std) * std + mean
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)

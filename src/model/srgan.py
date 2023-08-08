@@ -157,7 +157,14 @@ class SRGAN(pl.LightningModule):
 
     
     def forward(self, lr_image: torch.Tensor) -> torch.Tensor:
-        return self.generator(lr_image)
+        mean = torch.mean(lr_image)
+        std = torch.std(lr_image)
+        return self.generator((lr_image - mean) / std) * std + mean
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        mean = torch.mean(x)
+        std = torch.std(x)
+        return self._infere((x - mean) / std) * std + mean
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, optimizer_idx: int) -> None:
         lr_image, hr_image = batch

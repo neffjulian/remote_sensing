@@ -63,10 +63,12 @@ class SRResNet(LightningModule):
         )
 
     def forward(self, x):
-        x_hat = self.input_layer(x)
+        mean = torch.mean(x)
+        std = torch.std(x)
+        x_hat = self.input_layer((x - mean) / std)
         x_body = self.body(x_hat)
 
-        return self.output_layer(x_hat + self.last_layer(x_body))
+        return self.output_layer(x_hat + self.last_layer(x_body)) * std + mean
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
