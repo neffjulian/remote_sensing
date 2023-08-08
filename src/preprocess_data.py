@@ -195,9 +195,9 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
         s2_psnr = psnr(downsampled_file, s2_file)
         s2_ssim, _ = ssim((downsampled_file * (255. / 8.)).astype(np.uint8), (s2_file * (255. / 8.)).astype(np.uint8), full=True)
 
-        if ps_psnr <= 0.25 or s2_psnr <= 0.15:
+        if ps_psnr <= 0.25 or s2_psnr <= 0.1:
             continue
-        elif ps_ssim <= 0.8 or s2_ssim <= 0.2:
+        elif ps_ssim <= 0.75 or s2_ssim <= 0.1:
             continue
 
         files_to_keep.append(ps_filename.name)
@@ -207,7 +207,9 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
         s2_psnr_.append(s2_psnr)
         s2_ssim_.append(s2_ssim)
 
+    print("Preprocessing:")
     print(f"Number of files to keep: {len(files_to_keep)}")
+    print(f"Number of files to remove: {len(list(ps_folder.iterdir())) - len(files_to_keep)}")
 
     remove_files(ps_folder, files_to_keep, False)
     remove_files(s2_folder, files_to_keep, False)
