@@ -84,7 +84,8 @@ class RRDB(pl.LightningModule):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.model(x)
+        mean = torch.mean(x)
+        return self.model(x - mean) + mean
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)

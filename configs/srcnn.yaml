@@ -2,10 +2,10 @@ random_seed: 123
 
 experiment_name: SRCNN
 
-sentinel_resolution: "10m"
+sentinel_resolution: "20m"
 planetscope_bands: "4b"
 
-train: False
+train: True
 predict: True
 
 model:
@@ -15,12 +15,12 @@ model:
 
 datamodule:
   batch_size: 2
-  augment: True
+  augment: False
 
 trainer:
-  max_epochs: 20
+  max_epochs: 5
   profiler: "simple"
-  log_every_n_steps: 1
+  log_every_n_steps: 1000
 
 optimizer:
   lr: 0.001
