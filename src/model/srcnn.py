@@ -49,7 +49,8 @@ class SRCNN(LightningModule):
                     module.bias.data.zero_()
 
     def forward(self, x):
-        return self.model(x)
+        mean = torch.mean(x)
+        return self.model(x) + mean
     
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
