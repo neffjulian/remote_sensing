@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from eodal.core.raster import RasterCollection
 from eodal.core.band import Band, GeoInfo
 from skimage.metrics import structural_similarity as ssim
-from sklearn.metrics import r2_score
+# from sklearn.metrics import r2_score
 import geopandas as gpd
 from datetime import datetime
 
@@ -276,11 +276,11 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
     hr_rmse = np.sqrt(np.mean([np.square(lai_hr - lai) for _, _, _, lai_hr, lai, _ in lai_preds]))
     lai_preds.append((1001, lr_rmse, sr_rmse, hr_rmse, 1001, 1001))
 
-    # Add R2
-    lr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_lr for _, lai_lr, _, _, _, _ in lai_preds[:-2]])
-    sr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_sr for _, _, lai_sr, _, _, _ in lai_preds[:-2]])
-    hr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_hr for _, _, _, lai_hr, _, _ in lai_preds[:-2]])
-    lai_preds.append((1002, lr_r2, sr_r2, hr_r2, 1002, 1002))
+    # # Add R2
+    # lr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_lr for _, lai_lr, _, _, _, _ in lai_preds[:-2]])
+    # sr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_sr for _, _, lai_sr, _, _, _ in lai_preds[:-2]])
+    # hr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_hr for _, _, _, lai_hr, _, _ in lai_preds[:-2]])
+    # lai_preds.append((1002, lr_r2, sr_r2, hr_r2, 1002, 1002))
 
     df = pd.DataFrame(lai_preds, columns=["index", "s2_lai", "sr_lai", "hr_lai", "in_situ_lai", "date"])
     df.to_csv(path.joinpath("lai_preds.csv"), index=False)
