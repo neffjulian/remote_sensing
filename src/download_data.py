@@ -21,15 +21,15 @@ def download_data() -> None:
 
 def download_model_weights() -> None:
     print("\n \n Downloading model weights for SRCNN")
-    url = "https://polybox.ethz.ch/index.php/s/DrjYTJTegv7xBPg/download"
+    url = "https://polybox.ethz.ch/index.php/s/0KCAl9fFuvc3iz7/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
     print("\n Downloading model weights for EDSR")
-    url = "https://polybox.ethz.ch/index.php/s/idKpnBeFJuO3NiM/download"
+    url = "https://polybox.ethz.ch/index.php/s/AUuIBnTZtWi28Jx/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
     print("\n Downloading model weights for RRDB")
-    url = "https://polybox.ethz.ch/index.php/s/h4lbEodffke5Eru/download"
+    url = "https://polybox.ethz.ch/index.php/s/oRn8KSmjPHYP6AJ/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
 if __name__ == "__main__":

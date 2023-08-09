@@ -18,17 +18,27 @@
 │   │   │   ├── prepare_validation_data.py <- Uses a pretrained model and band selection of Sentinel-2 data to create Super Resolved Sentinel-2 boundaries.
 │   │   │   ├── validate_boundaries.py <- Compares the boundaries created and stores the results in a CSV.
 │   │   │   ├── visualize_results.py <- Used for analyzing the different CSVs in validate_boundaries.py
-│   │   ├── model <- Contains model implementations and utility functions for various Super-Resolution techniques.
+│   │   ├── model <- Contains model implementations and utility functions for various Super-Resolution models.
 │   │   │   ├── dataset.py <- Pytorch Lightning Datamodule class implementation of the dataset used for this project.
-│   │   │   ├── ... (other model files)
+│   │   │   ├── edsr.py <- Pytorch Lightning implementation of EDSR.
+│   │   │   ├── esrgan.py <- Pytorch Lightning implementation of ESRGAN.
+│   │   │   ├── rrdb.py <- Pytorch Lightning implementation of RRDB.
+│   │   │   ├── srcnn.py <- Pytorch Lightning implementation of SRCNN.
+│   │   │   ├── srdiff_no_pos_encoding.py <- Pytorch Lightning implementation of SRDIFF with no positional encodings.
+│   │   │   ├── srdiff.py <- Pytorch Lightning implementation of SRDIFF.
+│   │   │   ├── srgan.py <- Pytorch Lightning implementation of SRGAN.
+│   │   │   ├── srresnet.py <- Pytorch Lightning implementation of SRResNet.
 │   │   │   ├── utils.py <- Collection of utility functions used for Super-Resolution.
 │   │   ├── satellites <- Scripts related to satellite data handling.
-│   │   │   ├── ... (satellite files)
+│   │   │   ├── create_in_situ_geojson.py <- Creates a geojson using in-situ data points
+│   │   │   ├── planetscope_download.py <- Used to download PlanetScope data.
+│   │   │   ├── sentinel_download.py <- Used to download Sentinel-2 data.
+│   │   │   ├── utils.py <- Collection of utility functions used for satellite data handling.
 │   │   ├── download_data.py <- Script to download the data used for training the models and the pretrained models originating from this work.
 │   │   ├── main.py <- Used for training different models. Need to have downloaded and preprocessed the data first.
 │   │   ├── preprocess_data.py <- Preprocesses data from 'filtered' and stores it in 'processed'.
 │   ├── weights <- Stores the model weights, including SRCNN, EDSR, RRDB, downloadable via the download_data.py script.
-│   ├── .env <- Used to store the Planet API Key. (Include specific instructions if necessary)
+│   ├── .env <- Used to store the Planet API Key.
 ```
 
 
