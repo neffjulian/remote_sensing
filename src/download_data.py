@@ -20,6 +20,8 @@ def download_data() -> None:
     data_zip.unlink()
 
 def download_model_weights() -> None:
+    WEIGHT_DIR.mkdir(parents=True, exist_ok=True)
+    
     print("\n \n Downloading model weights for SRCNN")
     url = "https://polybox.ethz.ch/index.php/s/0KCAl9fFuvc3iz7/download"
     wget.download(url,out=str(WEIGHT_DIR))
