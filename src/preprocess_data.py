@@ -31,8 +31,6 @@ def remove_files(foldername: str, files_to_keep: list[str], in_situ: bool) -> No
         dir = DATA_DIR.joinpath("processed", foldername)
 
     files_to_remove = [file for file in dir.iterdir() if not file.name in files_to_keep]
-    print("Keeping", len(files_to_keep), "files in", foldername)
-    print("Removing", len(files_to_remove), "files from", foldername)
 
     for file in files_to_remove:
         file.unlink()
@@ -42,6 +40,7 @@ def remove_unused_images(planetscope_bands: str, sentinel_bands: str, in_situ: b
     folders = [planetscope_bands, sentinel_bands]
     files = [get_filenames(folder, in_situ) for folder in folders]
     files_to_keep = list(set.intersection(*map(set, files)))
+    print(f"Equal number of files in both folders: {len(files_to_keep)}")
 
     for folder in folders:
         remove_files(folder, files_to_keep, in_situ)
@@ -207,9 +206,7 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
         s2_psnr_.append(s2_psnr)
         s2_ssim_.append(s2_ssim)
 
-    print("Preprocessing:")
     print(f"Number of files to keep: {len(files_to_keep)}")
-    print(f"Number of files to remove: {len(list(ps_folder.iterdir())) - len(files_to_keep)}")
 
     remove_files(ps_folder, files_to_keep, False)
     remove_files(s2_folder, files_to_keep, False)
@@ -226,7 +223,7 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
     # plt.legend()
     # plt.xlabel('PSNR')
     # plt.ylabel('Frequency')
-    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs ')
+    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs PS')
     # plt.show()
 
     # overlap = np.intersect1d(ps_ssim_, s2_ssim_)
@@ -236,7 +233,7 @@ def remove_outliers(ps_bands: str, s2_bands: str) -> None:
     # plt.legend()
     # plt.xlabel('SSIM')
     # plt.ylabel('Frequency')
-    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs S2')
+    # plt.title(f'Error: Downsampled PS vs S2 and Reupsampled PS vs PS')
     # plt.show()
 
     # plt.hist(s2_psnr, bins=100, range=(0,100), label='Overlap')

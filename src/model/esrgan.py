@@ -1,6 +1,8 @@
 """
 ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks (2018) by Wang et al.
 
+Note: Ensure that the version of Pytorch Lightning is below < 2.0.0 as it does not allow to optimize multiple optimizers at once anymore.
+
 Paper: https://arxiv.org/pdf/1809.00219.pdf
 Adpted from: https://github.com/leverxgroup/esrgan
 """
@@ -14,8 +16,7 @@ import torch.nn.functional as F
 from torchvision.models import vgg19, VGG19_Weights
 from torchmetrics import StructuralSimilarityIndexMeasure
 
-WEIGHT_DIR = Path(__file__).parent.parent.joinpath("weights")
-
+WEIGHT_DIR = Path(__file__).parent.parent.parent.joinpath("weights")
 
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
@@ -53,14 +54,19 @@ class ResidualInResidual(nn.Module):
             out += 0.2 * block(out)
         return x + 0.2 * out
     
-class Generator(nn.Module):
-    def __init__(self) -> None:
+class RRDB(pl.LightningModule):
+    def __init__(self, hparams: dict) -> None:
         super().__init__()
 
-        self.channels = 64
+        self.lr = hparams["optimizer"]["lr"]
+        self.scheduler_step = hparams["optimizer"]["scheduler_step"]
+
+        self.channels = hparams["model"]["channels"]
+        self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
+
         upscaling_factor = 6
-        upscaling_channels = 3
-        blocks = 16
+        upscaling_channels = hparams["model"]["upscaling_channels"]
+        blocks = hparams["model"]["blocks"]
 
         self.model = nn.Sequential(
             nn.ReplicationPad2d(1),
@@ -83,8 +89,10 @@ class Generator(nn.Module):
             nn.Conv2d(self.channels, 1, kernel_size=3),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.model(x)
+    def forward(self, x):
+        mean = torch.mean(x)
+        std = torch.std(x)
+        return self.model((x - mean) / std) * std + mean
 
 class VGG19FeatureExtractor(nn.Module):
     def __init__(self) -> None:
@@ -151,7 +159,12 @@ class ESRGAN(pl.LightningModule):
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
 
-        self.generator = Generator()
+        self.generator = RRDB.load_from_checkpoint(
+            checkpoint_path = WEIGHT_DIR.joinpath("rrdb.ckpt"),
+            map_location = self.device,
+            hparams = hparams
+        )
+
         self.discriminator = Discriminator(hparams["model"]["feature_maps_disc"])
 
         self.feature_extractor = VGG19FeatureExtractor()
@@ -219,8 +232,8 @@ class ESRGAN(pl.LightningModule):
 
         perceptual_loss = self._perceptual_loss(hr_image, fake)
         adv_loss = self._adv_loss(fake_pred, ones=True)
-        content_loss = F.mse_loss(fake, hr_image)
-        # content_loss = F.l1_loss(fake, hr_image)
+        # content_loss = F.mse_loss(fake, hr_image)
+        content_loss = F.l1_loss(fake, hr_image)
         self.log("Perceptual Loss", perceptual_loss, on_epoch=True, sync_dist=True)
         self.log("Adv Loss", adv_loss, on_epoch=True, sync_dist=True)
         
