@@ -1,13 +1,10 @@
 import argparse
-from math import log10, sqrt
-import shutil
 import sys
 import cv2
 import numpy as np
 from pathlib import Path
 from eodal.core.raster import RasterCollection
 from eodal.core.band import Band, GeoInfo
-import matplotlib.pyplot as plt
 import torch
 import yaml
 

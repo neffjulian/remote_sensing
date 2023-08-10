@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from eodal.core.raster import RasterCollection
 from eodal.core.band import Band, GeoInfo
 from skimage.metrics import structural_similarity as ssim
-# from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score
 import geopandas as gpd
 from datetime import datetime
 
@@ -236,23 +236,23 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
         index = int(name)
         lai_preds.append((index, get_lai_pred(lr), get_lai_pred(sr), get_lai_pred(hr), lai[index], dates[index]))
 
-        geo_info = GeoInfo(
-            epsg=s2_raster["lai"].geo_info.epsg,
-            ulx=s2_raster["lai"].geo_info.ulx,
-            uly=s2_raster["lai"].geo_info.uly,
-            pixres_x=10/3,
-            pixres_y=-10/3
-        )
+        # geo_info = GeoInfo(
+        #     epsg=s2_raster["lai"].geo_info.epsg,
+        #     ulx=s2_raster["lai"].geo_info.ulx,
+        #     uly=s2_raster["lai"].geo_info.uly,
+        #     pixres_x=10/3,
+        #     pixres_y=-10/3
+        # )
 
-        x, y = s2_raster["lai"].values.shape
-        raster = RasterCollection(
-            band_constructor=Band,
-            band_name="lai",
-            values = cv2.resize(sr,(y * 6, x * 6), interpolation=cv2.INTER_CUBIC),
-            geo_info = geo_info
-        )
+        # x, y = s2_raster["lai"].values.shape
+        # raster = RasterCollection(
+        #     band_constructor=Band,
+        #     band_name="lai",
+        #     values = cv2.resize(sr,(y * 6, x * 6), interpolation=cv2.INTER_CUBIC),
+        #     geo_info = geo_info
+        # )
 
-        raster.to_rasterio(path.joinpath(name + ".tif"))
+        # raster.to_rasterio(path.joinpath(name + ".tif"))
 
         psnr_lr.append(psnr(lr_interp, hr))
         psnr_sr.append(psnr(sr, hr))
@@ -264,26 +264,10 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
     print("-------------------- MEDIAN -----------------------")
     print("LR-HR PSNR:", np.median(psnr_lr), " SR-HR PSNR:", np.median(psnr_sr), " |  LR-HR SSIM:", np.median(ssim_lr), " SR-HR SSIM:", np.median(ssim_sr))
 
-    # Add mean L1 error
-    lr_l1 = np.mean([np.abs(lai_lr - lai) for _, lai_lr, _, _, lai, _ in lai_preds])
-    sr_l1 = np.mean([np.abs(lai_sr - lai) for _, _, lai_sr, _, lai, _ in lai_preds])
-    hr_l1 = np.mean([np.abs(lai_hr - lai) for _, _, _, lai_hr, lai, _ in lai_preds])
-    lai_preds.append((1000, lr_l1, sr_l1, hr_l1, 1000, 1000))
-
-    # Add mean RMSE error
-    lr_rmse = np.sqrt(np.mean([np.square(lai_lr - lai) for _, lai_lr, _, _, lai, _ in lai_preds]))
-    sr_rmse = np.sqrt(np.mean([np.square(lai_sr - lai) for _, _, lai_sr, _, lai, _ in lai_preds]))
-    hr_rmse = np.sqrt(np.mean([np.square(lai_hr - lai) for _, _, _, lai_hr, lai, _ in lai_preds]))
-    lai_preds.append((1001, lr_rmse, sr_rmse, hr_rmse, 1001, 1001))
-
-    # # Add R2
-    # lr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_lr for _, lai_lr, _, _, _, _ in lai_preds[:-2]])
-    # sr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_sr for _, _, lai_sr, _, _, _ in lai_preds[:-2]])
-    # hr_r2 = r2_score([lai for _, _, _, _, lai, _ in lai_preds[:-2]], [lai_hr for _, _, _, lai_hr, _, _ in lai_preds[:-2]])
-    # lai_preds.append((1002, lr_r2, sr_r2, hr_r2, 1002, 1002))
-
     df = pd.DataFrame(lai_preds, columns=["index", "s2_lai", "sr_lai", "hr_lai", "in_situ_lai", "date"])
-    df.to_csv(path.joinpath("lai_preds.csv"), index=False)
+    csv_path = path.joinpath("lai_preds.csv")
+    df.to_csv(csv_path, index=False)
+    # calculate_lai_error(csv_path)
 
 def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_name: str, ps_downsampled: bool, raster: RasterCollection) -> None:
     path = RESULT_DIR.joinpath(experiment_name)
@@ -321,9 +305,43 @@ def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_
         values = cv2.resize(sr,(y, x), interpolation=cv2.INTER_CUBIC),
         geo_info = geo_info
     )
-
     raster.to_rasterio(path.joinpath(file_name + ".tif"))
 
+def calculate_lai_error(csv_path: Path):
+    df = pd.read_csv(csv_path, index_col=0)
+    data = df.to_numpy()
+    lai_lr = data[:, 0]
+    lai_sr = data[:, 1]
+    lai_hr = data[:, 2]
+    lai_in_situ = data[:, 3]
+
+    diff_lr = np.abs(lai_lr - lai_in_situ)
+    diff_sr = np.abs(lai_sr - lai_in_situ)
+    diff_hr = np.abs(lai_hr - lai_in_situ)
+
+    l1_lr = np.mean(diff_lr)
+    l1_sr = np.mean(diff_sr)
+    l1_hr = np.mean(diff_hr)
+
+    sq_lr = np.square(diff_lr)
+    sq_sr = np.square(diff_sr)
+    sq_hr = np.square(diff_hr)
+
+    mean_lr = np.mean(sq_lr)
+    mean_sr = np.mean(sq_sr)
+    mean_hr = np.mean(sq_hr)
+
+    root_lr = np.sqrt(mean_lr)
+    root_sr = np.sqrt(mean_sr)
+    root_hr = np.sqrt(mean_hr)
+
+    r2_lr = r2_score(lai_in_situ, lai_lr)
+    r2_sr = r2_score(lai_in_situ, lai_sr)
+    r2_hr = r2_score(lai_in_situ, lai_hr)
+
+    print("L1:", "LR:", l1_lr, "SR:", l1_sr, "HR:", l1_hr)
+    print("RMSE:", "LR:", root_lr, "SR:", root_sr, "HR:", root_hr)
+    print("R2:", "LR:", r2_lr, "SR:", r2_sr, "HR:", r2_hr)
 
 def create_tiles(data: np.ndarray) -> list[np.ndarray]:
     x, y = data.shape

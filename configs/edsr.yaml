@@ -2,10 +2,10 @@ random_seed: 123
 
 experiment_name: EDSR
 
-sentinel_resolution: "20m"
+sentinel_resolution: "10m"
 planetscope_bands: "4b"
 
-train: True
+train: false
 predict: True
 
 model:
