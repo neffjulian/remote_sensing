@@ -351,8 +351,10 @@ class SRDIFF(LightningModule):
         return out * std + mean
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out, _ = self._infere(x)
-        return out
+        mean = torch.mean(x)
+        std = torch.std(x)
+        out, _ = self._infere((x - mean) / std)
+        return out * std + mean
 
     def training_step(self, batch, batch_idx):
         lr_image, hr_image = batch
