@@ -1,0 +1,26 @@
+random_seed: 123
+
+experiment_name: SRDIFF
+
+sentinel_resolution: "20m"
+planetscope_bands: "4b"
+
+train: True
+predict: True
+
+model:
+  name: srdiff
+  channels: 64
+
+datamodule:
+  batch_size: 4
+  augment: True
+
+trainer:
+  max_epochs: 20
+  profiler: "simple"
+  log_every_n_steps: 10
+
+optimizer:
+  lr: 0.001
+  scheduler_step: 2

@@ -21,6 +21,7 @@ from model.srgan import SRGAN
 from model.esrgan import ESRGAN
 from model.rrdb import RRDB
 from model.srdiff_no_pos_encoding import SRDIFF_simple
+from model.srdiff import SRDIFF
 
 DOTENV_PATH = Path(__file__).parent.parent.joinpath(".env")
 LOG_DIR = Path(__file__).parent.parent.joinpath("logs")
@@ -36,7 +37,8 @@ MODELS = {
     "srgan": SRGAN,
     "esrgan": ESRGAN,
     "rrdb": RRDB,
-    "srdiff_simple": SRDIFF_simple 
+    "srdiff_simple": SRDIFF_simple,
+    "srdiff": SRDIFF
 }
 
 def main(hparams: dict) -> None:
