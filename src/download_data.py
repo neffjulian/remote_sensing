@@ -22,16 +22,20 @@ def download_data() -> None:
 def download_model_weights() -> None:
     WEIGHT_DIR.mkdir(parents=True, exist_ok=True)
     
-    print("\n \n Downloading model weights for SRCNN")
-    url = "https://polybox.ethz.ch/index.php/s/0KCAl9fFuvc3iz7/download"
-    wget.download(url,out=str(WEIGHT_DIR))
+    # print("\n \n Downloading model weights for SRCNN")
+    # url = "https://polybox.ethz.ch/index.php/s/0KCAl9fFuvc3iz7/download"
+    # wget.download(url,out=str(WEIGHT_DIR))
 
-    print("\n Downloading model weights for EDSR")
-    url = "https://polybox.ethz.ch/index.php/s/AUuIBnTZtWi28Jx/download"
-    wget.download(url,out=str(WEIGHT_DIR))
+    # print("\n Downloading model weights for EDSR")
+    # url = "https://polybox.ethz.ch/index.php/s/AUuIBnTZtWi28Jx/download"
+    # wget.download(url,out=str(WEIGHT_DIR))
 
-    print("\n Downloading model weights for RRDB")
-    url = "https://polybox.ethz.ch/index.php/s/oRn8KSmjPHYP6AJ/download"
+    # print("\n Downloading model weights for RRDB")
+    # url = "https://polybox.ethz.ch/index.php/s/oRn8KSmjPHYP6AJ/download"
+    # wget.download(url,out=str(WEIGHT_DIR))
+
+    print("\n Downloading model weights for ESRGAN")
+    url = "https://polybox.ethz.ch/index.php/s/yTrbpyRglRdcx26/download"
     wget.download(url,out=str(WEIGHT_DIR))
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent.joinpath("src")))
 from model.rrdb import RRDB
 from model.srcnn import SRCNN
 from model.edsr import EDSR
+from model.esrgan import ESRGAN
 
 filter_dir = Path(__file__).parent.parent.parent.joinpath('data', 'filtered')
 results_dir = Path(__file__).parent.parent.parent.joinpath('data', 'results')
@@ -23,7 +24,8 @@ VALIDATE_DIR = Path(__file__).parent.parent.parent.joinpath("data", "validate")
 MODEL = {
     "rrdb": RRDB,
     "srcnn": SRCNN,
-    "edsr": EDSR
+    "edsr": EDSR,
+    "esrgan": ESRGAN
 }
 
 INDICES = ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
@@ -80,7 +82,7 @@ def reconstruct_tiles(tiles: list[np.ndarray]) -> np.ndarray:
             reconstructed[i:i+x, j:j+y] = tiles.pop(0)
     return reconstructed
 
-def create_raster(data: np.ndarray, collection: RasterCollection, out_dir: Path):
+def create_raster(data: np.ndarray, collection: RasterCollection, out_dir: Path, create: bool = True):
     raster = RasterCollection(
         band_constructor=Band,
         band_name="lai",
@@ -93,7 +95,10 @@ def create_raster(data: np.ndarray, collection: RasterCollection, out_dir: Path)
             pixres_y=-10/3
         )
     )
-    raster.to_rasterio(out_dir)
+    if create:
+        raster.to_rasterio(out_dir)
+    else:
+        return raster
 
 def process_s2_files(dir: Path, s2_files: list[Path], model: None | SRCNN | EDSR | RRDB, factor: int):
     for path in s2_files:
@@ -141,7 +146,7 @@ def prepare_validation_data(s2_bands: str, model_name: str):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--sentinel_bands", type=str, required=True, help="Either '10m' or '20m'")
-    parser.add_argument("--model", type=str, required=True, help="Either 'bicubic', 'srcnn', 'rrdb' or 'edsr'")
+    parser.add_argument("--model", type=str, required=True, help="Either 'bicubic', 'srcnn', 'rrdb', 'edsr' or 'esrgan'")
     args = parser.parse_args()
 
     prepare_validation_data(args.sentinel_bands, args.model)

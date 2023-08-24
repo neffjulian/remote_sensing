@@ -24,7 +24,7 @@ VALIDATE_DIR = Path(__file__).parent.parent.parent.joinpath("data", "validate")
 def create_results() -> None:
     sentinel_bands = ["10m", "20m"]
     planetscope_bands = ["4b", "8b"]
-    models = ["srcnn", "edsr", "rrdb"]
+    models = ["srcnn", "edsr", "rrdb", "esrgan", "bicubic"]
     baseline = "bicubic"
 
     header = ["s2_band", "ps_band", "month", "model", "nr_corr_coeff", "corr_coeff_baseline", 
@@ -157,15 +157,15 @@ def visualize(model: str, s2_band: str, ps_band: str):
     plt.close()
 
 def main():
-    # create_results()
-    models = ["srcnn", "edsr", "rrdb"]
-    s2_bands = ["10m", "20m"]
-    ps_bands = ["4b", "8b"]
+    create_results()
+    # models = ["esrgan"]
+    # s2_bands = ["10m", "20m"]
+    # ps_bands = ["4b", "8b"]
 
-    for model in models:
-        for s2_band in s2_bands:
-            for ps_band in ps_bands:
-                visualize(model, s2_band, ps_band)
+    # for model in models:
+    #     for s2_band in s2_bands:
+    #         for ps_band in ps_bands:
+    #             visualize(model, s2_band, ps_band)
 
     # # 10 m vs 20 m
     # for model in models:

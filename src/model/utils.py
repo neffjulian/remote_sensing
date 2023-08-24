@@ -73,46 +73,66 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
     return reconstructed_images
 
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path, ps_downsampled: bool = False, error: bool = False):
-    f, axes = plt.subplots(1, 3, figsize=(30, 10))
+    # Save Sentinel-2 Image
+    TITLE_SIZE = 20
+    AXIS_LABEL_SIZE = 18
+    COLORBAR_LABEL_SIZE = 16
+    TICK_SIZE = 15
+    plt.rc('xtick', labelsize=TICK_SIZE)
+    plt.rc('ytick', labelsize=TICK_SIZE)
 
-    # Plot for S2 image
-    ax1 = axes[0]
-    im1 = ax1.imshow(sentinel_2, cmap='viridis', vmin=0., vmax=8.)
+    index = dir.name[:4]
+
+    plt.figure(figsize=(10, 10))
     if ps_downsampled is True:
-        ax1.set_title("Downsampled + Upsampled PlanetScope Image")
+        plt.title("Downsampled + Upsampled PlanetScope Image", fontsize=TITLE_SIZE)
     else:
-        ax1.set_title('Upsampled Sentinel-2 Image')
-    ax1.set_xlabel('X')
-    ax1.set_ylabel('Y')
-    ax1.set_aspect('equal')
-    plt.colorbar(im1, ax=ax1)
+        plt.title('Upsampled Sentinel-2 Image', fontsize=TITLE_SIZE)
+    plt.imshow(sentinel_2, cmap='viridis', vmin=0., vmax=8.)
+    cbar = plt.colorbar(label=r'LAI [m$^2$ m$^{-2}$]')
+    cbar.ax.set_ylabel(r'LAI [m$^2$ m$^{-2}$]', fontsize=COLORBAR_LABEL_SIZE)
+    plt.xlabel('X', fontsize=AXIS_LABEL_SIZE)
+    plt.ylabel('Y', fontsize=AXIS_LABEL_SIZE)
+    plt.tight_layout(pad=1)
+    plt.savefig(dir.parent.joinpath(index + "_s2.png"), dpi=300)
+    plt.close()
 
-    # Plot for SR image
-    ax2 = axes[1]
-    if error is True: 
-        error = np.abs(planet_scope - super_resolved)
-        im2 = ax2.imshow(error, cmap='Reds', vmin=0., vmax=8.)
-        ax2.set_title('Error: Super-Resolved Image to original PlanetScope Image')
-    else:
-        im2 = ax2.imshow(super_resolved, cmap='viridis', vmin=0., vmax=8.)
-        ax2.set_title('Super-Resolved Image')
-    ax2.set_xlabel('X')
-    ax2.set_ylabel('Y')
-    ax2.set_aspect('equal')
-    plt.colorbar(im2, ax=ax2)
+    # Save Super-Resolved Image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(super_resolved, cmap='viridis', vmin=0., vmax=8.)
+    plt.title('Super-Resolved Image', fontsize=TITLE_SIZE)
+    cbar = plt.colorbar(label=r'LAI [m$^2$ m$^{-2}$]')
+    cbar.ax.set_ylabel(r'LAI [m$^2$ m$^{-2}$]', fontsize=COLORBAR_LABEL_SIZE)
+    plt.xlabel('X', fontsize=AXIS_LABEL_SIZE)
+    plt.ylabel('Y', fontsize=AXIS_LABEL_SIZE)
+    plt.tight_layout(pad=1)
+    plt.savefig(dir.parent.joinpath(index + "_sr.png"), dpi=300)
+    plt.close()
 
-    # Plot for PlanetScope image
-    ax3 = axes[2]
-    im3 = ax3.imshow(planet_scope, cmap='viridis', vmin=0., vmax=8.)
-    ax3.set_title('Original PlanetScope Image')
-    ax3.set_xlabel('X')
-    ax3.set_ylabel('Y')
-    ax3.set_aspect('equal')
-    plt.colorbar(im3, ax=ax3, label=r'LAI [m$^2$ m$^{-2}$]')
+    # Save PlanetScope Image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(planet_scope, cmap='viridis', vmin=0., vmax=8.)
+    plt.title('Original PlanetScope Image', fontsize=TITLE_SIZE)
+    cbar = plt.colorbar(label=r'LAI [m$^2$ m$^{-2}$]')
+    cbar.ax.set_ylabel(r'LAI [m$^2$ m$^{-2}$]', fontsize=COLORBAR_LABEL_SIZE)
+    plt.xlabel('X', fontsize=AXIS_LABEL_SIZE)
+    plt.ylabel('Y', fontsize=AXIS_LABEL_SIZE)
+    plt.tight_layout(pad=1)
+    plt.savefig(dir.parent.joinpath(index + "_ps.png"), dpi=300)
+    plt.close()
 
-    plt.tight_layout()
-    plt.savefig(dir, dpi=300)
-    plt.close(f)
+    # Save Error Image
+    plt.figure(figsize=(10, 10))
+    error_image = np.abs(planet_scope - super_resolved)
+    plt.imshow(error_image, cmap='Reds', vmin=0., vmax=4.)
+    plt.title('Error: Super-Resolved to original PlanetScope Image', fontsize=TITLE_SIZE)
+    cbar = plt.colorbar(label=r'L1 Error')
+    cbar.ax.set_ylabel(r'L1 Error', fontsize=COLORBAR_LABEL_SIZE)
+    plt.xlabel('X', fontsize=AXIS_LABEL_SIZE)
+    plt.ylabel('Y', fontsize=AXIS_LABEL_SIZE)
+    plt.tight_layout(pad=1)
+    plt.savefig(dir.parent.joinpath(index + "_er.png"), dpi=300)
+    plt.close()
 
 def visualize_output(name: str, output: list) -> None:
     lr, sr, hr, names = [], [], [], []
@@ -236,23 +256,23 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
         index = int(name)
         lai_preds.append((index, get_lai_pred(lr), get_lai_pred(sr), get_lai_pred(hr), lai[index], dates[index]))
 
-        # geo_info = GeoInfo(
-        #     epsg=s2_raster["lai"].geo_info.epsg,
-        #     ulx=s2_raster["lai"].geo_info.ulx,
-        #     uly=s2_raster["lai"].geo_info.uly,
-        #     pixres_x=10/3,
-        #     pixres_y=-10/3
-        # )
+        geo_info = GeoInfo(
+            epsg=s2_raster["lai"].geo_info.epsg,
+            ulx=s2_raster["lai"].geo_info.ulx,
+            uly=s2_raster["lai"].geo_info.uly,
+            pixres_x=10/3,
+            pixres_y=-10/3
+        )
 
-        # x, y = s2_raster["lai"].values.shape
-        # raster = RasterCollection(
-        #     band_constructor=Band,
-        #     band_name="lai",
-        #     values = cv2.resize(sr,(y * 6, x * 6), interpolation=cv2.INTER_CUBIC),
-        #     geo_info = geo_info
-        # )
+        x, y = s2_raster["lai"].values.shape
+        raster = RasterCollection(
+            band_constructor=Band,
+            band_name="lai",
+            values = cv2.resize(sr,(y * 6, x * 6), interpolation=cv2.INTER_CUBIC),
+            geo_info = geo_info
+        )
 
-        # raster.to_rasterio(path.joinpath(name + ".tif"))
+        raster.to_rasterio(path.joinpath(name + ".tif"))
 
         psnr_lr.append(psnr(lr_interp, hr))
         psnr_sr.append(psnr(sr, hr))
