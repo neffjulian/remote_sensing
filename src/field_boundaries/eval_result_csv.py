@@ -1,8 +1,29 @@
+"""
+Used for evaluating the CSV which is created after super-resolution on Sentinel-2 data. 
+
+@date: 2023-08-28
+@author: Julian Neff, ETH Zurich
+
+Copyright (C) 2023 Julian Neff
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from sklearn.metrics import r2_score
 
 results_path = Path(__file__).parent.parent.parent.joinpath("data", "validate", "results.csv")
 validate_path = Path(__file__).parent.parent.parent.joinpath("data", "validate")
@@ -10,182 +31,131 @@ processed_path = Path(__file__).parent.parent.parent.joinpath("data", "processed
 
 MONTH_MAP = {"03_mar": "Mar", "04_apr": "Apr", "05_may": "May", "06_jun": "Jun", "07_jul": "Jul", "08_aug": "Aug", "09_sep": "Sep"}
 
-def eval_fields(sentinel: str):
+def eval_fields(sentinel: str) -> None:
+    """Evaluate fields to compute various quality metrics using the specified satellite data resolution.
+
+    Args:
+        sentinel (str): The spatial resolution of the Sentinel-2 data to be used. E.g. "10m", "20m".
+
+    Outputs:
+        A CSV file containing aggregated quality metrics is saved in the specified directory.
+    """
+
+    # Assign planet bands based on sentinel bands
     if sentinel == "10m":
         planet = "8b"
     else:
         planet = "4b"
 
+    # Get list of months from the MONTH_MAP keys
     months = list(MONTH_MAP.keys())
     result = []
+
+    # Iterate through each month
     for month in months:
+        # Construct the path to the CSV file for that month
         results = validate_path.joinpath(sentinel + "_rrdb", month, planet + "_results.csv")
+
+        # Read the CSV into a DataFrame
         df = pd.read_csv(results)
         data = df.to_numpy()
-        
+
+        # Create a list of tuples with relevant data from each row
         for entry in data:
             field_name = entry[0][:4] + "_" + entry[1][:3]
             result.append((field_name, entry[2], entry[4], entry[5]))
-            
+
+    # Create a set of unique field names
     unique_fields = set([x[0] for x in result])
     mean_result = []
 
+    # Calculate the mean metrics for each unique field
     for field in unique_fields:
         field_result = [x for x in result if x[0] == field and x[3] >= 0]
+
+        # Consider only fields with exactly 7 entries
         if len(field_result) == 7:
             corr_coeff = np.mean([x[1] for x in field_result])
             psnr = np.mean([x[2] for x in field_result])
             ssim = np.mean([x[3] for x in field_result])
             score = corr_coeff * psnr * ssim
+
             mean_result.append((field, corr_coeff, psnr, ssim, score))
 
+    # Create a DataFrame and save it as a CSV
     df = pd.DataFrame(mean_result, columns=["field_id", "corr_coeff", "psnr", "ssim", "score"])
     df.to_csv(validate_path.joinpath(sentinel + "_rrdb", planet + "_results.csv"), index=False)
 
-# eval_fields("10m")
+def print_means(df: pd.DataFrame, s2: str, ps: str, model: str) -> None:
+    """Calculate and print the mean PSNR, SSIM, and Correlation Coefficient for a specific satellite band and super-resolution model.
 
-# def print_means(df: pd.DataFrame, s2: str, ps: str, model: str):
-#     df_filtered = df[(df["s2_band"] == s2) & (df["ps_band"] == ps) & (df["model"] == model)]
-#     data = df_filtered.to_numpy()
-#     psnr, ssim, corr = [], [], []
-#     for entry in data:
-#         psnr.append(entry[9])
-#         ssim.append(entry[12])
-#         corr.append(entry[6])
-#     print(s2 + " " + ps + " " + model + " (PSNR: " + str(np.mean(psnr)) + ", SSIM: " + str(np.mean(ssim)) + ", Corr: " + str(np.mean(corr)) + ")")
+    Args:
+        df (pd.DataFrame): The DataFrame containing metrics and model information.
+        s2 (str): The Sentinel-2 band specification. E.g., "10m", "20m".
+        ps (str): The PlanetScope band specification. E.g., "4b", "8b".
+        model (str): The name of the super-resolution model to evaluate. E.g., "rrdb", "srcnn".
 
-# def eval_bands(df: pd.DataFrame, model: str):
-#     df_10m_4b = df[(df["s2_band"] == "10m") & (df["ps_band"] == "8b") & (df["model"] == model)]
-#     # df_10m_4b.sort_values(by=["month"], inplace=True)
-#     data_10m_4b = df_10m_4b.to_numpy()
+    Output:
+        Prints the mean values of PSNR, SSIM, and Correlation Coefficient for the specified conditions.
+    """
 
-#     df_20m_8b = df[(df["s2_band"] == "20m") & (df["ps_band"] == "4b") & (df["model"] == model)]
-#     # df_20m_8b.sort_values(by=["month"], inplace=True)
-#     data_20m_8b = df_20m_8b.to_numpy()
-   
-#     baseline_10m_4b = df[(df["s2_band"] == "10m") & (df["ps_band"] == "8b") & (df["model"] == "bicubic")]
-#     # baseline_10m_4b.sort_values(by=["month"], inplace=True)
-#     baseline_10m_4b = baseline_10m_4b.to_numpy()
+    # Filter the DataFrame based on the specified satellite bands and super-resolution model
+    df_filtered = df[(df["s2_band"] == s2) & (df["ps_band"] == ps) & (df["model"] == model)]
 
-#     baseline_20m_8b = df[(df["s2_band"] == "20m") & (df["ps_band"] == "4b") & (df["model"] == "bicubic")]
-#     # baseline_20m_8b.sort_values(by=["month"], inplace=True)
-#     baseline_20m_8b = baseline_20m_8b.to_numpy()
+    # Convert the filtered DataFrame to a NumPy array
+    data = df_filtered.to_numpy()
 
-#     assert len(data_10m_4b) == len(data_20m_8b) == len(baseline_10m_4b) == len(baseline_20m_8b) == 7
-#     print([MONTH_MAP[x] for x in data_10m_4b[:, 2]])
-#     # Plot PSNR
-#     plt.plot([MONTH_MAP[x] for x in data_10m_4b[:, 2]], data_10m_4b[:, 6], label="S2: 10m, PS: 8b", color="red")
-#     plt.plot([MONTH_MAP[x] for x in data_20m_8b[:, 2]], data_20m_8b[:, 6], label="S2: 20m, PS: 4b", color="blue")
-#     plt.plot([MONTH_MAP[x] for x in baseline_10m_4b[:, 2]], baseline_10m_4b[:, 6], color="red", linestyle="--")
-#     plt.plot([MONTH_MAP[x] for x in baseline_20m_8b[:, 2]], baseline_20m_8b[:, 6], color="blue", linestyle="--")
+    # Initialize lists to hold the values of PSNR, SSIM, and Correlation Coefficient
+    psnr, ssim, corr = [], [], []
 
-#     plt.title("Correlation Coefficient")
-#     plt.legend()
-#     plt.show()
+    # Populate the lists with corresponding values from the data array
+    for entry in data:
+        psnr.append(entry[9])
+        ssim.append(entry[12])
+        corr.append(entry[6])
 
-# df = pd.read_csv(results_path)
-# eval_bands(df, "rrdb")
-# for model in ["rrdb"]:
-#     for s2 in ["20m", "10m"]:
-#         for ps in ["4b", "8b"]:
-#             print_means(df, s2, ps, model)
+    # Calculate and print the mean values
+    print(f"{s2} {ps} {model} (PSNR: {np.mean(psnr):.2f}, SSIM: {np.mean(ssim):.2f}, Corr: {np.mean(corr):.2f})")
 
+def eval_bands(df: pd.DataFrame, model: str) -> None:
+    """Evaluate and plot the correlation coefficient for satellite bands using different super-resolution models.
 
+    Args:
+        df (pd.DataFrame): The DataFrame containing columns 's2_band', 'ps_band', 'model', and correlation coefficients.
+        model (str): The name of the super-resolution model to evaluate. E.g. "rrdb", "srcnn".
+    """
+    
+    # Filter data for 10m and 8b bands for the specified model
+    df_10m_4b = df[(df["s2_band"] == "10m") & (df["ps_band"] == "8b") & (df["model"] == model)]
+    data_10m_4b = df_10m_4b.to_numpy()
+    
+    # Filter data for 20m and 4b bands for the specified model
+    df_20m_8b = df[(df["s2_band"] == "20m") & (df["ps_band"] == "4b") & (df["model"] == model)]
+    data_20m_8b = df_20m_8b.to_numpy()
 
+    # Filter data for 10m and 8b bands for the baseline model (bicubic)
+    baseline_10m_4b = df[(df["s2_band"] == "10m") & (df["ps_band"] == "8b") & (df["model"] == "bicubic")]
+    baseline_10m_4b = baseline_10m_4b.to_numpy()
 
-# def mean_and_std(files: list):
-#     mean = []
-#     std = []
-#     for file in files:
-#         data = np.load(file)
-#         mean.append(np.mean(data))
-#         std.append(np.std(data))
-#     return np.mean(mean), np.mean(std)
+    # Filter data for 20m and 4b bands for the baseline model (bicubic)
+    baseline_20m_8b = df[(df["s2_band"] == "20m") & (df["ps_band"] == "4b") & (df["model"] == "bicubic")]
+    baseline_20m_8b = baseline_20m_8b.to_numpy()
 
+    # Ensure all filtered datasets have the same length
+    assert len(data_10m_4b) == len(data_20m_8b) == len(baseline_10m_4b) == len(baseline_20m_8b) == 7
 
-# INDICES = ['0000', '0001', '0002', '0003', '0004', '0006', '0008', '0011', '0012', '0023', '0025', '0026', '0028', '0029', '0031', '0032', '0033', '0034', '0035', '0036', '0037', '0038', '0040', '0046']
+    # Debug print to show months considered in the plot
+    print([MONTH_MAP[x] for x in data_10m_4b[:, 2]])
 
-# files = [processed for processed in processed_path.iterdir()]
-# print(len(files))
-# # files = [filename for filename in files if filename.name[3:7] not in INDICES]
+    # Plot the correlation coefficients
+    plt.plot([MONTH_MAP[x] for x in data_10m_4b[:, 2]], data_10m_4b[:, 6], label="S2: 10m, PS: 8b", color="red")
+    plt.plot([MONTH_MAP[x] for x in data_20m_8b[:, 2]], data_20m_8b[:, 6], label="S2: 20m, PS: 4b", color="blue")
+    plt.plot([MONTH_MAP[x] for x in baseline_10m_4b[:, 2]], baseline_10m_4b[:, 6], color="red", linestyle="--")
+    plt.plot([MONTH_MAP[x] for x in baseline_20m_8b[:, 2]], baseline_20m_8b[:, 6], color="blue", linestyle="--")
 
+    # Add title and legend to the plot
+    plt.title("Correlation Coefficient")
+    plt.legend()
 
-# mar = [filename for filename in files if filename.name[:2] == "03"]
-# mean, std = mean_and_std(mar)
-# print("March:", mean, std)
-
-# apr = [filename for filename in files if filename.name[:2] == "04"]
-# mean, std = mean_and_std(apr)
-# print("April:", mean, std)
-
-# may = [filename for filename in files if filename.name[:2] == "05"]
-# mean, std = mean_and_std(may)
-# print("May:", mean, std)
-
-# jun = [filename for filename in files if filename.name[:2] == "06"]
-# mean, std = mean_and_std(jun)
-# print("June:", mean, std)
-
-# jul = [filename for filename in files if filename.name[:2] == "07"]
-# mean, std = mean_and_std(jul)
-# print("July:", mean, std)
-
-# aug = [filename for filename in files if filename.name[:2] == "08"]
-# mean, std = mean_and_std(aug)
-# print("August:", mean, std)
-
-# sep = [filename for filename in files if filename.name[:2] == "09"]
-# mean, std = mean_and_std(sep)
-# print("September:", mean, std)
-
-# print_means(df, "10m", "4b", "rrdb")
-# print(df.shape)
-# df_filtered = df[(df["s2_band"] == "10m") & (df["ps_band"] == "4b") & (df["model"] == "rrdb")]
-# df_filtered2 = df[(df["s2_band"] == "10m") & (df["ps_band"] == "8b") & (df["model"] == "rrdb")]
-
-
-# data1 = df_filtered.to_numpy()
-# data2 = df_filtered2.to_numpy()
-# # SSIM: data[x][12]
-# # PSNR: data[x][9]
-# # Corr Coeff: data[x][6]
-# print(data1[1][6])
-
-
-# csv_path = Path(__file__).parent.parent.parent.joinpath("data", "results", "20m_ESRGAN_2023_08_21_11_17", "lai_preds.csv")
-
-# df = pd.read_csv(csv_path, index_col=0)
-# data = df.to_numpy()
-# data = data[:-2]
-# lai_lr = data[:, 0]
-# lai_sr = data[:, 1]
-# lai_hr = data[:, 2]
-# lai_in_situ = data[:, 3]
-
-# diff_lr = np.abs(lai_lr - lai_in_situ)
-# diff_sr = np.abs(lai_sr - lai_in_situ)
-# diff_hr = np.abs(lai_hr - lai_in_situ)
-
-# l1_lr = np.mean(diff_lr)
-# l1_sr = np.mean(diff_sr)
-# l1_hr = np.mean(diff_hr)
-
-# sq_lr = np.square(diff_lr)
-# sq_sr = np.square(diff_sr)
-# sq_hr = np.square(diff_hr)
-
-# mean_lr = np.mean(sq_lr)
-# mean_sr = np.mean(sq_sr)
-# mean_hr = np.mean(sq_hr)
-
-# root_lr = np.sqrt(mean_lr)
-# root_sr = np.sqrt(mean_sr)
-# root_hr = np.sqrt(mean_hr)
-
-# r2_lr = r2_score(lai_in_situ, lai_lr)
-# r2_sr = r2_score(lai_in_situ, lai_sr)
-# r2_hr = r2_score(lai_in_situ, lai_hr)
-
-# print("L1:", "LR:", l1_lr, "SR:", l1_sr, "HR:", l1_hr)
-# print("RMSE:", "LR:", root_lr, "SR:", root_sr, "HR:", root_hr)
-# print("R2:", "LR:", r2_lr, "SR:", r2_sr, "HR:", r2_hr)
+    # Show the plot
+    plt.show()

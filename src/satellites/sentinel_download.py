@@ -213,13 +213,8 @@ def download_sentinel_data(coordinate_file: str, year: str, month: str) -> None:
     print(f"In total {len(errors)} errors occured. Namely {errors}")
 
 def download_eschikon() -> None:
-    """Download Eschikon data with available in-situ measurements
+    """Download Eschikon data with available in-situ measurements."""
 
-    Args:
-        coordinate_file (str): The path to the coordinate file.
-        year (str): The year. E.g. "2022"
-        month (str): The month. E.g. "aug"
-    """
     field_dir = DATA_DIR.parent.parent.joinpath("fields", "sentinel")
     data_dir = field_dir.joinpath("data")
     metadata_dir = field_dir.joinpath("metadata")

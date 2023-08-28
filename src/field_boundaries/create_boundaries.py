@@ -1,11 +1,34 @@
-# Code directly copied and minorly adopted from https://github.com/lukasValentin/field_boundaries/blob/master/src/field_bounaries.py
+"""
+Generates Areas of Interest (AOI) based on Green Leaf Area Index (GLAI) rasters from the LAI4SR project. 
+Intended for validating super-resolved GLAI products like those from Sentinel-2.
+
+Note: Code directly copied and minorly adopted from https://github.com/lukasValentin/field_boundaries/blob/master/src/field_bounaries.py
+
+@date: 2023-08-28
+@author: Julian Neff, ETH Zurich
+
+Copyright (C) 2023 Julian Neff
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import warnings
+import argparse
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
-import warnings
-import argparse
-
 from copy import deepcopy
 from eodal.core.band import Band
 from matplotlib_scalebar.scalebar import ScaleBar
