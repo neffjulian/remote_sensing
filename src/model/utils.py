@@ -17,14 +17,17 @@ import geopandas as gpd
 from datetime import datetime
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 RESULT_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'results')
 FILTER_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'filtered')
 FIELD_DATA = Path(__file__).parent.parent.parent.joinpath('data', 'coordinates', 'field_data.csv')
 IN_SITU = Path(__file__).parent.parent.parent.joinpath('data', 'coordinates', 'in-situ_glai.gpkg')
 
+# Peak Signal to Noise Ratio
 def psnr(x, y):
     return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
 
+# Transform model output into 4x4 grid
 def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
     reconstructed_images = []
     name = model_output[0][3][:-2]
@@ -72,6 +75,7 @@ def transform_model_output(model_output: list, s2: bool) -> list[np.ndarray]:
     reconstructed_images.append((image_s2, image_sr, image_ps, name))
     return reconstructed_images
 
+# Save output visualization as png
 def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray, planet_scope: np.ndarray, dir: Path, ps_downsampled: bool = False, error: bool = False):
     # Save Sentinel-2 Image
     TITLE_SIZE = 20
@@ -134,6 +138,7 @@ def save_output_visualization(sentinel_2: np.ndarray, super_resolved: np.ndarray
     plt.savefig(dir.parent.joinpath(index + "_er.png"), dpi=300)
     plt.close()
 
+# Visualize model output
 def visualize_output(name: str, output: list) -> None:
     lr, sr, hr, names = [], [], [], []
     for out in output:
@@ -203,11 +208,13 @@ def visualize_output(name: str, output: list) -> None:
     print("LR-HR PSNR:", lh_psnr, " SR-HR PSNR:", sh_psnr, " (", change_psnr,"%) |", \
             "LR-HR SSIM:", lh_ssim, " SR-HR SSIM:", sh_ssim, " (", change_ssim,"%)")
 
+# Function used before training
 def report_gpu():
    print(torch.cuda.list_gpu_processes())
    gc.collect()
    torch.cuda.empty_cache()
 
+# Collect in-situ data
 def get_in_situ(ps_bands: str, s2_bands: str):
     ps_in_situ = FILTER_DIR.joinpath("in_situ", "planetscope_in_situ", "2022", "03_mar", "lai")
     s2_in_situ = FILTER_DIR.joinpath("in_situ", "sentinel_in_situ", "2022", "03_mar", "lai")
@@ -229,6 +236,7 @@ def get_in_situ(ps_bands: str, s2_bands: str):
                 data.append((s2_file_interp, ps_file_interp, s2_raster, file.name[:4]))
     return data
 
+# Given image returns the pixel value at the center pixel
 def get_lai_pred(mat: np.ndarray):
     if mat.shape == (75, 75):
         return mat[37,37]
@@ -239,6 +247,7 @@ def get_lai_pred(mat: np.ndarray):
     else:
         raise Exception("Invalid shape: ", mat.shape)
 
+# Visualize in-situ data
 def visualize_in_situ(results: tuple, experiment_name: str) -> None:
     field_data = pd.read_csv(FIELD_DATA)
     lai = field_data["lai"].values
@@ -289,6 +298,7 @@ def visualize_in_situ(results: tuple, experiment_name: str) -> None:
     df.to_csv(csv_path, index=False)
     # calculate_lai_error(csv_path)
 
+# Visualizes a sample
 def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_name: str, ps_downsampled: bool, raster: RasterCollection) -> None:
     path = RESULT_DIR.joinpath(experiment_name)
     path.mkdir(parents=True, exist_ok=True)
@@ -327,6 +337,7 @@ def visualize_sample(lr_tiles: list, sr_tiles: list, hr_tiles: list, experiment_
     )
     raster.to_rasterio(path.joinpath(file_name + ".tif"))
 
+# Calculates the LAI error given a csv file with predictions
 def calculate_lai_error(csv_path: Path):
     df = pd.read_csv(csv_path, index_col=0)
     data = df.to_numpy()
@@ -363,6 +374,7 @@ def calculate_lai_error(csv_path: Path):
     print("RMSE:", "LR:", root_lr, "SR:", root_sr, "HR:", root_hr)
     print("R2:", "LR:", r2_lr, "SR:", r2_sr, "HR:", r2_hr)
 
+# Creates 4x4 grid from image
 def create_tiles(data: np.ndarray) -> list[np.ndarray]:
     x, y = data.shape
     x, y = x // 4, y // 4
@@ -373,6 +385,7 @@ def create_tiles(data: np.ndarray) -> list[np.ndarray]:
             tiles.append(data[i * x: (i + 1) * x, j * y: (j + 1) * y])
     return tiles
 
+# Gets a sample from the dataset
 def get_sample(ps_bands: str, s2_bands: str):
     ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", f"0023_lai_{ps_bands}ands.tif")
     s2_fileloc = FILTER_DIR.joinpath("sentinel", "2022", "06_jun", "lai", f"0023_scene_{s2_bands}_lai.tif")
@@ -388,6 +401,7 @@ def get_sample(ps_bands: str, s2_bands: str):
 
     return s2_tiles, ps_tiles, RasterCollection.from_multi_band_raster(s2_fileloc)
 
+# Gets a PlanetScope sample from the dataset
 def get_ps_sample(ps_bands: str):
     ps_fileloc = FILTER_DIR.joinpath("planetscope", "2022", "06_jun", "lai", f"0023_lai_{ps_bands}ands.tif")
     ps_file = np.nan_to_num(RasterCollection.from_multi_band_raster(ps_fileloc)["lai"].values)
@@ -397,6 +411,7 @@ def get_ps_sample(ps_bands: str):
     lr_tiles = create_tiles(lr_file_interp)
     return lr_tiles, ps_tiles, RasterCollection.from_multi_band_raster(ps_fileloc)
 
+# Makes a plot from given CSV
 def make_plot_from_csv(lai_preds: np.ndarray):
     preds = lai_preds[:-1]
     dates = [datetime.strptime(date, "%Y-%m-%d %H:%M:%S") for date in preds['date']]

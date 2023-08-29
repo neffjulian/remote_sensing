@@ -1,19 +1,24 @@
-from math import log10, sqrt
 from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 
 DATA_DIR = Path(__file__).parent.parent.parent.joinpath('data', 'processed')
 
-def psnr(x, y):
-    return 20 * log10(8. / sqrt(np.mean((x - y) ** 2)))
-
 class SRDataset(Dataset):
+    """
+    A PyTorch Dataset for loading low and high resolution satellite images.
+    """
     def __init__(self, hparams: dict, files: list[str]) -> None:
+        """
+        Args:
+        hparams: dict
+            A dictionary of hyperparameters.
+        files: list of str
+            A list of filenames to load.
+        """
         super().__init__()
         
         planetscope_dir = DATA_DIR.joinpath(hparams["planetscope_bands"])
@@ -26,12 +31,26 @@ class SRDataset(Dataset):
         print(f"Dataset size: {len(self.planetscope_files) * 8 if self.augment else len(self.planetscope_files)}")
 
     def __len__(self):
+        """
+        Returns the number of examples in the dataset.
+        """
         if not self.augment:
             return len(self.planetscope_files)
         else:
             return len(self.planetscope_files) * 8
     
     def __getitem__(self, idx):
+        """
+        Loads and returns a single example from the dataset.
+        
+        Args:
+        idx: int
+            The index of the example to load.
+            
+        Returns:
+        tuple of torch.Tensors
+            The low and high resolution images.
+        """
         if self.augment:
             index = idx // 8
             flip = idx % 8 >= 4
@@ -48,7 +67,15 @@ class SRDataset(Dataset):
         return planetscope_lr_file.unsqueeze(0), planetscope_file.unsqueeze(0)
 
 class SRDataModule(pl.LightningDataModule):
+    """
+    A PyTorch Lightning DataModule for loading and processing the satellite images dataset.
+    """
     def __init__(self, hparams: dict):
+        """
+        Args:
+        hparams: dict
+            A dictionary of hyperparameters.
+        """
         super().__init__()
         self.params = hparams
         self.batch_size = hparams["datamodule"]["batch_size"]
@@ -71,11 +98,24 @@ class SRDataModule(pl.LightningDataModule):
         print(f"Test set size: {len(test_files)}, {len(test_files) / len(self.files) * 100}%")
 
     def setup(self, stage=None):
-            self.train_dataset = SRDataset(self.params, self.train_set)
-            self.val_dataset = SRDataset(self.params, self.val_set)
+        """
+        Sets up the dataset for training and validation.
+        
+        Args:
+        stage: str or None
+            The current stage of training ('train', 'val', 'test', or None). Not used here.
+        """
+        self.train_dataset = SRDataset(self.params, self.train_set)
+        self.val_dataset = SRDataset(self.params, self.val_set)
 
     def train_dataloader(self):
+        """
+        Returns a DataLoader for the training dataset.
+        """
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=16, pin_memory=True, persistent_workers=True)
 
     def val_dataloader(self):
+        """
+        Returns a DataLoader for the validation dataset.
+        """
         return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=16, pin_memory=True, persistent_workers=True)

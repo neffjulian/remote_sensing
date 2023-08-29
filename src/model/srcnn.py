@@ -17,17 +17,22 @@ if torch.cuda.is_available():
 def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
+# SRCNN (Super-Resolution Convolutional Neural Network) implemented as a PyTorch Lightning Module
 class SRCNN(LightningModule):
+    # Initialize the model
     def __init__(self, hparams: dict):
         super().__init__()
 
+        # Get hyperparameters
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
         first_channel_size = hparams["model"]["channels"]
 
+        # Compute the size of the second convolutional layer channels
         second_channel_size = first_channel_size // 2
-        output_size = (150, 150)
+        output_size = (150, 150)  # Output image size
 
+        # Define the neural network architecture
         self.model = nn.Sequential(
             nn.Upsample(size=output_size, mode="bicubic"),
             nn.ReplicationPad2d(4),
@@ -40,19 +45,23 @@ class SRCNN(LightningModule):
             nn.Conv2d(second_channel_size, 1, kernel_size=5)
         )
 
+        # Define SSIM (Structural Similarity Index Measure) metric
         self.ssim = StructuralSimilarityIndexMeasure(data_range=8.0)
 
+        # Initialize the weights and biases
         for module in self.model.modules():
             if isinstance(module, nn.Conv2d):
                 torch.nn.init.normal_(module.weight, mean=0, std=0.001)
                 if module.bias is not None:
                     module.bias.data.zero_()
 
+    # Forward pass
     def forward(self, x):
         mean = torch.mean(x)
         std = torch.std(x)
         return self.model((x - mean) / std) * std + mean
     
+    # Configure the optimizer and the learning rate scheduler
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
         return {
@@ -68,22 +77,28 @@ class SRCNN(LightningModule):
             }
         }
 
+    # Shared logic for training and validation steps
     def shared_step(self, batch, stage):
         lr_image, hr_image = batch
         sr_image = self.forward(lr_image)
         mse_loss = F.mse_loss(sr_image, hr_image)
-        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)        
+        self.log(f"{stage}_mse_loss", mse_loss, sync_dist=True)
+        
+        # Log validation-specific metrics
         if stage == "val":
             self.log(f"{stage}_psnr", psnr(mse_loss), sync_dist=True)
             self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
         return mse_loss
 
+    # Training step
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")
 
+    # Validation step
     def validation_step(self, batch, batch_idx):
         self.shared_step(batch, "val")
 
+    # Prediction step
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)

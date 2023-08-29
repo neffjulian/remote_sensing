@@ -18,6 +18,8 @@ def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class ResidualBlock(nn.Module):
+    """A basic Residual Block used in EDSR."""
+
     def __init__(self, channels: int):
         super().__init__()
 
@@ -33,6 +35,10 @@ class ResidualBlock(nn.Module):
         return x + self.block(x) * 0.1
 
 class EDSR(LightningModule):
+    """
+    EDSR model for image super-resolution.
+    """
+
     def __init__(self, hparams: dict):
         super().__init__()
 
@@ -70,6 +76,8 @@ class EDSR(LightningModule):
                     module.bias.data.zero_()
 
     def forward(self, x):
+        """Forward pass for the EDSR model."""
+
         mean = torch.mean(x)
         std = torch.std(x)
         x_hat = self.input_layer((x - mean) / std)
@@ -78,6 +86,8 @@ class EDSR(LightningModule):
         return self.output_layer(x_hat) * std + mean
     
     def configure_optimizers(self):
+        """Set up the optimizer and learning rate scheduler."""
+
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return {
             'optimizer': optimizer,
@@ -92,6 +102,8 @@ class EDSR(LightningModule):
         }
 
     def shared_step(self, batch, stage):
+        """Shared logic for training and validation steps."""
+
         lr_image, hr_image = batch
         sr_image = self.forward(lr_image)
         l1_loss = F.l1_loss(sr_image, hr_image)
@@ -103,12 +115,18 @@ class EDSR(LightningModule):
         return l1_loss
 
     def training_step(self, batch, batch_idx):
+        """Training step logic."""
+
         return self.shared_step(batch, "train")
 
     def validation_step(self, batch, batch_idx):
+        """Validation step logic."""
+
         self.shared_step(batch, "val")
 
     def predict_step(self, batch, batch_idx):
+        """Prediction logic for a single batch."""
+        
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)
         lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')

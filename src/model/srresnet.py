@@ -18,22 +18,70 @@ def psnr(mse):
     return 20 * torch.log10(8. / torch.sqrt(mse))
 
 class ResidualBlock(nn.Sequential):
+    """
+    Residual block module.
+
+    Args:
+        channels (int): Number of input and output channels.
+
+    Returns:
+        torch.Tensor: Output tensor with the same shape as the input tensor.
+    """
+
     def __init__(self, channels: int):
+        """
+        Initializes the ResidualBlock module.
+
+        Args:
+            channels (int): Number of input and output channels.
+        """
         super(ResidualBlock, self).__init__()
 
+        # Create a block containing a convolution layer, batch normalization, and PReLU activation
         self.block = nn.Sequential(
             nn.Conv2d(channels, channels, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.BatchNorm2d(channels),
             nn.PReLU()
-        )        
+        )
 
     def forward(self, x):
+        """
+        Forward pass of the ResidualBlock module.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor with the same shape as the input tensor.
+        """
+        # Add the output of the block to the input tensor
         return self.block(x) + x
 
 class SRResNet(LightningModule):
+    # Docstring:
+    """
+    Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network (2017) by Ledig et al.
+
+    Paper: https://arxiv.org/abs/1609.04802
+
+    Attributes:
+        batch_size (int): Batch size.
+        lr (float): Learning rate.
+        scheduler_step (int): Number of epochs before reducing the learning rate.
+        ssim (torchmetrics.SSIM): Structural Similarity Index Measure.
+        channels (int): Number of channels in the input image.
+        nr_blocks (int): Number of residual blocks.
+        mse (torch.nn.MSELoss): Mean Squared Error loss.
+        input_layer (torch.nn.Sequential): Input layer.
+        body (torch.nn.Sequential): Body of the network.
+        last_layer (torch.nn.Sequential): Last layer of the network.
+        output_layer (torch.nn.Sequential): Output layer.
+    """
+
     def __init__(self, hparams: dict):
         super().__init__()
 
+        # Save hyperparameters
         self.batch_size = hparams["model"]["batch_size"]
         self.lr = hparams["optimizer"]["lr"]
         self.scheduler_step = hparams["optimizer"]["scheduler_step"]
@@ -43,25 +91,30 @@ class SRResNet(LightningModule):
         self.nr_blocks = hparams["model"]["blocks"]
         self.mse = nn.MSELoss()
         
+        # Create the network
         self.input_layer = nn.Sequential(
             nn.Conv2d(1, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PReLU()
         )
         
+        # Create the body of the network
         blocks = [ResidualBlock(self.channels)] * self.nr_blocks
         self.body = nn.Sequential(*blocks)
 
+        # Create the last layer of the network
         self.last_layer = nn.Sequential(
             nn.Conv2d(self.channels, self.channels * 4, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.PReLU(),
             nn.Conv2d(self.channels * 4, self.channels, kernel_size=3, padding=1, padding_mode="replicate"),
         )
 
+        # Create the output layer of the network
         self.output_layer = nn.Sequential(
             nn.Conv2d(self.channels, 1, kernel_size=3, padding=1, padding_mode="replicate"),
             nn.LeakyReLU(0.2)
         )
 
+    # Forward pass of the network
     def forward(self, x):
         mean = torch.mean(x)
         std = torch.std(x)
@@ -70,6 +123,7 @@ class SRResNet(LightningModule):
 
         return self.output_layer(x_hat + self.last_layer(x_body)) * std + mean
     
+    # Configure the optimizer
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return {
@@ -83,6 +137,7 @@ class SRResNet(LightningModule):
             }
         }
 
+    # Shared step between training and validation
     def shared_step(self, batch, stage):
         lr_image, hr_image = batch
         sr_image = self.forward(lr_image)
@@ -94,12 +149,15 @@ class SRResNet(LightningModule):
             self.log(f"{stage}_ssim", self.ssim(sr_image, hr_image), sync_dist=True)
         return l1_loss
 
+    # Training Step: Performed during each epoch of the training process.
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, "train")
 
+    # Validation Step: Performed during model validation.
     def validation_step(self, batch, batch_idx):
         self.shared_step(batch, "val")
 
+    # Predict Step: Used for generating super-resolved images for a given batch.
     def predict_step(self, batch, batch_idx):
         lr_image, hr_image, names = batch
         sr_image = self.forward(lr_image)
