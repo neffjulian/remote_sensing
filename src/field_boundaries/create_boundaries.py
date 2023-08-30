@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import warnings
 import argparse
+from pathlib import Path
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -32,7 +33,6 @@ import pandas as pd
 from copy import deepcopy
 from eodal.core.band import Band
 from matplotlib_scalebar.scalebar import ScaleBar
-from pathlib import Path
 from shapely.geometry import Polygon
 
 warnings.filterwarnings('ignore')

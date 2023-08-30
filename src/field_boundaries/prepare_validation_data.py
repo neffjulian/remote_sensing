@@ -22,12 +22,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 import sys
+from pathlib import Path
 
 import cv2
 import yaml
 import numpy as np
 import torch
-from pathlib import Path
 from eodal.core.raster import RasterCollection
 from eodal.core.band import Band, GeoInfo
 

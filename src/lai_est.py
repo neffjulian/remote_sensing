@@ -1,3 +1,27 @@
+"""
+This script is used to calculate the LAI estimation errors for the in-situ data.
+The errors are calculated for each month and for all months combined.
+The results are written to a csv file.
+
+@date: 2023-08-30
+@author: Julian Neff, ETH Zurich
+
+Copyright (C) 2023 Julian Neff
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -23,10 +47,22 @@ models = (("RRDB_10", pd.read_csv(rrdb_10_path)),
             ("RRDB_20", pd.read_csv(rrdb_20_path))
 )
 
-def calculate_errors(list: np.ndarray, month: str, name: str):
+def calculate_errors(list: np.ndarray, month: str, name: str) -> None:
+    """
+    Calculates the mean absolute error, root mean squared error, and R2 score for a given list of predictions.
+    The results are written to a csv file.
+
+    Args:
+        list (np.ndarray): The list of predictions.
+        month (str): The month of the predictions.
+        name (str): The name of the model.
+    """
+
+    # Initialize lists for errors
     s2_error, sr_error, hr_error = [], [], []
     model, res = name.split("_")
 
+    # Calculate errors
     for pred in list:
         s2_error.append(abs(pred[1] - pred[4]))
         sr_error.append(abs(pred[2] - pred[4]))
@@ -57,7 +93,15 @@ def calculate_errors(list: np.ndarray, month: str, name: str):
         f.write(f"{model},{res},{month},{s2_mae},{sr_mae},{hr_mae},{s2_rmse},{sr_rmse},{hr_rmse},{s2_r2},{sr_r2},{hr_r2}\n")
         f.close()
 
-def eval(name, preds):
+def eval(name: str, preds: pd.DataFrame) -> None:
+    """
+    Evaluates the predictions for a given model.
+
+    Args:
+        name (str): The name of the model.
+        preds (pd.DataFrame): The predictions.
+    """
+
     print("Eval: ", name)
     # to numpy
     preds = preds.to_numpy()
@@ -82,7 +126,6 @@ def eval(name, preds):
     calculate_errors(np.array(apr), "April", name)
     calculate_errors(np.array(may), "May", name)
     calculate_errors(np.array(jun), "June", name)
-
 
 def main():
     # Create eval csv and add header
